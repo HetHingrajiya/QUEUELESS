@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { User, UserRole } from '@/models/User';
 import bcrypt from 'bcryptjs';
+import { getUserFromCookie } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
     await dbConnect();
     
-    // Auth Check
-    const userRole = request.headers.get('x-user-role');
-    if (userRole !== 'SUPER_ADMIN') {
+    // Auth Check using JWT
+    const currentUser = await getUserFromCookie();
+    if (!currentUser || currentUser.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

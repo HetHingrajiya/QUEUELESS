@@ -53,12 +53,8 @@ export default async function OrganizationsPage() {
                       {org.type || 'Government'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                        org.status === 'ACTIVE' 
-                          ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
-                          : 'bg-red-100 text-red-700 border-red-200'
-                      }`}>
-                        {org.status || 'ACTIVE'}
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
+                        ACTIVE
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-500">
@@ -66,7 +62,7 @@ export default async function OrganizationsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
-                        <Link href={`/super-admin/organizations/${org._id}/edit`}>
+                        <Link href={`/super-admin/organizations/${org._id.toString()}/edit`}>
                           <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
                             <Edit size={14} className="text-slate-600" />
                           </Button>

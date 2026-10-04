@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { OrganizationType } from '@/models/OrganizationType';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const type = await OrganizationType.findById(params.id);
+    const resolvedParams = await params;
+    const type = await OrganizationType.findById(resolvedParams.id);
     if (!type) {
       return NextResponse.json({ success: false, message: 'Organization Type not found' }, { status: 404 });
     }
@@ -15,11 +16,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
+    const resolvedParams = await params;
     const body = await request.json();
-    const type = await OrganizationType.findByIdAndUpdate(params.id, body, { new: true, runValidators: true });
+    const type = await OrganizationType.findByIdAndUpdate(resolvedParams.id, body, { new: true, runValidators: true });
     
     if (!type) {
       return NextResponse.json({ success: false, message: 'Organization Type not found' }, { status: 404 });
@@ -34,10 +36,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const type = await OrganizationType.findByIdAndDelete(params.id);
+    const resolvedParams = await params;
+    const type = await OrganizationType.findByIdAndDelete(resolvedParams.id);
     
     if (!type) {
       return NextResponse.json({ success: false, message: 'Organization Type not found' }, { status: 404 });

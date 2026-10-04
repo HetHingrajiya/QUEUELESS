@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
-import { getUserFromCookie } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
@@ -17,9 +16,9 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     
-    // Auth Check from cookie
-    const user = await getUserFromCookie();
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    // Auth Check from headers set by middleware
+    const userRole = request.headers.get('x-user-role');
+    if (userRole !== 'SUPER_ADMIN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
