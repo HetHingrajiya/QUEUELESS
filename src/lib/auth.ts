@@ -2,7 +2,10 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import * as jose from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_replace_me_in_production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 interface TokenPayload {
   userId: string;

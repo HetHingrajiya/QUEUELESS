@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
+import { DeleteButton } from '@/components/DeleteButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -63,9 +64,7 @@ export default async function AdminOfficesPage() {
                             <Edit size={14} className="text-slate-600" />
                           </Button>
                         </Link>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 border-red-200" title="Delete">
-                          <Trash2 size={14} />
-                        </Button>
+                        <DeleteButton url={`/api/offices/${office._id}`} entityName="Office" />
                       </div>
                     </td>
                   </tr>

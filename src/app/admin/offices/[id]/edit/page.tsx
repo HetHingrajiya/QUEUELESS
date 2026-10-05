@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 const officeSchema = z.object({
@@ -24,20 +24,27 @@ const officeSchema = z.object({
 
 type OfficeFormValues = z.infer<typeof officeSchema>;
 
-export default function AdminEditOffice({ params }: { params: Promise<{ id: string }> }) {
+export default function AdminEditOffice({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  
-  const { id } = use(params);
+  const [orgId, setOrgId] = useState<string>('');
+  const { id } = params;
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<OfficeFormValues>({
     resolver: zodResolver(officeSchema),
   });
 
   useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data.user.organizationId) {
+          setOrgId(data.data.user.organizationId);
+        }
+      })
+      .catch(console.error);
+      
     fetch(`/api/offices/${id}`)
       .then(res => res.json())
       .then(data => {
@@ -48,25 +55,32 @@ export default function AdminEditOffice({ params }: { params: Promise<{ id: stri
             address: data.data.address,
             city: data.data.city,
             state: data.data.state,
-            pincode: data.data.pincode
+            pincode: data.data.pincode,
           });
-        } else {
-          setError('Failed to fetch office details');
         }
       })
-      .catch(console.error)
-      .finally(() => setFetching(false));
+      .catch(console.error);
   }, [id, reset]);
 
   const onSubmit = async (data: OfficeFormValues) => {
+    if (!orgId) {
+      setError('Organization not found for your account.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     
     try {
+      const payload = {
+        ...data,
+        organizationId: orgId
+      };
+
       const res = await fetch(`/api/offices/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       
       const result = await res.json();
@@ -84,57 +98,19 @@ export default function AdminEditOffice({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this office?')) return;
-    
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/offices/${id}`, {
-        method: 'DELETE',
-      });
-      
-      const result = await res.json();
-      
-      if (result.success) {
-        router.push('/admin/offices');
-        router.refresh();
-      } else {
-        setError(result.message || 'Failed to delete office');
-        setIsDeleting(false);
-      }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-      setIsDeleting(false);
-    }
-  };
-
-  if (fetching) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Link href="/admin/offices" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-            <ArrowLeft size={20} />
-          </Link>
-          <h2 className="text-2xl font-bold text-slate-800">Edit Office</h2>
-        </div>
-        <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isDeleting}>
-          {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 size={16} className="mr-2" />}
-          Delete Office
-        </Button>
+      <div className="flex items-center mb-6">
+        <Link href="/admin/offices" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+          <ArrowLeft size={20} />
+        </Link>
+        <h2 className="text-2xl font-bold text-slate-800">Edit Office</h2>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Office Details</CardTitle>
-          <CardDescription>Update configuration for this office branch.</CardDescription>
+          <CardDescription>Update your office branch details.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }}>
@@ -196,8 +172,8 @@ export default function AdminEditOffice({ params }: { params: Promise<{ id: stri
               <Link href="/admin/offices">
                 <Button variant="outline" type="button">Cancel</Button>
               </Link>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : <><Save size={16} className="mr-2" /> Save Changes</>}
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading || !orgId}>
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Update Office'}
               </Button>
             </div>
           </form>

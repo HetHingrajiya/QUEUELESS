@@ -100,6 +100,18 @@ export async function POST(request: Request) {
       queuePosition: waitingTokensCount + 1,
     });
 
+    const { createAuditLog } = await import('@/lib/auditLogger');
+    await createAuditLog({
+      action: 'CREATE',
+      module: 'Queue',
+      description: `Token ${tokenNumber} generated for citizen ${userId}`,
+      entityType: 'Token',
+      entityId: newToken._id.toString(),
+      newData: newToken.toObject(),
+      status: 'SUCCESS',
+      request,
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Token generated successfully',

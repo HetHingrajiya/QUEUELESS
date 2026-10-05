@@ -24,6 +24,9 @@ export default function AuditLogsPage() {
   const [endDate, setEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  const [role, setRole] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
@@ -38,6 +41,8 @@ export default function AuditLogsPage() {
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(action && action !== 'ALL' && { action }),
         ...(moduleFilter && moduleFilter !== 'ALL' && { module: moduleFilter }),
+        ...(role && role !== 'ALL' && { role }),
+        ...(statusFilter && statusFilter !== 'ALL' && { status: statusFilter }),
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
       });
@@ -57,7 +62,7 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [page, debouncedSearch, action, moduleFilter, startDate, endDate]);
+  }, [page, debouncedSearch, action, moduleFilter, role, statusFilter, startDate, endDate]);
 
   const getActionColor = (act: string) => {
     if (act.includes('CREATE')) return 'bg-blue-50 text-blue-700';
@@ -118,7 +123,7 @@ export default function AuditLogsPage() {
           </div>
 
           {showFilters && (
-            <div className="mt-4 pt-4 border-t flex space-x-4">
+            <div className="mt-4 pt-4 border-t flex flex-wrap gap-4">
               <div className="w-48">
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">Action</label>
                 <Select value={action} onValueChange={(v) => { setAction(v); setPage(1); }}>
@@ -146,8 +151,32 @@ export default function AuditLogsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="w-48">
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Role</label>
+                <Select value={role} onValueChange={(v) => { setRole(v); setPage(1); }}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="All Roles" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Roles</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">SUPER_ADMIN</SelectItem>
+                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                    <SelectItem value="STAFF">STAFF</SelectItem>
+                    <SelectItem value="CITIZEN">CITIZEN</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-48">
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Status</label>
+                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="All Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Status</SelectItem>
+                    <SelectItem value="SUCCESS">SUCCESS</SelectItem>
+                    <SelectItem value="FAILED">FAILED</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-end">
-                <Button variant="ghost" onClick={() => { setAction(''); setModuleFilter(''); setStartDate(''); setEndDate(''); setPage(1); }} className="text-slate-500">
+                <Button variant="ghost" onClick={() => { setAction(''); setModuleFilter(''); setRole(''); setStatusFilter(''); setStartDate(''); setEndDate(''); setPage(1); }} className="text-slate-500">
                   Clear Filters
                 </Button>
               </div>

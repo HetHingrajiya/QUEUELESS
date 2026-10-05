@@ -6,6 +6,7 @@ import { User, UserRole } from '@/models/User';
 import { getUserFromCookie } from '@/lib/auth';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { DeleteButton } from '@/components/DeleteButton';
 
 async function getStaff(orgId: string) {
   await dbConnect();
@@ -61,9 +62,7 @@ export default async function AdminStaffPage() {
                             <Edit size={14} className="text-slate-600" />
                           </Button>
                         </Link>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 border-red-200" title="Delete">
-                          <Trash2 size={14} />
-                        </Button>
+                        <DeleteButton url={`/api/staff/${staff._id}`} entityName="Staff" />
                       </div>
                     </td>
                   </tr>

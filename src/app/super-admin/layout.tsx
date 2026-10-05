@@ -35,8 +35,17 @@ const sidebarItems = [
   { name: 'Staff', href: '/super-admin/staff', icon: <Users size={20} /> },
   { 
     name: 'Queue Management', 
-    href: '/super-admin/queue-settings', 
-    icon: <Ticket size={20} />
+    href: '/super-admin/queue', 
+    icon: <Ticket size={20} />,
+    subItems: [
+      { name: 'Live Queue', href: '/super-admin/queue/live' },
+      { name: 'Waiting', href: '/super-admin/queue/waiting' },
+      { name: 'Serving', href: '/super-admin/queue/serving' },
+      { name: 'Completed', href: '/super-admin/queue/completed' },
+      { name: 'Skipped', href: '/super-admin/queue/skipped' },
+      { name: 'No-Show', href: '/super-admin/queue/no-show' },
+      { name: 'Queue Settings', href: '/super-admin/queue-settings' }
+    ]
   },
   { name: 'Priority Rules', href: '/super-admin/priority-rules', icon: <Star size={20} /> },
   { 

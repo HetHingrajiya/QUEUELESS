@@ -36,13 +36,21 @@ export async function createAuditLog(params: CreateAuditLogParams) {
     // Attempt to fill in missing user details automatically
     let { userId, userName, userRole, organizationId, officeId } = params;
     
-    if (!userId || !userRole || !organizationId) {
+    if (!userId || !userRole || !organizationId || !userName) {
       const user = await getUserFromCookie();
       if (user) {
         userId = userId || user.userId;
         userRole = userRole || user.role;
         organizationId = organizationId || user.organizationId;
         officeId = officeId || user.officeId;
+
+        if (!userName && userId) {
+          const { User } = await import('@/models/User');
+          const dbUser = await User.findById(userId).select('fullName email').lean();
+          if (dbUser) {
+            userName = dbUser.fullName || dbUser.email || 'SYSTEM';
+          }
+        }
       }
     }
 

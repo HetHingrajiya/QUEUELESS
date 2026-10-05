@@ -131,6 +131,18 @@ export async function POST(req: NextRequest) {
         counterId: counter._id,
         staffId: staffUser._id,
       });
+
+      const { createAuditLog } = await import('@/lib/auditLogger');
+      await createAuditLog({
+        action: 'UPDATE',
+        module: 'Queue',
+        description: `Token ${token.tokenNumber} updated to ${token.status} by ${staffUser.fullName}`,
+        entityType: 'Token',
+        entityId: token._id.toString(),
+        newData: token.toObject ? token.toObject() : token,
+        status: 'SUCCESS',
+        request: req,
+      });
     }
 
     return NextResponse.json({ success: true, data: token });

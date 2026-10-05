@@ -19,10 +19,6 @@ export default function SystemSettingsPage() {
     passwordExpiry: 90,
   });
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
   const fetchSettings = async () => {
     try {
       const res = await fetch('/api/system-settings');
@@ -37,7 +33,11 @@ export default function SystemSettingsPage() {
     }
   };
 
-  const handleSave = async (category: 'queue' | 'security') => {
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
     setSaving(true);
     try {
       const res = await fetch('/api/system-settings', {
@@ -110,7 +110,7 @@ export default function SystemSettingsPage() {
           </div>
           
           <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <Button onClick={() => handleSave('queue')} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => handleSave()} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               <Save size={16} className="mr-2" />
               Save Settings
             </Button>
@@ -136,7 +136,7 @@ export default function SystemSettingsPage() {
           </div>
           
           <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <Button onClick={() => handleSave('security')} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => handleSave()} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               <Save size={16} className="mr-2" />
               Save Security
             </Button>

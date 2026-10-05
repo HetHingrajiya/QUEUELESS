@@ -7,6 +7,7 @@ import { Counter, CounterStatus } from '@/models/Counter';
 import { Service } from '@/models/Service';
 import { User } from '@/models/User';
 import Link from 'next/link';
+import { DeleteButton } from '@/components/DeleteButton';
 
 async function getCounters() {
   await dbConnect();
@@ -83,9 +84,7 @@ export default async function AdminCounters() {
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Settings">
                           <Settings size={14} className="text-slate-600" />
                         </Button>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 border-red-200" title="Delete">
-                          <Trash2 size={14} />
-                        </Button>
+                        <DeleteButton url={`/api/counters/${counter._id}`} entityName="Counter" />
                       </div>
                     </td>
                   </tr>
