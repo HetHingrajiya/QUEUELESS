@@ -2,24 +2,52 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAuditLog extends Document {
   userId?: mongoose.Types.ObjectId;
-  role?: string;
+  userName?: string;
+  userRole?: string;
+
   action: string;
   module: string;
   description: string;
+
+  entityType?: string;
+  entityId?: string;
+
+  organizationId?: mongoose.Types.ObjectId;
+  officeId?: mongoose.Types.ObjectId;
+
   ipAddress?: string;
-  metadata?: any;
+  userAgent?: string;
+
+  oldData?: any;
+  newData?: any;
+
+  status?: string;
   createdAt: Date;
 }
 
 const AuditLogSchema: Schema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
-    role: { type: String },
-    action: { type: String, required: true },
-    module: { type: String, required: true },
+    userName: { type: String },
+    userRole: { type: String },
+    
+    action: { type: String, required: true, index: true },
+    module: { type: String, required: true, index: true },
     description: { type: String, required: true },
+    
+    entityType: { type: String },
+    entityId: { type: String },
+    
+    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
+    officeId: { type: Schema.Types.ObjectId, ref: 'Office', index: true },
+    
     ipAddress: { type: String },
-    metadata: { type: Schema.Types.Mixed },
+    userAgent: { type: String },
+    
+    oldData: { type: Schema.Types.Mixed },
+    newData: { type: Schema.Types.Mixed },
+    
+    status: { type: String, default: 'SUCCESS' },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

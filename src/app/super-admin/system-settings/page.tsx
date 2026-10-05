@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
@@ -5,6 +8,69 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function SystemSettingsPage() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState({
+    maxQueueSize: 100,
+    noShowTimeout: 5,
+    checkInBuffer: 15,
+    aiRefreshRate: 30,
+    sessionTimeout: 120,
+    passwordExpiry: 90,
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/system-settings');
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSettings(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (category: 'queue' | 'security') => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/system-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Settings saved successfully');
+      } else {
+        alert(data.message || 'Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('Server error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [id]: parseInt(value) || 0
+    }));
+  };
+
+  if (loading) {
+    return <div className="p-6">Loading settings...</div>;
+  }
+
   return (
     <div className="space-y-6 p-6 max-w-4xl">
       <div className="flex items-center justify-between">
@@ -22,29 +88,29 @@ export default function SystemSettingsPage() {
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="maxQueue">Maximum Queue Size per Counter</Label>
-              <Input id="maxQueue" type="number" defaultValue="100" />
+              <Label htmlFor="maxQueueSize">Maximum Queue Size per Counter</Label>
+              <Input id="maxQueueSize" type="number" value={settings.maxQueueSize} onChange={handleChange} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="noShowTimeout">No-show Timeout (minutes)</Label>
-              <Input id="noShowTimeout" type="number" defaultValue="5" />
+              <Input id="noShowTimeout" type="number" value={settings.noShowTimeout} onChange={handleChange} />
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="checkInBuffer">Check-in Buffer (minutes)</Label>
-              <Input id="checkInBuffer" type="number" defaultValue="15" />
+              <Input id="checkInBuffer" type="number" value={settings.checkInBuffer} onChange={handleChange} />
               <p className="text-xs text-slate-500">How early a citizen can check in before estimated turn.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="aiRefreshRate">AI Prediction Refresh Rate (seconds)</Label>
-              <Input id="aiRefreshRate" type="number" defaultValue="30" />
+              <Input id="aiRefreshRate" type="number" value={settings.aiRefreshRate} onChange={handleChange} />
             </div>
           </div>
           
           <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => handleSave('queue')} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               <Save size={16} className="mr-2" />
               Save Settings
             </Button>
@@ -61,16 +127,16 @@ export default function SystemSettingsPage() {
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-              <Input id="sessionTimeout" type="number" defaultValue="120" />
+              <Input id="sessionTimeout" type="number" value={settings.sessionTimeout} onChange={handleChange} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="passwordExpiry">Password Expiry (days)</Label>
-              <Input id="passwordExpiry" type="number" defaultValue="90" />
+              <Input id="passwordExpiry" type="number" value={settings.passwordExpiry} onChange={handleChange} />
             </div>
           </div>
           
           <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={() => handleSave('security')} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               <Save size={16} className="mr-2" />
               Save Security
             </Button>

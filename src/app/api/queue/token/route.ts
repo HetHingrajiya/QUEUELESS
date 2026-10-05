@@ -5,6 +5,7 @@ import { Token, TokenStatus } from '@/models/Token';
 import { User, UserRole } from '@/models/User';
 import { Service } from '@/models/Service';
 import { Counter } from '@/models/Counter';
+import { SystemSettings } from '@/models/SystemSettings';
 
 export async function POST(request: Request) {
   try {
@@ -64,6 +65,19 @@ export async function POST(request: Request) {
       status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] }
     });
 
+    const settings = await SystemSettings.findOne();
+    const maxQueueSize = settings?.maxQueueSize || 100;
+    const checkInBuffer = settings?.checkInBuffer || 15;
+
+    if (waitingTokensCount >= maxQueueSize) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'The queue for this service is currently full. Please try again later.',
+        errorCode: 'QUEUE_FULL'
+      }, { status: 400 });
+    }
+
+
     const activeCounters = await Counter.countDocuments({
       officeId,
       serviceId,
@@ -73,7 +87,7 @@ export async function POST(request: Request) {
     const divisor = activeCounters > 0 ? activeCounters : 1;
     const estimatedWaitTime = Math.ceil((waitingTokensCount * service.averageServiceTime) / divisor);
 
-    const recommendedArrivalTime = new Date(Date.now() + (estimatedWaitTime * 60000) - (5 * 60000)); // 5 mins buffer
+    const recommendedArrivalTime = new Date(Date.now() + (estimatedWaitTime * 60000) - (checkInBuffer * 60000)); 
 
     const newToken = await Token.create({
       tokenNumber,

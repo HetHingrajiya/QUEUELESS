@@ -5,6 +5,7 @@ import { Token, TokenStatus } from '@/models/Token';
 import { Counter, CounterStatus } from '@/models/Counter';
 import { User, UserRole } from '@/models/User';
 import { QueueEvent } from '@/models/QueueEvent';
+import { SystemSettings } from '@/models/SystemSettings';
 import { headers } from 'next/headers';
 
 export async function POST(req: NextRequest) {
@@ -41,6 +42,20 @@ export async function POST(req: NextRequest) {
     let token = null;
 
     if (action === 'CALL_NEXT') {
+      const settings = await SystemSettings.findOne();
+      const noShowTimeout = settings?.noShowTimeout || 5;
+
+      // Auto NO_SHOW for tokens that were called but never started within the timeout
+      const timeoutThreshold = new Date(Date.now() - (noShowTimeout * 60000));
+      await Token.updateMany(
+        {
+          counterId: counter._id,
+          status: TokenStatus.CALLED,
+          callTime: { $lt: timeoutThreshold }
+        },
+        { $set: { status: TokenStatus.NO_SHOW } }
+      );
+
       // Find the next waiting token
       token = await Token.findOneAndUpdate(
         {

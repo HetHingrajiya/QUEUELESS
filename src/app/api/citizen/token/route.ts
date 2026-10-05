@@ -6,6 +6,7 @@ import { User } from '@/models/User';
 import { Office } from '@/models/Office';
 import { Service } from '@/models/Service';
 import { QueueEvent } from '@/models/QueueEvent';
+import { SystemSettings } from '@/models/SystemSettings';
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,12 +58,37 @@ export async function POST(req: NextRequest) {
     const number = (todaysTokens + 1).toString().padStart(3, '0');
     const tokenNumber = `${prefix}-${number}`;
 
+    const waitingTokensCount = await Token.countDocuments({
+      officeId,
+      serviceId,
+      status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    const settings = await SystemSettings.findOne();
+    const maxQueueSize = settings?.maxQueueSize || 100;
+    const checkInBuffer = settings?.checkInBuffer || 15;
+
+    if (waitingTokensCount >= maxQueueSize) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'The queue for this service is currently full. Please try again later.',
+        errorCode: 'QUEUE_FULL'
+      }, { status: 400 });
+    }
+
+    const estimatedWaitTime = Math.ceil((waitingTokensCount * (service.averageServiceTime || 10)));
+    const recommendedArrivalTime = new Date(Date.now() + (estimatedWaitTime * 60000) - (checkInBuffer * 60000));
+
+
     const newToken = await Token.create({
       tokenNumber,
       citizenId: citizen._id,
       officeId: office._id,
       serviceId: service._id,
       status: TokenStatus.WAITING,
+      estimatedWaitTime,
+      recommendedArrivalTime,
       queuePosition: todaysTokens + 1
     });
 
