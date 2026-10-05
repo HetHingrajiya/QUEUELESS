@@ -18,6 +18,7 @@ const counterSchema = z.object({
   number: z.coerce.number().min(1, 'Number must be greater than 0'),
   officeId: z.string().min(1, 'Office is required'),
   serviceId: z.string().min(1, 'Service is required'),
+  staffId: z.string().optional(),
 });
 
 type CounterFormValues = z.infer<typeof counterSchema>;
@@ -30,14 +31,15 @@ export default function AdminAddCounter() {
   
   const [offices, setOffices] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data.organizationId) {
-          setOrgId(data.data.organizationId);
-          fetch(`/api/offices?organizationId=${data.data.organizationId}`)
+        if (data.success && data.data.user.organizationId) {
+          setOrgId(data.data.user.organizationId);
+          fetch(`/api/offices?organizationId=${data.data.user.organizationId}`)
             .then(res => res.json())
             .then(officeData => {
               if (officeData.success) setOffices(officeData.data);
@@ -47,13 +49,17 @@ export default function AdminAddCounter() {
       .catch(console.error);
   }, []);
 
-  const fetchServices = async (officeId: string) => {
+  const fetchServicesAndStaff = async (officeId: string) => {
     try {
-      const res = await fetch(`/api/services?officeId=${officeId}`);
-      const data = await res.json();
-      if (data.success) {
-        setServices(data.data);
-      }
+      const [resServices, resStaff] = await Promise.all([
+        fetch(`/api/services?officeId=${officeId}`),
+        fetch(`/api/staff?officeId=${officeId}&role=STAFF`)
+      ]);
+      const dataServices = await resServices.json();
+      const dataStaff = await resStaff.json();
+      
+      if (dataServices.success) setServices(dataServices.data);
+      if (dataStaff.success) setStaff(dataStaff.data);
     } catch (error) {
       console.error(error);
     }
@@ -68,10 +74,11 @@ export default function AdminAddCounter() {
     setError('');
     
     try {
+      const payload = { ...data, staffId: data.staffId === 'none' ? null : data.staffId };
       const res = await fetch('/api/counters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       
       const result = await res.json();
@@ -132,7 +139,8 @@ export default function AdminAddCounter() {
                   if (val) {
                     setValue('officeId', val as string); 
                     setValue('serviceId', ''); // Reset service when office changes
-                    fetchServices(val as string);
+                    setValue('staffId', ''); // Reset staff when office changes
+                    fetchServicesAndStaff(val as string);
                   }
                 }} 
                 disabled={offices.length === 0}
@@ -170,6 +178,27 @@ export default function AdminAddCounter() {
                 </SelectContent>
               </Select>
               {errors.serviceId && <p className="text-sm text-red-600">{errors.serviceId.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="staff">Assign Staff</Label>
+              <Select 
+                value={watch('staffId') || ""} 
+                onValueChange={(val: any) => setValue('staffId', val as string)} 
+                disabled={!watch('officeId') || staff.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!watch('officeId') ? "Select an office first" : (staff.length === 0 ? "No staff found" : "Select staff")}>
+                    {staff.find(s => s._id === watch('staffId'))?.fullName}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {staff.map(s => (
+                    <SelectItem key={s._id} value={s._id}>{s.fullName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">

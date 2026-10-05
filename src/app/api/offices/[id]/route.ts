@@ -1,12 +1,15 @@
 import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
+import { getUserFromCookie } from '@/lib/auth';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     await dbConnect();
+    const { id } = await params;
     
-    const office = await Office.findById(params.id);
+    const office = await Office.findById(id);
     
     if (!office) {
       return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
@@ -22,20 +25,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     await dbConnect();
+    const { id } = await params;
     
     // Auth Check
-    const userRole = req.headers.get('x-user-role');
-    if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
+    const currentUser = await getUserFromCookie();
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
     const body = await req.json();
     
     const updatedOffice = await Office.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true, runValidators: true }
     );
@@ -55,17 +60,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     await dbConnect();
+    const { id } = await params;
     
     // Auth Check
-    const userRole = req.headers.get('x-user-role');
-    if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
+    const currentUser = await getUserFromCookie();
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const deletedOffice = await Office.findByIdAndDelete(params.id);
+    const deletedOffice = await Office.findByIdAndDelete(id);
 
     if (!deletedOffice) {
       return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });

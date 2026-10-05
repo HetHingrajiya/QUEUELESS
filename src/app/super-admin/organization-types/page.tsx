@@ -46,7 +46,7 @@ export default function OrganizationTypes() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Organization Types Master</h2>
@@ -100,13 +100,21 @@ export default function OrganizationTypes() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end items-center space-x-3">
-                          <Link href={`/super-admin/organization-types/${type._id}/edit`} className="text-blue-600 hover:text-blue-800 transition-colors">
-                            <Edit size={18} />
+                        <div className="flex justify-end space-x-2">
+                          <Link href={`/super-admin/organization-types/${type._id}/edit`}>
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
+                              <Edit size={14} className="text-slate-600" />
+                            </Button>
                           </Link>
-                          <button onClick={() => handleDelete(type._id)} className="text-red-500 hover:text-red-700 transition-colors">
-                            <Trash2 size={18} />
-                          </button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" 
+                            title="Delete"
+                            onClick={() => handleDelete(type._id)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
                         </div>
                       </td>
                     </tr>

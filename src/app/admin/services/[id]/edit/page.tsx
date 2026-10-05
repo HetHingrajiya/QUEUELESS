@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,13 +22,15 @@ const serviceSchema = z.object({
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
 
-export default function AdminEditService({ params }: { params: { id: string } }) {
+export default function AdminEditService({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [offices, setOffices] = useState<any[]>([]);
+  
+  const { id } = use(params);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),
@@ -39,8 +41,8 @@ export default function AdminEditService({ params }: { params: { id: string } })
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data.organizationId) {
-          fetch(`/api/offices?organizationId=${data.data.organizationId}`)
+        if (data.success && data.data.user.organizationId) {
+          fetch(`/api/offices?organizationId=${data.data.user.organizationId}`)
             .then(res => res.json())
             .then(officeData => {
               if (officeData.success) setOffices(officeData.data);
@@ -50,7 +52,7 @@ export default function AdminEditService({ params }: { params: { id: string } })
       .catch(console.error);
 
     // 2. Fetch service data
-    fetch(`/api/services/${params.id}`)
+    fetch(`/api/services/${id}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -66,14 +68,14 @@ export default function AdminEditService({ params }: { params: { id: string } })
       })
       .catch(console.error)
       .finally(() => setFetching(false));
-  }, [params.id, reset]);
+  }, [id, reset]);
 
   const onSubmit = async (data: ServiceFormValues) => {
     setIsLoading(true);
     setError('');
     
     try {
-      const res = await fetch(`/api/services/${params.id}`, {
+      const res = await fetch(`/api/services/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -99,7 +101,7 @@ export default function AdminEditService({ params }: { params: { id: string } })
     
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/services/${params.id}`, {
+      const res = await fetch(`/api/services/${id}`, {
         method: 'DELETE',
       });
       

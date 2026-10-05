@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,32 +18,40 @@ const counterSchema = z.object({
   number: z.coerce.number().min(1, 'Number must be greater than 0'),
   officeId: z.string().min(1, 'Office is required'),
   serviceId: z.string().min(1, 'Service is required'),
+  staffId: z.string().optional(),
   status: z.string().optional(),
 });
 
 type CounterFormValues = z.infer<typeof counterSchema>;
 
-export default function AdminEditCounter({ params }: { params: { id: string } }) {
+export default function AdminEditCounter({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetching, setFetching] = useState(true);
   
+  const { id } = use(params);
+  
   const [offices, setOffices] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [staff, setStaff] = useState<any[]>([]);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<CounterFormValues>({
     resolver: zodResolver(counterSchema),
   });
 
-  const fetchServices = async (officeId: string) => {
+  const fetchServicesAndStaff = async (officeId: string) => {
     try {
-      const res = await fetch(`/api/services?officeId=${officeId}`);
-      const data = await res.json();
-      if (data.success) {
-        setServices(data.data);
-      }
+      const [resServices, resStaff] = await Promise.all([
+        fetch(`/api/services?officeId=${officeId}`),
+        fetch(`/api/staff?officeId=${officeId}&role=STAFF`)
+      ]);
+      const dataServices = await resServices.json();
+      const dataStaff = await resStaff.json();
+      
+      if (dataServices.success) setServices(dataServices.data);
+      if (dataStaff.success) setStaff(dataStaff.data);
     } catch (error) {
       console.error(error);
     }
@@ -54,8 +62,8 @@ export default function AdminEditCounter({ params }: { params: { id: string } })
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data.organizationId) {
-          fetch(`/api/offices?organizationId=${data.data.organizationId}`)
+        if (data.success && data.data.user.organizationId) {
+          fetch(`/api/offices?organizationId=${data.data.user.organizationId}`)
             .then(res => res.json())
             .then(officeData => {
               if (officeData.success) setOffices(officeData.data);
@@ -65,7 +73,7 @@ export default function AdminEditCounter({ params }: { params: { id: string } })
       .catch(console.error);
 
     // 2. Fetch counter data
-    fetch(`/api/counters/${params.id}`)
+    fetch(`/api/counters/${id}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -74,10 +82,11 @@ export default function AdminEditCounter({ params }: { params: { id: string } })
             number: data.data.number,
             officeId: data.data.officeId,
             serviceId: data.data.serviceId,
+            staffId: data.data.staffId || 'none',
             status: data.data.status || 'OFFLINE'
           });
           if (data.data.officeId) {
-            fetchServices(data.data.officeId);
+            fetchServicesAndStaff(data.data.officeId);
           }
         } else {
           setError('Failed to fetch counter details');
@@ -85,17 +94,18 @@ export default function AdminEditCounter({ params }: { params: { id: string } })
       })
       .catch(console.error)
       .finally(() => setFetching(false));
-  }, [params.id, reset]);
+  }, [id, reset]);
 
   const onSubmit = async (data: CounterFormValues) => {
     setIsLoading(true);
     setError('');
     
     try {
-      const res = await fetch(`/api/counters/${params.id}`, {
+      const payload = { ...data, staffId: data.staffId === 'none' ? null : data.staffId };
+      const res = await fetch(`/api/counters/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       
       const result = await res.json();
@@ -118,7 +128,7 @@ export default function AdminEditCounter({ params }: { params: { id: string } })
     
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/counters/${params.id}`, {
+      const res = await fetch(`/api/counters/${id}`, {
         method: 'DELETE',
       });
       
@@ -194,7 +204,8 @@ export default function AdminEditCounter({ params }: { params: { id: string } })
                   if (val) {
                     setValue('officeId', val as string); 
                     setValue('serviceId', ''); // Reset service when office changes
-                    fetchServices(val as string);
+                    setValue('staffId', ''); // Reset staff when office changes
+                    fetchServicesAndStaff(val as string);
                   }
                 }} 
                 disabled={offices.length === 0}
@@ -232,6 +243,27 @@ export default function AdminEditCounter({ params }: { params: { id: string } })
                 </SelectContent>
               </Select>
               {errors.serviceId && <p className="text-sm text-red-600">{errors.serviceId.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="staff">Assign Staff</Label>
+              <Select 
+                value={watch('staffId') || ""} 
+                onValueChange={(val: any) => setValue('staffId', val as string)} 
+                disabled={!watch('officeId') || staff.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!watch('officeId') ? "Select an office first" : (staff.length === 0 ? "No staff found" : "Select staff")}>
+                    {staff.find(s => s._id === watch('staffId'))?.fullName}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {staff.map(s => (
+                    <SelectItem key={s._id} value={s._id}>{s.fullName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">

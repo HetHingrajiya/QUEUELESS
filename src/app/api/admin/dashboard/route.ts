@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Token } from '@/models/Token';
 import { Counter } from '@/models/Counter';
@@ -12,7 +13,8 @@ export async function GET(req: NextRequest) {
     
     // Extract organization ID and office ID from headers or user context
     const headersList = await headers();
-    const role = headersList.get('x-user-role');
+    const user = await getUserFromCookie();
+    const role = user?.role;
     const email = headersList.get('x-user-email');
     
     if (role !== UserRole.ADMIN && role !== UserRole.SUPER_ADMIN) {

@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
 import { Counter, CounterStatus } from '@/models/Counter';
@@ -11,7 +12,8 @@ export async function POST(req: NextRequest) {
     await dbConnect();
     
     const headersList = await headers();
-    const role = headersList.get('x-user-role');
+    const user = await getUserFromCookie();
+    const role = user?.role;
     const email = headersList.get('x-user-email');
     
     if (role !== UserRole.STAFF) {

@@ -35,3 +35,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ success: false, message: 'Server Error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await dbConnect();
+    const resolvedParams = await params;
+    const org = await Organization.findByIdAndDelete(resolvedParams.id);
+    
+    if (!org) {
+      return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json({ success: true, message: 'Organization deleted successfully' });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: 'Server Error' }, { status: 500 });
+  }
+}

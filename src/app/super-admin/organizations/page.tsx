@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
 import Link from 'next/link';
+import { OrganizationActions } from './OrganizationActions';
 
 async function getOrganizations() {
   await dbConnect();
@@ -61,13 +62,7 @@ export default async function OrganizationsPage() {
                       {new Date(org.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Link href={`/super-admin/organizations/${org._id.toString()}/edit`}>
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
-                            <Edit size={14} className="text-slate-600" />
-                          </Button>
-                        </Link>
-                      </div>
+                      <OrganizationActions organizationId={org._id.toString()} />
                     </td>
                   </tr>
                 ))}

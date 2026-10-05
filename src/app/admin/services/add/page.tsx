@@ -34,9 +34,9 @@ export default function AdminAddService() {
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data.organizationId) {
-          setOrgId(data.data.organizationId);
-          fetch(`/api/offices?organizationId=${data.data.organizationId}`)
+        if (data.success && data.data.user.organizationId) {
+          setOrgId(data.data.user.organizationId);
+          fetch(`/api/offices?organizationId=${data.data.user.organizationId}`)
             .then(res => res.json())
             .then(officeData => {
               if (officeData.success) setOffices(officeData.data);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,12 +22,14 @@ const staffSchema = z.object({
 
 type StaffFormValues = z.infer<typeof staffSchema>;
 
-export default function AdminEditStaff({ params }: { params: { id: string } }) {
+export default function AdminEditStaff({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetching, setFetching] = useState(true);
+  
+  const { id } = use(params);
   
   const [offices, setOffices] = useState<any[]>([]);
 
@@ -40,8 +42,8 @@ export default function AdminEditStaff({ params }: { params: { id: string } }) {
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data.organizationId) {
-          fetch(`/api/offices?organizationId=${data.data.organizationId}`)
+        if (data.success && data.data.user.organizationId) {
+          fetch(`/api/offices?organizationId=${data.data.user.organizationId}`)
             .then(res => res.json())
             .then(officeData => {
               if (officeData.success) setOffices(officeData.data);
@@ -51,7 +53,7 @@ export default function AdminEditStaff({ params }: { params: { id: string } }) {
       .catch(console.error);
 
     // 2. Fetch staff data
-    fetch(`/api/staff/${params.id}`)
+    fetch(`/api/staff/${id}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -66,14 +68,14 @@ export default function AdminEditStaff({ params }: { params: { id: string } }) {
       })
       .catch(console.error)
       .finally(() => setFetching(false));
-  }, [params.id, reset]);
+  }, [id, reset]);
 
   const onSubmit = async (data: StaffFormValues) => {
     setIsLoading(true);
     setError('');
     
     try {
-      const res = await fetch(`/api/staff/${params.id}`, {
+      const res = await fetch(`/api/staff/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -99,7 +101,7 @@ export default function AdminEditStaff({ params }: { params: { id: string } }) {
     
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/staff/${params.id}`, {
+      const res = await fetch(`/api/staff/${id}`, {
         method: 'DELETE',
       });
       

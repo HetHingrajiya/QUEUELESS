@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
+import { getUserFromCookie } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
@@ -22,8 +23,8 @@ export async function POST(request: Request) {
     await dbConnect();
     
     // Auth Check
-    const userRole = request.headers.get('x-user-role');
-    if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
+    const user = await getUserFromCookie();
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

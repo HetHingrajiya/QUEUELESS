@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,19 +24,21 @@ const officeSchema = z.object({
 
 type OfficeFormValues = z.infer<typeof officeSchema>;
 
-export default function AdminEditOffice({ params }: { params: { id: string } }) {
+export default function AdminEditOffice({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetching, setFetching] = useState(true);
+  
+  const { id } = use(params);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<OfficeFormValues>({
     resolver: zodResolver(officeSchema),
   });
 
   useEffect(() => {
-    fetch(`/api/offices/${params.id}`)
+    fetch(`/api/offices/${id}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -54,14 +56,14 @@ export default function AdminEditOffice({ params }: { params: { id: string } }) 
       })
       .catch(console.error)
       .finally(() => setFetching(false));
-  }, [params.id, reset]);
+  }, [id, reset]);
 
   const onSubmit = async (data: OfficeFormValues) => {
     setIsLoading(true);
     setError('');
     
     try {
-      const res = await fetch(`/api/offices/${params.id}`, {
+      const res = await fetch(`/api/offices/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -87,7 +89,7 @@ export default function AdminEditOffice({ params }: { params: { id: string } }) 
     
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/offices/${params.id}`, {
+      const res = await fetch(`/api/offices/${id}`, {
         method: 'DELETE',
       });
       

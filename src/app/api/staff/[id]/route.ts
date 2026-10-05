@@ -1,13 +1,15 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { User, UserRole } from '@/models/User';
 import bcrypt from 'bcryptjs';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     await dbConnect();
     
-    const staff = await User.findOne({ _id: params.id, role: UserRole.STAFF });
+    const staff = await User.findOne({ _id: id, role: UserRole.STAFF });
     
     if (!staff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
@@ -23,13 +25,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     await dbConnect();
     
     // Auth Check
-    const userRole = req.headers.get('x-user-role');
-    if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
+    const user = await getUserFromCookie();
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -42,7 +45,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const updatedStaff = await User.findOneAndUpdate(
-      { _id: params.id, role: UserRole.STAFF },
+      { _id: id, role: UserRole.STAFF },
       { $set: body },
       { new: true, runValidators: true }
     );
@@ -62,17 +65,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     await dbConnect();
     
     // Auth Check
-    const userRole = req.headers.get('x-user-role');
-    if (userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN') {
+    const user = await getUserFromCookie();
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const deletedStaff = await User.findOneAndDelete({ _id: params.id, role: UserRole.STAFF });
+    const deletedStaff = await User.findOneAndDelete({ _id: id, role: UserRole.STAFF });
 
     if (!deletedStaff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });

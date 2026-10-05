@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
 
@@ -6,12 +7,10 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     
-    // Auth Check from headers set by middleware
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-    const officeId = request.headers.get('x-office-id');
+    // Auth Check from cookie
+    const user = await getUserFromCookie();
 
-    if (!userId || (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN')) {
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized access' }, { status: 403 });
     }
 
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
     
     // In a real app, use the officeId from the authenticated Admin token, 
     // but allow Super Admin to pass officeId in body.
-    const finalOfficeId = userRole === 'ADMIN' && officeId ? officeId : body.officeId;
+    const finalOfficeId = user.role === 'ADMIN' && user.officeId ? user.officeId : body.officeId;
 
     if (!finalOfficeId) {
       return NextResponse.json({ success: false, message: 'Office ID is required' }, { status: 400 });

@@ -1,9 +1,64 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Filter, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import dbConnect from '@/lib/db';
+import { Token, TokenStatus } from '@/models/Token';
 
-export default function AnalyticsPage() {
-  // Real UI structure but without complex Recharts mapping for brevity in list views
+// Disable caching for live data
+export const dynamic = 'force-dynamic';
+
+async function getAnalyticsData() {
+  await dbConnect();
+
+  const totalTokens = await Token.countDocuments();
+  const servedTokens = await Token.countDocuments({ status: TokenStatus.COMPLETED });
+  const noShowTokens = await Token.countDocuments({ status: TokenStatus.NO_SHOW });
+  
+  const noShowRate = totalTokens > 0 ? ((noShowTokens / totalTokens) * 100).toFixed(1) : '0.0';
+
+  // Calculate Avg wait time and service time
+  const completedTokens = await Token.find({ 
+    status: TokenStatus.COMPLETED,
+    startTime: { $exists: true },
+    completionTime: { $exists: true }
+  }).select('createdAt checkInTime startTime completionTime').lean();
+
+  let totalWaitTimeMs = 0;
+  let totalServiceTimeMs = 0;
+  let validWaitCount = 0;
+  let validServiceCount = 0;
+
+  for (const token of completedTokens) {
+    if (token.startTime) {
+      // Use checkInTime if available, else createdAt
+      const startWait = token.checkInTime || token.createdAt;
+      if (startWait) {
+        totalWaitTimeMs += (new Date(token.startTime).getTime() - new Date(startWait).getTime());
+        validWaitCount++;
+      }
+      
+      if (token.completionTime) {
+        totalServiceTimeMs += (new Date(token.completionTime).getTime() - new Date(token.startTime).getTime());
+        validServiceCount++;
+      }
+    }
+  }
+
+  const avgWaitTimeMins = validWaitCount > 0 ? (totalWaitTimeMs / validWaitCount / 60000).toFixed(1) : '0.0';
+  const avgServiceTimeMins = validServiceCount > 0 ? (totalServiceTimeMs / validServiceCount / 60000).toFixed(1) : '0.0';
+
+  return {
+    totalTokens,
+    servedTokens,
+    noShowRate,
+    avgWaitTimeMins,
+    avgServiceTimeMins,
+  };
+}
+
+export default async function AnalyticsPage() {
+  const data = await getAnalyticsData();
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -29,8 +84,8 @@ export default function AnalyticsPage() {
             <CardTitle className="text-sm font-medium text-slate-500">Avg. Wait Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900">24.5 min</div>
-            <p className="text-xs text-emerald-600 mt-1">↓ 12% from last week</p>
+            <div className="text-3xl font-bold text-slate-900">{data.avgWaitTimeMins} min</div>
+            <p className="text-xs text-slate-400 mt-1">Calculated from completed tokens</p>
           </CardContent>
         </Card>
         
@@ -39,8 +94,8 @@ export default function AnalyticsPage() {
             <CardTitle className="text-sm font-medium text-slate-500">Avg. Service Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900">12.3 min</div>
-            <p className="text-xs text-emerald-600 mt-1">↓ 5% from last week</p>
+            <div className="text-3xl font-bold text-slate-900">{data.avgServiceTimeMins} min</div>
+            <p className="text-xs text-slate-400 mt-1">Calculated from completed tokens</p>
           </CardContent>
         </Card>
 
@@ -49,8 +104,8 @@ export default function AnalyticsPage() {
             <CardTitle className="text-sm font-medium text-slate-500">Total Tokens Served</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900">14,293</div>
-            <p className="text-xs text-emerald-600 mt-1">↑ 8% from last week</p>
+            <div className="text-3xl font-bold text-slate-900">{data.servedTokens.toLocaleString()}</div>
+            <p className="text-xs text-slate-400 mt-1">Out of {data.totalTokens.toLocaleString()} total generated</p>
           </CardContent>
         </Card>
 
@@ -59,8 +114,8 @@ export default function AnalyticsPage() {
             <CardTitle className="text-sm font-medium text-slate-500">No-show Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-slate-900">4.2%</div>
-            <p className="text-xs text-red-600 mt-1">↑ 1% from last week</p>
+            <div className="text-3xl font-bold text-slate-900">{data.noShowRate}%</div>
+            <p className="text-xs text-slate-400 mt-1">Percentage of total tokens</p>
           </CardContent>
         </Card>
       </div>

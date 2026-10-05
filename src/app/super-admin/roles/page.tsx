@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
@@ -10,6 +12,14 @@ export default function RolesPage() {
     { id: 4, name: 'MANAGER', desc: 'Custom role for branch managers', users: 8, custom: true },
   ];
 
+  const handleAction = (action: string, isSystem: boolean) => {
+    if (isSystem) {
+      alert(`System roles cannot be ${action}ed.`);
+    } else {
+      alert(`Custom role management is not yet linked to the database. This feature is coming soon!`);
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -17,7 +27,7 @@ export default function RolesPage() {
           <h2 className="text-2xl font-bold text-slate-800">Role Management</h2>
           <p className="text-sm text-slate-500">Define access roles and view assignments.</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => alert('Custom roles feature is coming soon!')}>
           <Plus size={18} className="mr-2" />
           Create Custom Role
         </Button>
@@ -51,11 +61,23 @@ export default function RolesPage() {
                     <td className="px-6 py-4">{role.users} users</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 w-8 p-0" 
+                          title="Edit"
+                          onClick={() => handleAction('edit', !role.custom)}
+                        >
                           <Edit size={14} className="text-slate-600" />
                         </Button>
                         {role.custom && (
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" title="Delete">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" 
+                            title="Delete"
+                            onClick={() => handleAction('delete', !role.custom)}
+                          >
                             <Trash2 size={14} />
                           </Button>
                         )}

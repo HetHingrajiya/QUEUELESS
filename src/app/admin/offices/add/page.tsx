@@ -34,8 +34,8 @@ export default function AdminAddOffice() {
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data.organizationId) {
-          setOrgId(data.data.organizationId);
+        if (data.success && data.data.user.organizationId) {
+          setOrgId(data.data.user.organizationId);
         }
       })
       .catch(console.error);
