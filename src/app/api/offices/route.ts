@@ -9,7 +9,14 @@ export async function GET(request: Request) {
     // Allow reading offices by anyone
     const url = new URL(request.url);
     const orgId = url.searchParams.get('organizationId');
-    const query = orgId ? { organizationId: orgId } : {};
+    let query: any = {};
+    
+    const user = await getUserFromCookie();
+    if (user && user.role === 'ADMIN') {
+      query = { organizationId: user.organizationId };
+    } else if (orgId) {
+      query = { organizationId: orgId };
+    }
     
     const offices = await Office.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: offices });

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, PlayCircle, PauseCircle, PowerOff, Edit } from 'lucide-react';
+import { Plus, Settings, PlayCircle, PauseCircle, PowerOff, Edit, Trash2 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Counter, CounterStatus } from '@/models/Counter';
 import { Service } from '@/models/Service';
@@ -82,6 +82,9 @@ export default async function AdminCounters() {
                         </Link>
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Settings">
                           <Settings size={14} className="text-slate-600" />
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 border-red-200" title="Delete">
+                          <Trash2 size={14} />
                         </Button>
                       </div>
                     </td>

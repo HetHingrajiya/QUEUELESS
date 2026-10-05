@@ -106,7 +106,7 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <p className="font-medium text-slate-800">{c.name}</p>
-                        <p className="text-xs text-slate-500">{c.serviceIds?.[0]?.name || 'All Services'}</p>
+                        <p className="text-xs text-slate-500">{c.serviceId?.name || 'All Services'}</p>
                       </div>
                     </div>
                     <div className="text-right">

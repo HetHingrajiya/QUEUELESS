@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, Users, Activity, Loader2, Sparkles, AlertCircle } from 'lucide-react';
@@ -8,14 +8,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSocket } from '@/lib/socketClient';
 
-export default function CitizenLiveQueue({ params }: { params: { tokenId: string } }) {
+export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId: string }> }) {
   const router = useRouter();
+  const unwrappedParams = use(params);
+  const tokenId = unwrappedParams.tokenId;
+  
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchQueueData = async () => {
     try {
-      const res = await fetch(`/api/citizen/queue/${params.tokenId}`);
+      const res = await fetch(`/api/citizen/queue/${tokenId}`);
       const json = await res.json();
       if (json.success) {
         setData(json.data);

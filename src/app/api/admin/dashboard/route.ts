@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import { Token } from '@/models/Token';
 import { Counter } from '@/models/Counter';
 import { User, UserRole } from '@/models/User';
+import { Office } from '@/models/Office';
 import { QueueEvent } from '@/models/QueueEvent';
 import { headers } from 'next/headers';
 
@@ -15,18 +16,40 @@ export async function GET(req: NextRequest) {
     const headersList = await headers();
     const user = await getUserFromCookie();
     const role = user?.role;
-    const email = headersList.get('x-user-email');
     
     if (role !== UserRole.ADMIN && role !== UserRole.SUPER_ADMIN) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const adminUser = await User.findOne({ email }).lean();
-    if (!adminUser || !adminUser.officeId) {
-       return NextResponse.json({ success: false, message: 'Admin office not found' }, { status: 404 });
+    const adminUser = await User.findById(user?.userId).lean();
+    if (!adminUser) {
+       return NextResponse.json({ success: false, message: 'Admin user not found' }, { status: 404 });
     }
 
-    const officeId = adminUser.officeId;
+    let officeQuery: any = {};
+
+    if (role === UserRole.SUPER_ADMIN) {
+      // SUPER_ADMIN sees all data across all offices
+    } else if (adminUser.organizationId) {
+      // ADMIN always sees all offices in their entire organization
+      const offices = await Office.find({ organizationId: adminUser.organizationId }).lean();
+      const officeIds = offices.map(o => o._id);
+      
+      if (officeIds.length > 0) {
+        officeQuery = { officeId: { $in: officeIds } };
+      } else {
+        // No offices configured yet for this org
+        return NextResponse.json({
+          success: true,
+          data: {
+            totalTokens: 0, waitingTokens: 0, servingTokens: 0, completedTokens: 0, skippedTokens: 0, noShowTokens: 0,
+            activeCounters: 0, totalCounters: 0, totalStaff: 0, counters: [], recentActivity: []
+          }
+        });
+      }
+    } else {
+       return NextResponse.json({ success: false, message: 'Admin has no organization assigned' }, { status: 404 });
+    }
 
     // Get today's start and end dates
     const startOfDay = new Date();
@@ -36,7 +59,7 @@ export async function GET(req: NextRequest) {
 
     // Get tokens for today
     const todaysTokens = await Token.find({
-      officeId,
+      ...officeQuery,
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     }).populate('serviceId', 'name').lean();
 
@@ -47,14 +70,14 @@ export async function GET(req: NextRequest) {
     const noShow = todaysTokens.filter(t => t.status === 'NO_SHOW').length;
 
     // Get active counters
-    const counters = await Counter.find({ officeId }).populate('serviceIds', 'name').lean();
+    const counters = await Counter.find(officeQuery).populate('serviceId', 'name').lean();
     const activeCounters = counters.filter(c => c.status === 'ACTIVE' || c.status === 'SERVING').length;
 
     // Get staff
-    const staff = await User.countDocuments({ officeId, role: UserRole.STAFF, status: 'ACTIVE' });
+    const staff = await User.countDocuments({ ...officeQuery, role: UserRole.STAFF, status: 'ACTIVE' });
 
     // Recent Activity (Queue Events)
-    const recentActivity = await QueueEvent.find({ officeId })
+    const recentActivity = await QueueEvent.find(officeQuery)
       .sort({ createdAt: -1 })
       .limit(10)
       .populate('tokenId', 'tokenNumber status')
@@ -75,7 +98,7 @@ export async function GET(req: NextRequest) {
         counters: counters.map(c => ({
           name: c.name,
           isOnline: c.status !== 'OFFLINE',
-          serviceIds: c.serviceIds,
+          serviceId: c.serviceId,
         })),
         recentActivity: recentActivity.map((a: any) => ({
           tokenNumber: a.tokenId?.tokenNumber || 'Unknown',
@@ -90,3 +113,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+// Force recompile 1

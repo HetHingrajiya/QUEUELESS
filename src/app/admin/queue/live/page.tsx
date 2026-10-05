@@ -7,10 +7,18 @@ import { getUserFromCookie } from '@/lib/auth';
 import { Input } from '@/components/ui/input';
 import { redirect } from 'next/navigation';
 
+import { Office } from '@/models/Office';
+
 async function getLiveQueue(orgId: string) {
   await dbConnect();
+  
+  const offices = await Office.find({ organizationId: orgId }).select('_id');
+  const officeIds = offices.map(o => o._id);
+  
+  if (officeIds.length === 0) return [];
+  
   const tokens = await Token.find({ 
-    organizationId: orgId,
+    officeId: { $in: officeIds },
     status: { $in: [TokenStatus.WAITING, TokenStatus.CALLED, TokenStatus.CHECKED_IN, TokenStatus.SERVING] }
   })
     .populate('officeId')

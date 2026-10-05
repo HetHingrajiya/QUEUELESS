@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const staffUser = await User.findOne({ email }).lean();
+    const staffUser = await User.findById(user?.userId).lean();
     if (!staffUser || !staffUser.officeId) {
        return NextResponse.json({ success: false, message: 'Staff user or office not found' }, { status: 404 });
     }

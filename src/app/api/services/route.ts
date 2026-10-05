@@ -8,7 +8,12 @@ export async function GET(request: Request) {
     await dbConnect();
     const url = new URL(request.url);
     const officeId = url.searchParams.get('officeId');
-    const query = officeId ? { officeId } : {};
+    let query: any = officeId ? { officeId } : {};
+    
+    const user = await getUserFromCookie();
+    if (user && user.role === 'ADMIN') {
+      query.organizationId = user.organizationId;
+    }
     
     const services = await Service.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: services });

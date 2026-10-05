@@ -1,22 +1,25 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
 import { User } from '@/models/User';
 import { Office } from '@/models/Office';
 import { Service } from '@/models/Service';
 import { QueueEvent } from '@/models/QueueEvent';
-import { headers } from 'next/headers';
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     
-    // In a real app we'd get the citizen from auth, here we fallback to finding one or creating
-    const headersList = await headers();
-    let email = headersList.get('x-user-email');
+    const user = await getUserFromCookie();
+    const userId = user?.userId;
     
-    // For demo/dev purposes, if no auth, we'll try to find a default citizen or create one
-    let citizen = await User.findOne({ email, role: 'CITIZEN' });
+    // For demo/dev purposes, if no auth, we'll try to find a default citizen
+    let citizen = null;
+    if (userId) {
+      citizen = await User.findById(userId);
+    }
+    
     if (!citizen) {
       citizen = await User.findOne({ role: 'CITIZEN' });
       if (!citizen) {

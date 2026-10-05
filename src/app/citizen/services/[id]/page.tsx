@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { ArrowLeft, Clock, Users, Briefcase, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function ServiceDetails({ params }: { params: { id: string } }) {
+import { use } from 'react';
+
+export default function ServiceDetails({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   return (
     <div className="space-y-6 pb-24">
       <div className="flex items-center mb-6">

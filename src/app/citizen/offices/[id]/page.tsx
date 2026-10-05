@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { MapPin, Clock, Users, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
-export default function OfficeDetails({ params }: { params: { id: string } }) {
+import { use } from 'react';
+
+export default function OfficeDetails({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}

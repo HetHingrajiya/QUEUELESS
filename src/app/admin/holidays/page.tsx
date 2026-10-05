@@ -2,35 +2,47 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Plus, Calendar as CalendarIcon, Trash2, CalendarOff, Edit } from 'lucide-react';
+import Link from 'next/link';
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
+export default function HolidaysPage() {
+  const [holidays, setHolidays] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+
+  const fetchHolidays = async () => {
+    try {
+      const response = await fetch('/api/admin/holidays');
+      const json = await response.json();
+      if (json.success) {
+        setHolidays(json.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=admin/holidays');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
-        }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchHolidays();
   }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this holiday?')) return;
+    try {
+      const response = await fetch(`/api/admin/holidays/${id}`, { method: 'DELETE' });
+      const json = await response.json();
+      if (json.success) {
+        setHolidays(holidays.filter(h => h._id !== id));
+      } else {
+        alert(json.message || 'Failed to delete');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error');
+    }
+  };
 
   if (loading) {
     return (
@@ -40,42 +52,80 @@ export default function GenericGeneratedPage() {
     );
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">holidays Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">holidays</h1>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Holidays</h2>
+          <p className="text-sm text-slate-500">Manage organization-wide holidays where all offices will be closed.</p>
+        </div>
+        <Link href="/admin/holidays/add">
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus size={16} className="mr-2" /> Add Holiday
+          </Button>
+        </Link>
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-slate-500 bg-slate-50 border-b border-slate-100 uppercase">
+                <tr>
+                  <th className="px-6 py-4 font-semibold">Date</th>
+                  <th className="px-6 py-4 font-semibold">Holiday Name</th>
+                  <th className="px-6 py-4 font-semibold">Description</th>
+                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {holidays.map((holiday) => {
+                  const dateObj = new Date(holiday.date);
+                  return (
+                    <tr key={holiday._id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                      <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <CalendarIcon size={16} className="text-blue-500 mr-2" />
+                          {dateObj.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-slate-700 font-semibold">{holiday.name}</td>
+                      <td className="px-6 py-4 text-slate-500">{holiday.description || '-'}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Link href={`/admin/holidays/${holiday._id}/edit`}>
+                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                              <Edit size={16} />
+                            </Button>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleDelete(holiday._id)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {holidays.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                      <CalendarOff className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                      <p>No holidays have been configured yet.</p>
+                      <Link href="/admin/holidays/add">
+                        <Button variant="link" className="text-blue-600 mt-2">Add your first holiday</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

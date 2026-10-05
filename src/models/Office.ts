@@ -1,5 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IWorkingHours {
+  day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+  isOpen: boolean;
+  openingTime: string;
+  closingTime: string;
+  breakStartTime?: string;
+  breakEndTime?: string;
+}
+
 export interface IOffice extends Document {
   name: string;
   code: string;
@@ -12,12 +21,22 @@ export interface IOffice extends Document {
   longitude?: number;
   contactNumber?: string;
   email?: string;
-  openingTime?: string;
-  closingTime?: string;
+  openingTime?: string; // Legacy
+  closingTime?: string; // Legacy
+  workingHours?: IWorkingHours[];
   status: 'ACTIVE' | 'INACTIVE';
   createdAt: Date;
   updatedAt: Date;
 }
+
+const WorkingHoursSchema = new Schema({
+  day: { type: String, enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], required: true },
+  isOpen: { type: Boolean, default: true },
+  openingTime: { type: String, default: '09:00' },
+  closingTime: { type: String, default: '17:00' },
+  breakStartTime: { type: String, default: '13:00' },
+  breakEndTime: { type: String, default: '14:00' }
+});
 
 const OfficeSchema: Schema = new Schema(
   {
@@ -34,6 +53,7 @@ const OfficeSchema: Schema = new Schema(
     email: { type: String },
     openingTime: { type: String },
     closingTime: { type: String },
+    workingHours: [WorkingHoursSchema],
     status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
   },
   {

@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
 import { headers } from 'next/headers';
@@ -8,8 +9,8 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     
-    const headersList = await headers();
-    const userId = headersList.get('x-user-id');
+    const user = await getUserFromCookie();
+    const userId = user?.userId;
     
     if (!userId) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
