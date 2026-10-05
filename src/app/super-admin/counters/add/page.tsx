@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,20 +24,26 @@ const counterSchema = z.object({
 
 type CounterFormValues = z.infer<typeof counterSchema>;
 
-export default function EditCounter({ params }: { params: Promise<{ id: string }> }) {
-  const unwrappedParams = use(params);
+export default function AddCounter() {
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
   
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [offices, setOffices] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<CounterFormValues>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<CounterFormValues>({
     resolver: zodResolver(counterSchema),
+    defaultValues: { status: 'OFFLINE' }
   });
+
+  useEffect(() => {
+    fetch('/api/organizations')
+      .then(res => res.json())
+      .then(data => { if (data.success) setOrganizations(data.data); })
+      .catch(console.error);
+  }, []);
 
   const fetchOffices = async (orgId: string) => {
     try {
@@ -59,66 +65,15 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
     }
   };
 
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        const orgRes = await fetch('/api/organizations');
-        const orgData = await orgRes.json();
-        if (orgData.success) {
-          setOrganizations(orgData.data);
-        }
-
-        const counterRes = await fetch(`/api/counters/${unwrappedParams.id}`);
-        const counterData = await counterRes.json();
-        
-        if (counterData.success) {
-          const counter = counterData.data;
-          
-          // Counter model doesn't explicitly store orgId, we need to fetch office to get it
-          const officeRes = await fetch(`/api/offices/${counter.officeId}`);
-          const officeData = await officeRes.json();
-          const orgId = officeData.success ? officeData.data.organizationId : '';
-          
-          if (orgId) {
-            await fetchOffices(orgId);
-          }
-          await fetchServices(counter.officeId);
-
-          reset({
-            number: counter.number.toString(),
-            name: counter.name || '',
-            organizationId: orgId,
-            officeId: counter.officeId,
-            serviceId: counter.serviceId || 'null',
-            status: counter.status || 'OFFLINE'
-          });
-        } else {
-          setError('Failed to fetch counter data');
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Error loading data');
-      } finally {
-        setIsFetching(false);
-      }
-    };
-    initializeData();
-  }, [unwrappedParams.id, reset]);
-
   const onSubmit = async (data: CounterFormValues) => {
     setIsLoading(true);
     setError('');
     
     try {
-      const payload = { ...data };
-      if (payload.serviceId === 'null') {
-        payload.serviceId = undefined;
-      }
-
-      const res = await fetch(`/api/counters/${unwrappedParams.id}`, {
-        method: 'PUT',
+      const res = await fetch('/api/counters', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(data),
       });
       
       const result = await res.json();
@@ -127,7 +82,7 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
         router.push('/super-admin/counters');
         router.refresh();
       } else {
-        setError(result.message || 'Failed to update counter');
+        setError(result.message || 'Failed to create counter');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -136,27 +91,19 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
     }
   };
 
-  if (isFetching) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-12 p-6">
       <div className="flex items-center mb-6">
         <Link href="/super-admin/counters" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
           <ArrowLeft size={20} />
         </Link>
-        <h2 className="text-2xl font-bold text-slate-800">Edit Counter</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Add New Counter</h2>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Counter Details</CardTitle>
-          <CardDescription>Update service counter information.</CardDescription>
+          <CardDescription>Create a new service counter for an office.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }}>
@@ -246,7 +193,6 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
                   <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="SERVING">Serving</SelectItem>
                     <SelectItem value="OFFLINE">Offline</SelectItem>
                   </SelectContent>
                 </Select>
@@ -258,7 +204,7 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
                 <Button variant="outline" type="button">Cancel</Button>
               </Link>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Changes'}
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Create Counter'}
               </Button>
             </div>
           </form>

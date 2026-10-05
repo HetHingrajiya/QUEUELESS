@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,6 +38,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const body = await req.json();
     
+    const oldCounter = await Counter.findById(id);
+    if (!oldCounter) {
+      return NextResponse.json({ success: false, message: 'Counter not found' }, { status: 404 });
+    }
+
     const updatedCounter = await Counter.findByIdAndUpdate(
       id,
       { $set: body },
@@ -46,6 +52,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!updatedCounter) {
       return NextResponse.json({ success: false, message: 'Counter not found' }, { status: 404 });
     }
+
+    await createAuditLog({
+      action: 'UPDATE',
+      module: 'Counters',
+      description: `Updated counter: ${updatedCounter.name || updatedCounter.number}`,
+      userId: user.userId,
+      userRole: user.role,
+      entityType: 'Counter',
+      entityId: id,
+      oldData: oldCounter.toObject(),
+      newData: updatedCounter.toObject(),
+      request: req,
+    });
 
     return NextResponse.json({
       success: true,
@@ -69,11 +88,28 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
+    const oldCounter = await Counter.findById(id);
+    if (!oldCounter) {
+      return NextResponse.json({ success: false, message: 'Counter not found' }, { status: 404 });
+    }
+
     const deletedCounter = await Counter.findByIdAndDelete(id);
 
     if (!deletedCounter) {
       return NextResponse.json({ success: false, message: 'Counter not found' }, { status: 404 });
     }
+
+    await createAuditLog({
+      action: 'DELETE',
+      module: 'Counters',
+      description: `Deleted counter: ${oldCounter.name || oldCounter.number}`,
+      userId: user.userId,
+      userRole: user.role,
+      entityType: 'Counter',
+      entityId: id,
+      oldData: oldCounter.toObject(),
+      request: req,
+    });
 
     return NextResponse.json({
       success: true,

@@ -13,18 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
-const counterSchema = z.object({
-  number: z.string().min(1, 'Counter number is required'),
-  name: z.string().optional(),
+const ruleSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().min(1, 'Description condition is required'),
+  priorityMultiplier: z.coerce.number().min(0.1).max(10.0),
   organizationId: z.string().min(1, 'Organization is required'),
-  officeId: z.string().min(1, 'Office is required'),
-  serviceId: z.string().optional(),
-  status: z.string()
+  officeId: z.string().optional(),
+  status: z.string(),
 });
 
-type CounterFormValues = z.infer<typeof counterSchema>;
+type RuleFormValues = z.infer<typeof ruleSchema>;
 
-export default function EditCounter({ params }: { params: Promise<{ id: string }> }) {
+export default function EditPriorityRule({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
   const router = useRouter();
   const [error, setError] = useState('');
@@ -33,10 +33,10 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
   
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [offices, setOffices] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
+  const [ruleId, setRuleId] = useState('');
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<CounterFormValues>({
-    resolver: zodResolver(counterSchema),
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<RuleFormValues>({
+    resolver: zodResolver(ruleSchema),
   });
 
   const fetchOffices = async (orgId: string) => {
@@ -49,51 +49,38 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const fetchServices = async (officeId: string) => {
-    try {
-      const res = await fetch(`/api/services?officeId=${officeId}`);
-      const data = await res.json();
-      if (data.success) setServices(data.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   useEffect(() => {
     const initializeData = async () => {
       try {
+        const id = unwrappedParams.id;
+        setRuleId(id);
+
         const orgRes = await fetch('/api/organizations');
         const orgData = await orgRes.json();
         if (orgData.success) {
           setOrganizations(orgData.data);
         }
 
-        const counterRes = await fetch(`/api/counters/${unwrappedParams.id}`);
-        const counterData = await counterRes.json();
+        const ruleRes = await fetch(`/api/priority-rules/${id}`);
+        const ruleData = await ruleRes.json();
         
-        if (counterData.success) {
-          const counter = counterData.data;
+        if (ruleData.success) {
+          const rule = ruleData.data;
           
-          // Counter model doesn't explicitly store orgId, we need to fetch office to get it
-          const officeRes = await fetch(`/api/offices/${counter.officeId}`);
-          const officeData = await officeRes.json();
-          const orgId = officeData.success ? officeData.data.organizationId : '';
-          
-          if (orgId) {
-            await fetchOffices(orgId);
+          if (rule.organizationId) {
+            await fetchOffices(rule.organizationId);
           }
-          await fetchServices(counter.officeId);
 
           reset({
-            number: counter.number.toString(),
-            name: counter.name || '',
-            organizationId: orgId,
-            officeId: counter.officeId,
-            serviceId: counter.serviceId || 'null',
-            status: counter.status || 'OFFLINE'
+            name: rule.name,
+            description: rule.description,
+            priorityMultiplier: rule.priorityMultiplier,
+            organizationId: rule.organizationId,
+            officeId: rule.officeId || 'null',
+            status: rule.status || 'ACTIVE'
           });
         } else {
-          setError('Failed to fetch counter data');
+          setError('Failed to fetch rule data');
         }
       } catch (err) {
         console.error(err);
@@ -105,17 +92,17 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
     initializeData();
   }, [unwrappedParams.id, reset]);
 
-  const onSubmit = async (data: CounterFormValues) => {
+  const onSubmit = async (data: RuleFormValues) => {
     setIsLoading(true);
     setError('');
     
     try {
       const payload = { ...data };
-      if (payload.serviceId === 'null') {
-        payload.serviceId = undefined;
+      if (payload.officeId === 'null') {
+        payload.officeId = undefined;
       }
 
-      const res = await fetch(`/api/counters/${unwrappedParams.id}`, {
+      const res = await fetch(`/api/priority-rules/${ruleId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -124,10 +111,10 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/counters');
+        router.push('/super-admin/priority-rules');
         router.refresh();
       } else {
-        setError(result.message || 'Failed to update counter');
+        setError(result.message || 'Failed to update rule');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -147,16 +134,16 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-12 p-6">
       <div className="flex items-center mb-6">
-        <Link href="/super-admin/counters" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+        <Link href="/super-admin/priority-rules" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
           <ArrowLeft size={20} />
         </Link>
-        <h2 className="text-2xl font-bold text-slate-800">Edit Counter</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Edit Priority Rule</h2>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Counter Details</CardTitle>
-          <CardDescription>Update service counter information.</CardDescription>
+          <CardTitle>Rule Details</CardTitle>
+          <CardDescription>Update dynamic priority multiplier.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }}>
@@ -168,14 +155,21 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="number">Counter Number *</Label>
-                <Input id="number" {...register('number')} placeholder="e.g. 1" />
-                {errors.number && <p className="text-sm text-red-600">{errors.number.message}</p>}
+                <Label htmlFor="name">Rule Name *</Label>
+                <Input id="name" {...register('name')} placeholder="e.g. Senior Citizen Priority" />
+                {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Counter Name</Label>
-                <Input id="name" {...register('name')} placeholder="e.g. Express Desk" />
+                <Label htmlFor="priorityMultiplier">Multiplier (e.g. 1.5, 2.0) *</Label>
+                <Input id="priorityMultiplier" type="number" step="0.1" {...register('priorityMultiplier')} />
+                {errors.priorityMultiplier && <p className="text-sm text-red-600">{errors.priorityMultiplier.message}</p>}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Condition Description *</Label>
+              <Input id="description" {...register('description')} placeholder="e.g. Age >= 65" />
+              {errors.description && <p className="text-sm text-red-600">{errors.description.message}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -201,60 +195,36 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
                 {errors.organizationId && <p className="text-sm text-red-600">{errors.organizationId.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="office">Office *</Label>
-                <Select value={watch('officeId') || ""} onValueChange={(val: any) => { 
-                  if (val) {
-                    setValue('officeId', val as string);
-                    fetchServices(val as string);
-                  }
-                }} disabled={offices.length === 0}>
+                <Label htmlFor="office">Office (Optional)</Label>
+                <Select value={watch('officeId') || ""} onValueChange={(val: any) => { if (val) setValue('officeId', val as string); }} disabled={offices.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select office">
-                      {offices.find(office => office._id === watch('officeId'))?.name}
+                    <SelectValue placeholder="All Offices">
+                      {offices.find(office => office._id === watch('officeId'))?.name || "All Offices"}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="null">All Offices</SelectItem>
                     {offices.map(office => (
                       <SelectItem key={office._id} value={office._id}>{office.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.officeId && <p className="text-sm text-red-600">{errors.officeId.message}</p>}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="service">Assign Specific Service</Label>
-                <Select value={watch('serviceId') || ""} onValueChange={(val: any) => { if (val) setValue('serviceId', val as string); }} disabled={services.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Services (Default)">
-                      {services.find(svc => svc._id === watch('serviceId'))?.name || "All Services (Default)"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="null">All Services (Default)</SelectItem>
-                    {services.map(svc => (
-                      <SelectItem key={svc._id} value={svc._id}>{svc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={watch('status') || ""} onValueChange={(val: any) => { if (val) setValue('status', val as string); }}>
-                  <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="SERVING">Serving</SelectItem>
-                    <SelectItem value="OFFLINE">Offline</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={watch('status') || ""} onValueChange={(val: any) => { if (val) setValue('status', val as string); }}>
+                <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
-              <Link href="/super-admin/counters">
+              <Link href="/super-admin/priority-rules">
                 <Button variant="outline" type="button">Cancel</Button>
               </Link>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>

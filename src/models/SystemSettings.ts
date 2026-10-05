@@ -7,6 +7,17 @@ export interface ISystemSettings extends Document {
   aiRefreshRate: number;
   sessionTimeout: number;
   passwordExpiry: number;
+  // Queue Algorithm Settings
+  enableAIPrediction: boolean;
+  historicalWeight: number;
+  liveVelocityWeight: number;
+  maxDailyTokensPerUser: number;
+  // Notification Settings
+  smsEnabled: boolean;
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  notifyPeopleAhead: number;
+  notifyMinutesAhead: number;
 }
 
 const SystemSettingsSchema: Schema = new Schema(
@@ -17,6 +28,16 @@ const SystemSettingsSchema: Schema = new Schema(
     aiRefreshRate: { type: Number, default: 30 },
     sessionTimeout: { type: Number, default: 120 },
     passwordExpiry: { type: Number, default: 90 },
+    enableAIPrediction: { type: Boolean, default: true },
+    historicalWeight: { type: Number, default: 40 },
+    liveVelocityWeight: { type: Number, default: 60 },
+    maxDailyTokensPerUser: { type: Number, default: 3 },
+    maxConcurrentTokens: { type: Number, default: 1 },
+    smsEnabled: { type: Boolean, default: true },
+    pushEnabled: { type: Boolean, default: true },
+    emailEnabled: { type: Boolean, default: true },
+    notifyPeopleAhead: { type: Number, default: 5 },
+    notifyMinutesAhead: { type: Number, default: 15 },
   },
   {
     timestamps: true,

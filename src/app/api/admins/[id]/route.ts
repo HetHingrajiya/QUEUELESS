@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { User, UserRole } from '@/models/User';
 import { getUserFromCookie } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -49,6 +50,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       updateData.password = await bcrypt.hash(body.password, 10);
     }
 
+    const oldAdmin = await User.findOne({ _id: id, role: UserRole.ADMIN });
+    if (!oldAdmin) {
+      return NextResponse.json({ success: false, message: 'Admin not found' }, { status: 404 });
+    }
+
     const updatedAdmin = await User.findOneAndUpdate(
       { _id: id, role: UserRole.ADMIN },
       { $set: updateData },
@@ -58,6 +64,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!updatedAdmin) {
       return NextResponse.json({ success: false, message: 'Admin not found' }, { status: 404 });
     }
+
+    await createAuditLog({
+      action: 'UPDATE',
+      module: 'Admins',
+      description: `Updated admin: ${updatedAdmin.fullName}`,
+      userId: currentUser.userId,
+      userRole: currentUser.role,
+      entityType: 'User',
+      entityId: id,
+      oldData: oldAdmin.toObject(),
+      newData: updatedAdmin.toObject(),
+      request,
+    });
 
     return NextResponse.json({ success: true, message: 'Admin updated successfully', data: updatedAdmin });
   } catch (error) {
@@ -76,11 +95,28 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
+    const oldAdmin = await User.findOne({ _id: id, role: UserRole.ADMIN });
+    if (!oldAdmin) {
+      return NextResponse.json({ success: false, message: 'Admin not found' }, { status: 404 });
+    }
+
     const deletedAdmin = await User.findOneAndDelete({ _id: id, role: UserRole.ADMIN });
 
     if (!deletedAdmin) {
       return NextResponse.json({ success: false, message: 'Admin not found' }, { status: 404 });
     }
+
+    await createAuditLog({
+      action: 'DELETE',
+      module: 'Admins',
+      description: `Deleted admin: ${oldAdmin.fullName}`,
+      userId: currentUser.userId,
+      userRole: currentUser.role,
+      entityType: 'User',
+      entityId: id,
+      oldData: oldAdmin.toObject(),
+      request,
+    });
 
     return NextResponse.json({ success: true, message: 'Admin deleted successfully' });
   } catch (error) {

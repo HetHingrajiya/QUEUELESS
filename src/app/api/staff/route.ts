@@ -3,6 +3,7 @@ import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { User, UserRole } from '@/models/User';
 import bcrypt from 'bcryptjs';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(request: Request) {
   try {
@@ -48,6 +49,18 @@ export async function POST(request: Request) {
       role: UserRole.STAFF,
       organizationId: body.organizationId,
       officeId: body.officeId
+    });
+
+    await createAuditLog({
+      action: 'CREATE',
+      module: 'Staff',
+      description: `Created new staff member: ${newUser.fullName}`,
+      userId: user.userId,
+      userRole: user.role,
+      entityType: 'User',
+      entityId: newUser._id.toString(),
+      newData: newUser.toObject(),
+      request,
     });
 
     return NextResponse.json({

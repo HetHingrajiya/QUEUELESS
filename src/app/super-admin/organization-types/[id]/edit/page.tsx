@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,6 +22,7 @@ const typeSchema = z.object({
 type TypeFormValues = z.infer<typeof typeSchema>;
 
 export default function EditOrganizationType({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +37,7 @@ export default function EditOrganizationType({ params }: { params: Promise<{ id:
   useEffect(() => {
     const fetchType = async () => {
       try {
-        const { id } = await params;
+        const id = unwrappedParams.id;
         setTypeId(id);
 
         const res = await fetch(`/api/organization-types/${id}`);
@@ -59,7 +60,7 @@ export default function EditOrganizationType({ params }: { params: Promise<{ id:
     };
 
     fetchType();
-  }, [params, reset]);
+  }, [unwrappedParams.id, reset]);
 
   const onSubmit = async (data: TypeFormValues) => {
     setIsLoading(true);

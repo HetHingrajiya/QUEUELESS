@@ -1,35 +1,35 @@
 export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import dbConnect from '@/lib/db';
-import { User, UserRole } from '@/models/User';
+import { Counter } from '@/models/Counter';
 import Link from 'next/link';
-import { StaffActions } from './StaffActions';
+import { CounterActions } from './CounterActions';
 
-async function getStaff() {
+async function getCounters() {
   await dbConnect();
-  const staff = await User.find({ role: UserRole.STAFF })
-    .populate('organizationId')
+  const counters = await Counter.find({})
     .populate('officeId')
+    .populate('serviceId')
     .sort({ createdAt: -1 });
-  return staff;
+  return counters;
 }
 
-export default async function StaffPage() {
-  const staffMembers = await getStaff();
+export default async function CountersPage() {
+  const counters = await getCounters();
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Staff Members</h2>
-          <p className="text-sm text-slate-500">Manage office counter staff.</p>
+          <h2 className="text-2xl font-bold text-slate-800">Counters</h2>
+          <p className="text-sm text-slate-500">Manage all service counters across offices.</p>
         </div>
-        <Link href="/super-admin/staff/add">
+        <Link href="/super-admin/counters/add">
           <Button className="bg-blue-600 hover:bg-blue-700">
             <Plus size={18} className="mr-2" />
-            Add Staff
+            Add Counter
           </Button>
         </Link>
       </div>
@@ -40,44 +40,44 @@ export default async function StaffPage() {
             <table className="w-full text-sm text-left text-slate-600">
               <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
                 <tr>
+                  <th scope="col" className="px-6 py-4">Counter Number</th>
                   <th scope="col" className="px-6 py-4">Name</th>
-                  <th scope="col" className="px-6 py-4">Email</th>
-                  <th scope="col" className="px-6 py-4">Organization</th>
                   <th scope="col" className="px-6 py-4">Office</th>
+                  <th scope="col" className="px-6 py-4">Service</th>
                   <th scope="col" className="px-6 py-4">Status</th>
                   <th scope="col" className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {staffMembers.map((staff) => (
-                  <tr key={staff._id.toString()} className="bg-white border-b border-slate-100 hover:bg-slate-50">
+                {counters.map((counter) => (
+                  <tr key={counter._id.toString()} className="bg-white border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-6 py-4 font-semibold text-slate-900">
-                      {staff.fullName}
+                      {counter.number}
                     </td>
                     <td className="px-6 py-4">
-                      {staff.email}
+                      {counter.name || '-'}
                     </td>
                     <td className="px-6 py-4">
-                      {staff.organizationId ? (staff.organizationId as any).name : '-'}
+                      {counter.officeId ? (counter.officeId as any).name : '-'}
                     </td>
                     <td className="px-6 py-4">
-                      {staff.officeId ? (staff.officeId as any).name : '-'}
+                      {counter.serviceId ? (counter.serviceId as any).name : 'All Services'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
-                        ACTIVE
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${counter.status === 'ACTIVE' || counter.status === 'SERVING' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                        {counter.status || 'OFFLINE'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <StaffActions staffId={staff._id.toString()} />
+                      <CounterActions counterId={counter._id.toString()} />
                     </td>
                   </tr>
                 ))}
                 
-                {staffMembers.length === 0 && (
+                {counters.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      No staff members found.
+                      No counters found.
                     </td>
                   </tr>
                 )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,31 +13,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
-const serviceSchema = z.object({
+const ruleSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  code: z.string().min(1, 'Code is required'),
+  description: z.string().min(1, 'Description condition is required'),
+  priorityMultiplier: z.coerce.number().min(0.1).max(10.0),
   organizationId: z.string().min(1, 'Organization is required'),
-  officeId: z.string().min(1, 'Office is required'),
-  averageServiceTime: z.coerce.number().min(1, 'Time is required'),
+  officeId: z.string().optional(),
 });
 
-type ServiceFormValues = z.infer<typeof serviceSchema>;
+type RuleFormValues = z.infer<typeof ruleSchema>;
 
-export default function EditService({ params }: { params: Promise<{ id: string }> }) {
-  const unwrappedParams = use(params);
+export default function AddPriorityRule() {
   const router = useRouter();
-  const id = unwrappedParams.id;
-  
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
-  
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [offices, setOffices] = useState<any[]>([]);
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<ServiceFormValues>({
-    resolver: zodResolver(serviceSchema),
-  });
+  useEffect(() => {
+    fetch('/api/organizations')
+      .then(res => res.json())
+      .then(data => { if (data.success) setOrganizations(data.data); })
+      .catch(console.error);
+  }, []);
 
   const fetchOffices = async (orgId: string) => {
     try {
@@ -49,59 +47,34 @@ export default function EditService({ params }: { params: Promise<{ id: string }
     }
   };
 
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        const orgRes = await fetch('/api/organizations');
-        const orgData = await orgRes.json();
-        if (orgData.success) {
-          setOrganizations(orgData.data);
-        }
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<RuleFormValues>({
+    resolver: zodResolver(ruleSchema),
+    defaultValues: { priorityMultiplier: 1.5 }
+  });
 
-        const svcRes = await fetch(`/api/services/${id}`);
-        const svcData = await svcRes.json();
-        
-        if (svcData.success) {
-          const svc = svcData.data;
-          await fetchOffices(svc.organizationId);
-          reset({
-            name: svc.name,
-            code: svc.code,
-            organizationId: svc.organizationId,
-            officeId: svc.officeId,
-            averageServiceTime: svc.averageServiceTime,
-          });
-        } else {
-          setError('Failed to fetch service data');
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Error loading data');
-      } finally {
-        setIsFetching(false);
-      }
-    };
-    initializeData();
-  }, [id, reset]);
-
-  const onSubmit = async (data: ServiceFormValues) => {
+  const onSubmit = async (data: RuleFormValues) => {
     setIsLoading(true);
     setError('');
     
     try {
-      const res = await fetch(`/api/services/${id}`, {
-        method: 'PUT',
+      const payload = { ...data };
+      if (payload.officeId === 'null') {
+        payload.officeId = undefined;
+      }
+
+      const res = await fetch('/api/priority-rules', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/services');
+        router.push('/super-admin/priority-rules');
         router.refresh();
       } else {
-        setError(result.message || 'Failed to update service');
+        setError(result.message || 'Failed to create rule');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -110,27 +83,19 @@ export default function EditService({ params }: { params: Promise<{ id: string }
     }
   };
 
-  if (isFetching) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-12 p-6">
       <div className="flex items-center mb-6">
-        <Link href="/super-admin/services" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+        <Link href="/super-admin/priority-rules" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
           <ArrowLeft size={20} />
         </Link>
-        <h2 className="text-2xl font-bold text-slate-800">Edit Service</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Add Priority Rule</h2>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Service Details</CardTitle>
-          <CardDescription>Update service information.</CardDescription>
+          <CardTitle>Rule Details</CardTitle>
+          <CardDescription>Create a new dynamic priority multiplier.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }}>
@@ -142,15 +107,21 @@ export default function EditService({ params }: { params: Promise<{ id: string }
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Service Name *</Label>
-                <Input id="name" {...register('name')} placeholder="e.g. Birth Certificate" />
+                <Label htmlFor="name">Rule Name *</Label>
+                <Input id="name" {...register('name')} placeholder="e.g. Senior Citizen Priority" />
                 {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="code">Service Code *</Label>
-                <Input id="code" {...register('code')} placeholder="e.g. BC-01" />
-                {errors.code && <p className="text-sm text-red-600">{errors.code.message}</p>}
+                <Label htmlFor="priorityMultiplier">Multiplier (e.g. 1.5, 2.0) *</Label>
+                <Input id="priorityMultiplier" type="number" step="0.1" {...register('priorityMultiplier')} />
+                {errors.priorityMultiplier && <p className="text-sm text-red-600">{errors.priorityMultiplier.message}</p>}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Condition Description *</Label>
+              <Input id="description" {...register('description')} placeholder="e.g. Age >= 65" />
+              {errors.description && <p className="text-sm text-red-600">{errors.description.message}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -176,35 +147,29 @@ export default function EditService({ params }: { params: Promise<{ id: string }
                 {errors.organizationId && <p className="text-sm text-red-600">{errors.organizationId.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="office">Assign Office *</Label>
+                <Label htmlFor="office">Assign Office (Optional)</Label>
                 <Select value={watch('officeId') || ""} onValueChange={(val: any) => { if (val) setValue('officeId', val as string); }} disabled={offices.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select office">
-                      {offices.find(office => office._id === watch('officeId'))?.name}
+                    <SelectValue placeholder="All Offices">
+                      {offices.find(office => office._id === watch('officeId'))?.name || "All Offices"}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="null">All Offices</SelectItem>
                     {offices.map(office => (
                       <SelectItem key={office._id} value={office._id}>{office.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.officeId && <p className="text-sm text-red-600">{errors.officeId.message}</p>}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="averageServiceTime">Average Service Time (minutes) *</Label>
-              <Input id="averageServiceTime" type="number" {...register('averageServiceTime')} placeholder="e.g. 15" />
-              {errors.averageServiceTime && <p className="text-sm text-red-600">{errors.averageServiceTime.message}</p>}
-            </div>
-
             <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
-              <Link href="/super-admin/services">
+              <Link href="/super-admin/priority-rules">
                 <Button variant="outline" type="button">Cancel</Button>
               </Link>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Changes'}
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Create Rule'}
               </Button>
             </div>
           </form>

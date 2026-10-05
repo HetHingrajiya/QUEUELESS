@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { User, UserRole } from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { getUserFromCookie } from '@/lib/auth';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +30,18 @@ export async function POST(request: Request) {
       password: hashedPassword,
       role: UserRole.ADMIN,
       organizationId: body.organizationId
+    });
+
+    await createAuditLog({
+      action: 'CREATE',
+      module: 'Admins',
+      description: `Created new admin: ${newUser.fullName}`,
+      userId: currentUser.userId,
+      userRole: currentUser.role,
+      entityType: 'User',
+      entityId: newUser._id.toString(),
+      newData: newUser.toObject(),
+      request,
     });
 
     return NextResponse.json({

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(request: Request) {
   try {
@@ -43,6 +44,18 @@ export async function POST(request: Request) {
     }
 
     const newOffice = await Office.create(body);
+
+    await createAuditLog({
+      action: 'CREATE',
+      module: 'Offices',
+      description: `Created new office: ${newOffice.name}`,
+      userId: user.userId,
+      userRole: user.role,
+      entityType: 'Office',
+      entityId: newOffice._id.toString(),
+      newData: newOffice.toObject(),
+      request,
+    });
 
     return NextResponse.json({
       success: true,

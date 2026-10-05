@@ -1,24 +1,54 @@
-"use client";
+export const dynamic = 'force-dynamic';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
+import dbConnect from '@/lib/db';
+import { Role } from '@/models/Role';
+import { User } from '@/models/User';
+import { RoleActions } from './RoleActions';
 
-export default function RolesPage() {
-  const roles = [
-    { id: 1, name: 'SUPER_ADMIN', desc: 'Full system access across all organizations', users: 2, custom: false },
-    { id: 2, name: 'ADMIN', desc: 'Organization-level access', users: 15, custom: false },
-    { id: 3, name: 'STAFF', desc: 'Counter-level access', users: 124, custom: false },
-    { id: 4, name: 'MANAGER', desc: 'Custom role for branch managers', users: 8, custom: true },
+async function getRoles() {
+  await dbConnect();
+  
+  // Ensure system roles exist
+  const systemRoles = [
+    { name: 'SUPER_ADMIN', description: 'Full system access across all organizations', isSystem: true },
+    { name: 'ADMIN', description: 'Organization-level access', isSystem: true },
+    { name: 'STAFF', description: 'Counter-level access', isSystem: true },
+    { name: 'CITIZEN', description: 'Public user access', isSystem: true }
   ];
 
-  const handleAction = (action: string, isSystem: boolean) => {
-    if (isSystem) {
-      alert(`System roles cannot be ${action}ed.`);
-    } else {
-      alert(`Custom role management is not yet linked to the database. This feature is coming soon!`);
-    }
-  };
+  for (const role of systemRoles) {
+    await Role.updateOne(
+      { name: role.name, isSystem: true },
+      { $setOnInsert: role },
+      { upsert: true }
+    );
+  }
+
+  const roles = await Role.find().sort({ isSystem: -1, createdAt: -1 }).populate('organizationId');
+  
+  const rolesWithCount = await Promise.all(roles.map(async (role) => {
+    // Assuming User model has a `role` string field that matches the Role name
+    const count = await User.countDocuments({ role: role.name });
+    return {
+      _id: role._id.toString(),
+      name: role.name,
+      description: role.description,
+      isSystem: role.isSystem,
+      organizationName: role.organizationId ? (role.organizationId as any).name : '-',
+      userCount: count,
+      permissionsCount: role.permissions?.length || 0
+    };
+  }));
+
+  return rolesWithCount;
+}
+
+export default async function RolesPage() {
+  const roles = await getRoles();
 
   return (
     <div className="space-y-6 p-6">
@@ -27,10 +57,12 @@ export default function RolesPage() {
           <h2 className="text-2xl font-bold text-slate-800">Role Management</h2>
           <p className="text-sm text-slate-500">Define access roles and view assignments.</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => alert('Custom roles feature is coming soon!')}>
-          <Plus size={18} className="mr-2" />
-          Create Custom Role
-        </Button>
+        <Link href="/super-admin/roles/add">
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus size={18} className="mr-2" />
+            Create Custom Role
+          </Button>
+        </Link>
       </div>
 
       <Card>
@@ -42,49 +74,38 @@ export default function RolesPage() {
                   <th scope="col" className="px-6 py-4">Role Name</th>
                   <th scope="col" className="px-6 py-4">Description</th>
                   <th scope="col" className="px-6 py-4">Type</th>
+                  <th scope="col" className="px-6 py-4">Organization</th>
                   <th scope="col" className="px-6 py-4">Users Assigned</th>
                   <th scope="col" className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {roles.map((role) => (
-                  <tr key={role.id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={role._id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-6 py-4 font-bold text-slate-900">{role.name}</td>
-                    <td className="px-6 py-4">{role.desc}</td>
+                    <td className="px-6 py-4">{role.description}</td>
                     <td className="px-6 py-4">
-                      {role.custom ? (
+                      {!role.isSystem ? (
                         <span className="px-2 py-1 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">CUSTOM</span>
                       ) : (
                         <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">SYSTEM</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">{role.users} users</td>
+                    <td className="px-6 py-4">{role.organizationName}</td>
+                    <td className="px-6 py-4">{role.userCount} users</td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 w-8 p-0" 
-                          title="Edit"
-                          onClick={() => handleAction('edit', !role.custom)}
-                        >
-                          <Edit size={14} className="text-slate-600" />
-                        </Button>
-                        {role.custom && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" 
-                            title="Delete"
-                            onClick={() => handleAction('delete', !role.custom)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        )}
-                      </div>
+                      <RoleActions roleId={role._id} isSystem={role.isSystem} />
                     </td>
                   </tr>
                 ))}
+                
+                {roles.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      No roles found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

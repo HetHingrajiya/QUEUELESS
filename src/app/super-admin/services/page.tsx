@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
 import Link from 'next/link';
+import { ServiceActions } from './ServiceActions';
 
 async function getServices() {
   await dbConnect();
@@ -61,14 +62,7 @@ export default async function ServicesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
-                          <Edit size={14} className="text-slate-600" />
-                        </Button>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" title="Delete">
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
+                      <ServiceActions serviceId={service._id.toString()} />
                     </td>
                   </tr>
                 ))}

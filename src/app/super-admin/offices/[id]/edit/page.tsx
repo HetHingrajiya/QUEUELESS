@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +26,7 @@ const officeSchema = z.object({
 type OfficeFormValues = z.infer<typeof officeSchema>;
 
 export default function EditOffice({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +41,7 @@ export default function EditOffice({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     const fetchOrganizationsAndOffice = async () => {
       try {
-        const { id } = await params;
+        const id = unwrappedParams.id;
         setOfficeId(id);
 
         const [orgsRes, officeRes] = await Promise.all([
@@ -76,7 +77,7 @@ export default function EditOffice({ params }: { params: Promise<{ id: string }>
     };
 
     fetchOrganizationsAndOffice();
-  }, [params, reset]);
+  }, [unwrappedParams.id, reset]);
 
   const onSubmit = async (data: OfficeFormValues) => {
     setIsLoading(true);

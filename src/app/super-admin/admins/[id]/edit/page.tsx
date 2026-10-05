@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,6 +23,7 @@ const editAdminSchema = z.object({
 type EditAdminFormValues = z.infer<typeof editAdminSchema>;
 
 export default function EditAdmin({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +38,7 @@ export default function EditAdmin({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     const fetchOrganizationsAndAdmin = async () => {
       try {
-        const { id } = await params;
+        const id = unwrappedParams.id;
         setAdminId(id);
 
         const [orgsRes, adminRes] = await Promise.all([
@@ -69,7 +70,7 @@ export default function EditAdmin({ params }: { params: Promise<{ id: string }> 
     };
 
     fetchOrganizationsAndAdmin();
-  }, [params, reset]);
+  }, [unwrappedParams.id, reset]);
 
   const onSubmit = async (data: EditAdminFormValues) => {
     setIsLoading(true);

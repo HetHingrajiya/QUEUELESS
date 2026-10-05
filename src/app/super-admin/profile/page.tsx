@@ -1,81 +1,93 @@
-"use client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { User, Mail, Shield, Building, Building2, MapPin } from 'lucide-react';
+import dbConnect from '@/lib/db';
+import { User as UserModel } from '@/models/User';
+import { getUserFromCookie } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
-
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=super-admin/profile');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
-        }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
+export default async function ProfilePage() {
+  await dbConnect();
+  
+  const authUser = await getUserFromCookie();
+  if (!authUser) {
+    redirect('/auth/login');
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const user = await UserModel.findById(authUser.userId)
+    .populate('organizationId')
+    .populate('officeId')
+    .lean();
 
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">profile Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!user) {
+    return <div className="p-6">User not found</div>;
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">profile</h1>
+    <div className="space-y-6 p-6 max-w-3xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">My Profile</h2>
+          <p className="text-sm text-slate-500">Manage your account information and preferences.</p>
+        </div>
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <CardTitle>Personal Information</CardTitle>
+          <CardDescription>Your personal details and contact info.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center space-x-4">
+            <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-2xl">
+              {user.fullName.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">{user.fullName}</h3>
+              <p className="text-sm text-slate-500 flex items-center mt-1">
+                <Shield size={14} className="mr-1 text-slate-400" />
+                {user.role}
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Email Address</p>
+              <p className="text-sm text-slate-900 font-medium flex items-center">
+                <Mail size={16} className="mr-2 text-slate-400" />
+                {user.email}
+              </p>
+            </div>
+            
+            {user.organizationId && (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Organization</p>
+                <p className="text-sm text-slate-900 font-medium flex items-center">
+                  <Building2 size={16} className="mr-2 text-slate-400" />
+                  {(user.organizationId as any).name}
+                </p>
+              </div>
+            )}
+            
+            {user.officeId && (
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Office</p>
+                <p className="text-sm text-slate-900 font-medium flex items-center">
+                  <MapPin size={16} className="mr-2 text-slate-400" />
+                  {(user.officeId as any).name}
+                </p>
+              </div>
+            )}
+            
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Status</p>
+              <p className="text-sm mt-1">
+                <span className="px-2 py-1 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {user.status}
+                </span>
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

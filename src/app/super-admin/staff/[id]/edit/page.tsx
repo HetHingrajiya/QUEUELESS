@@ -1,38 +1,114 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const staffSchema = z.object({
+  fullName: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  organizationId: z.string().min(1, 'Organization is required'),
+  officeId: z.string().min(1, 'Office is required'),
+});
+
+type StaffFormValues = z.infer<typeof staffSchema>;
+
+export default function EditStaff({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
+  const router = useRouter();
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [offices, setOffices] = useState<any[]>([]);
+
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<StaffFormValues>({
+    resolver: zodResolver(staffSchema),
+  });
+
+  const fetchOffices = async (orgId: string) => {
+    try {
+      const res = await fetch(`/api/offices?organizationId=${orgId}`);
+      const data = await res.json();
+      if (data.success) setOffices(data.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const initializeData = async () => {
       try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=super-admin/staff/[id]/edit');
-        const json = await response.json();
+        const orgRes = await fetch('/api/organizations');
+        const orgData = await orgRes.json();
+        if (orgData.success) {
+          setOrganizations(orgData.data);
+        }
+
+        const staffRes = await fetch(`/api/staff/${unwrappedParams.id}`);
+        const staffData = await staffRes.json();
         
-        if (json.success && json.data) {
-          setData(json.data);
+        if (staffData.success) {
+          const staff = staffData.data;
+          if (staff.organizationId) {
+            await fetchOffices(staff.organizationId);
+          }
+          reset({
+            fullName: staff.fullName,
+            email: staff.email,
+            organizationId: staff.organizationId,
+            officeId: staff.officeId,
+          });
         } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
+          setError('Failed to fetch staff data');
         }
       } catch (err) {
-        setError("Failed to load module data. Please try again later.");
+        console.error(err);
+        setError('Error loading data');
       } finally {
-        setLoading(false);
+        setIsFetching(false);
       }
     };
-    fetchData();
-  }, []);
+    initializeData();
+  }, [unwrappedParams.id, reset]);
 
-  if (loading) {
+  const onSubmit = async (data: StaffFormValues) => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const res = await fetch(`/api/staff/${unwrappedParams.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      const result = await res.json();
+      
+      if (result.success) {
+        router.push('/super-admin/staff');
+        router.refresh();
+      } else {
+        setError(result.message || 'Failed to update staff');
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isFetching) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
         <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
@@ -40,42 +116,90 @@ export default function GenericGeneratedPage() {
     );
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">edit Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">edit</h1>
+    <div className="space-y-6 max-w-3xl mx-auto pb-12 p-6">
+      <div className="flex items-center mb-6">
+        <Link href="/super-admin/staff" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+          <ArrowLeft size={20} />
+        </Link>
+        <h2 className="text-2xl font-bold text-slate-800">Edit Staff Member</h2>
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <CardTitle>Staff Details</CardTitle>
+          <CardDescription>Update staff member information.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name *</Label>
+                <Input id="fullName" {...register('fullName')} placeholder="e.g. Jane Doe" />
+                {errors.fullName && <p className="text-sm text-red-600">{errors.fullName.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input id="email" type="email" {...register('email')} placeholder="staff@domain.com" />
+                {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="organization">Organization *</Label>
+                <Select value={watch('organizationId') || ""} onValueChange={(val: any) => { 
+                  if (val) {
+                    setValue('organizationId', val as string); 
+                    fetchOffices(val as string);
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select organization">
+                      {organizations.find(org => org._id === watch('organizationId'))?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.map(org => (
+                      <SelectItem key={org._id} value={org._id}>{org.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.organizationId && <p className="text-sm text-red-600">{errors.organizationId.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="office">Office *</Label>
+                <Select value={watch('officeId') || ""} onValueChange={(val: any) => { if (val) setValue('officeId', val as string); }} disabled={offices.length === 0}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select office">
+                      {offices.find(office => office._id === watch('officeId'))?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {offices.map(office => (
+                      <SelectItem key={office._id} value={office._id}>{office.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.officeId && <p className="text-sm text-red-600">{errors.officeId.message}</p>}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
+              <Link href="/super-admin/staff">
+                <Button variant="outline" type="button">Cancel</Button>
+              </Link>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>

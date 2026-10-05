@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(request: Request) {
   try {
@@ -40,6 +41,18 @@ export async function POST(request: Request) {
     }
 
     const newService = await Service.create(body);
+
+    await createAuditLog({
+      action: 'CREATE',
+      module: 'Services',
+      description: `Created new service: ${newService.name}`,
+      userId: user.userId,
+      userRole: user.role,
+      entityType: 'Service',
+      entityId: newService._id.toString(),
+      newData: newService.toObject(),
+      request,
+    });
 
     return NextResponse.json({
       success: true,
