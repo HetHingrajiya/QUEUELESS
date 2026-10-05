@@ -42,11 +42,26 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const targetUserId = body.userId || user.userId;
+
+    if (targetUserId !== user.userId) {
+      if (user.role === 'CITIZEN' || user.role === 'STAFF') {
+        return NextResponse.json({ success: false, message: 'Forbidden: Cannot target other users' }, { status: 403 });
+      }
+
+      if (user.role === 'ADMIN') {
+        // Must verify target user belongs to same organization
+        const { User } = await import('@/models/User');
+        const targetUser = await User.findById(targetUserId);
+        if (!targetUser || targetUser.organizationId?.toString() !== user.organizationId?.toString()) {
+          return NextResponse.json({ success: false, message: 'Forbidden: Target user not in your organization' }, { status: 403 });
+        }
+      }
+    }
     
-    // Create the notification for the current user if userId isn't provided in the body
     const notification = await Notification.create({
       ...body,
-      userId: body.userId || user.userId
+      userId: targetUserId
     });
     
     // Emit via socket
