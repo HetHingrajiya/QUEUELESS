@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { OrganizationType } from '@/models/OrganizationType';
+import { getUserFromCookie } from '@/lib/auth';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET() {
   try {
@@ -16,6 +18,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await dbConnect();
+    const user = await getUserFromCookie();
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
     const body = await request.json();
     
     if (!body.name) {
@@ -23,6 +30,19 @@ export async function POST(request: Request) {
     }
 
     const type = await OrganizationType.create(body);
+
+    await createAuditLog({
+      action: 'CREATE',
+      module: 'Organization Types',
+      description: `Created Organization Type: ${type.name}`,
+      userId: user.userId,
+      userRole: user.role,
+      entityType: 'OrganizationType',
+      entityId: type._id.toString(),
+      newData: type.toObject(),
+      request,
+    });
+
     return NextResponse.json({ success: true, data: type }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating organization type:', error);

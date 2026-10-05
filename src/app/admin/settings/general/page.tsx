@@ -1,36 +1,98 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, Save, Building2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
+export default function GeneralSettingsPage() {
+  const [orgId, setOrgId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    code: '',
+    description: '',
+    contactNumber: '',
+    email: '',
+    address: '',
+    type: ''
+  });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const initialize = async () => {
       try {
         setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=admin/settings/general');
-        const json = await response.json();
+        // Get current user to find their organization
+        const userRes = await fetch('/api/auth/me');
+        const userData = await userRes.json();
         
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
+        if (userData.success && userData.data?.user?.organizationId) {
+          const organizationId = userData.data.user.organizationId;
+          setOrgId(organizationId);
+          
+          // Fetch organization details
+          const orgRes = await fetch(`/api/organizations/${organizationId}`);
+          const orgData = await orgRes.json();
+          
+          if (orgData.success) {
+            setFormData({
+              name: orgData.data.name || '',
+              code: orgData.data.code || '',
+              description: orgData.data.description || '',
+              contactNumber: orgData.data.contactNumber || '',
+              email: orgData.data.email || '',
+              address: orgData.data.address || '',
+              type: orgData.data.type || ''
+            });
+          }
         }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
+      } catch (error) {
+        console.error('Failed to load organization data:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    
+    initialize();
   }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!orgId) return;
+    
+    try {
+      setSaving(true);
+      const res = await fetch(`/api/organizations/${orgId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert('Organization details updated successfully.');
+      } else {
+        alert(data.message || 'Failed to update organization details.');
+      }
+    } catch (error) {
+      console.error('Error saving organization:', error);
+      alert('An error occurred while saving.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -40,28 +102,13 @@ export default function GenericGeneratedPage() {
     );
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || (Array.isArray(data) && data.length === 0)) {
+  if (!orgId) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">general Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
+        <h2 className="text-2xl font-bold text-slate-800 mb-6">General Settings</h2>
+        <Card className="bg-red-50 border-red-200">
+          <CardContent className="p-6 text-center text-red-600">
+            You do not have an active organization assigned.
           </CardContent>
         </Card>
       </div>
@@ -69,13 +116,113 @@ export default function GenericGeneratedPage() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">general</h1>
+    <div className="space-y-6 max-w-4xl pb-12">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">General Settings</h2>
+          <p className="text-sm text-slate-500">Manage your organization's core details and information.</p>
+        </div>
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Building2 className="text-blue-600" size={20} />
+            <CardTitle>Organization Profile</CardTitle>
+          </div>
+          <CardDescription>Update your public-facing organization details.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Organization Name <span className="text-red-500">*</span></Label>
+              <Input 
+                id="name" 
+                value={formData.name} 
+                onChange={handleChange} 
+                placeholder="E.g., City of Metropolis"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="code">Organization Code</Label>
+              <Input 
+                id="code" 
+                value={formData.code} 
+                disabled
+                className="bg-slate-50 cursor-not-allowed"
+                title="Code cannot be changed"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="email">Support Email</Label>
+              <Input 
+                id="email" 
+                type="email"
+                value={formData.email} 
+                onChange={handleChange} 
+                placeholder="contact@organization.gov"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contactNumber">Contact Phone Number</Label>
+              <Input 
+                id="contactNumber" 
+                value={formData.contactNumber} 
+                onChange={handleChange} 
+                placeholder="+1 (555) 000-0000"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="type">Organization Type</Label>
+            <Input 
+              id="type" 
+              value={formData.type} 
+              disabled
+              className="bg-slate-50 cursor-not-allowed"
+            />
+            <p className="text-xs text-slate-500">Managed by Super Admin.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Headquarters / Main Address</Label>
+            <Textarea 
+              id="address" 
+              value={formData.address} 
+              onChange={handleChange} 
+              placeholder="Full street address..."
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">About the Organization</Label>
+            <Textarea 
+              id="description" 
+              value={formData.description} 
+              onChange={handleChange} 
+              placeholder="Brief description of your organization's services..."
+              rows={4}
+            />
+          </div>
+          
+          <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || !formData.name} 
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+              ) : (
+                <><Save size={16} className="mr-2" /> Save Organization Details</>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

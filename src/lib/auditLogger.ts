@@ -1,6 +1,7 @@
 import dbConnect from '@/lib/db';
 import { AuditLog } from '@/models/AuditLog';
 import { headers } from 'next/headers';
+import { getUserFromCookie } from '@/lib/auth';
 
 interface CreateAuditLogParams {
   userId?: string | null;
@@ -27,22 +28,35 @@ export async function createAuditLog(params: CreateAuditLogParams) {
     let userAgent = 'Unknown';
     
     if (params.request) {
-      const headersList = headers();
+      const headersList = await headers();
       ipAddress = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '127.0.0.1';
       userAgent = headersList.get('user-agent') || 'Unknown';
     }
 
+    // Attempt to fill in missing user details automatically
+    let { userId, userName, userRole, organizationId, officeId } = params;
+    
+    if (!userId || !userRole || !organizationId) {
+      const user = await getUserFromCookie();
+      if (user) {
+        userId = userId || user.userId;
+        userRole = userRole || user.role;
+        organizationId = organizationId || user.organizationId;
+        officeId = officeId || user.officeId;
+      }
+    }
+
     const log = new AuditLog({
-      userId: params.userId,
-      userName: params.userName,
-      userRole: params.userRole,
+      userId,
+      userName,
+      userRole,
       action: params.action,
       module: params.module,
       description: params.description,
       entityType: params.entityType,
       entityId: params.entityId,
-      organizationId: params.organizationId,
-      officeId: params.officeId,
+      organizationId,
+      officeId,
       oldData: params.oldData,
       newData: params.newData,
       ipAddress,

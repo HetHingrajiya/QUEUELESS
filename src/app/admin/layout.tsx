@@ -79,8 +79,7 @@ const sidebarItems: SidebarItem[] = [
       { name: 'General Settings', href: '/admin/settings/general' },
       { name: 'Queue Settings', href: '/admin/settings/queue' },
       { name: 'Notifications', href: '/admin/settings/notifications' },
-      { name: 'Security', href: '/admin/settings/security' },
-      { name: 'Working Hours', href: '/admin/settings/working-hours' }
+      { name: 'Security', href: '/admin/settings/security' }
     ]
   },
   { name: 'Profile', href: '/admin/profile', icon: <UserCircle size={20} /> }

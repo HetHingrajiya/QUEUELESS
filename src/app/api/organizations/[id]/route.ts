@@ -8,7 +8,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   try {
     await dbConnect();
     const resolvedParams = await params;
-    const org = await Organization.findById(resolvedParams.id);
+    const org = await Organization.findById(resolvedParams.id).lean();
     if (!org) {
       return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
     }
@@ -25,8 +25,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     
     // Auth Check
     const user = await getUserFromCookie();
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+    
+    if (user.role === 'ADMIN' && user.organizationId !== resolvedParams.id) {
+      return NextResponse.json({ success: false, message: 'Forbidden: You can only update your own organization' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -36,7 +40,34 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
     }
 
-    const org = await Organization.findByIdAndUpdate(resolvedParams.id, body, { new: true, runValidators: true });
+    // Convert nested settings to dot notation to prevent overwriting
+    const updateQuery: any = { $set: {}, $unset: {} };
+    for (const key in body) {
+      if (key === 'settings' && typeof body.settings === 'object') {
+        for (const settingKey in body.settings) {
+          if (body.settings[settingKey] === null) {
+            updateQuery.$unset[`settings.${settingKey}`] = 1;
+          } else {
+            updateQuery.$set[`settings.${settingKey}`] = body.settings[settingKey];
+          }
+        }
+      } else {
+        if (body[key] === null) {
+          updateQuery.$unset[key] = 1;
+        } else {
+          updateQuery.$set[key] = body[key];
+        }
+      }
+    }
+
+    if (Object.keys(updateQuery.$set).length === 0) delete updateQuery.$set;
+    if (Object.keys(updateQuery.$unset).length === 0) delete updateQuery.$unset;
+
+    const org = await Organization.findByIdAndUpdate(
+      resolvedParams.id, 
+      updateQuery, 
+      { new: true, runValidators: true, strict: false }
+    );
     
     if (!org) {
       return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });

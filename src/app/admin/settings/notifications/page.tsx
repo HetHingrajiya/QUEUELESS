@@ -1,36 +1,108 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Loader2, Save, Bell } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
+export default function NotificationsSettingsPage() {
+  const [orgId, setOrgId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [globalDefaults, setGlobalDefaults] = useState<any>(null);
+  
+  const [formData, setFormData] = useState({
+    smsEnabled: null as boolean | null,
+    emailEnabled: null as boolean | null,
+  });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const initialize = async () => {
       try {
         setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=admin/settings/notifications');
-        const json = await response.json();
         
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
+        // 1. Fetch Global System Settings
+        const sysRes = await fetch('/api/system-settings');
+        const sysData = await sysRes.json();
+        if (sysData.success) {
+          setGlobalDefaults(sysData.data);
         }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
+
+        // 2. Fetch User & Organization
+        const userRes = await fetch('/api/auth/me');
+        const userData = await userRes.json();
+        
+        if (userData.success && userData.data?.user?.organizationId) {
+          const organizationId = userData.data.user.organizationId;
+          setOrgId(organizationId);
+          
+          const orgRes = await fetch(`/api/organizations/${organizationId}`);
+          const orgData = await orgRes.json();
+          
+          if (orgData.success) {
+            const settings = orgData.data.settings || {};
+            setFormData({
+              smsEnabled: settings.smsEnabled !== undefined ? settings.smsEnabled : null,
+              emailEnabled: settings.emailEnabled !== undefined ? settings.emailEnabled : null,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load notification settings:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    
+    initialize();
   }, []);
+
+  const handleToggle = (key: string, currentValue: boolean | null) => {
+    setFormData(prev => ({
+      ...prev,
+      [key]: currentValue === null ? !(globalDefaults?.[key]) : !currentValue
+    }));
+  };
+
+  const handleReset = (key: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [key]: null
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!orgId) return;
+    
+    try {
+      setSaving(true);
+      
+      const settingsToUpdate: any = {};
+      // If they are not null, they are explicitly overridden
+      if (formData.smsEnabled !== null) settingsToUpdate.smsEnabled = formData.smsEnabled;
+      if (formData.emailEnabled !== null) settingsToUpdate.emailEnabled = formData.emailEnabled;
+
+      const res = await fetch(`/api/organizations/${orgId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: settingsToUpdate })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert('Notification settings updated successfully.');
+      } else {
+        alert(data.message || 'Failed to update notification settings.');
+      }
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+      alert('An error occurred while saving.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -40,42 +112,77 @@ export default function GenericGeneratedPage() {
     );
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">notifications Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Display value: if local override is null, use global default, else use override.
+  const displaySms = formData.smsEnabled !== null ? formData.smsEnabled : (globalDefaults?.smsEnabled ?? true);
+  const displayEmail = formData.emailEnabled !== null ? formData.emailEnabled : (globalDefaults?.emailEnabled ?? true);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">notifications</h1>
+    <div className="space-y-6 max-w-4xl pb-12">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Notification Settings</h2>
+          <p className="text-sm text-slate-500">Configure how citizens receive alerts and updates.</p>
+        </div>
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Bell className="text-blue-600" size={20} />
+            <CardTitle>Communication Channels</CardTitle>
+          </div>
+          <CardDescription>
+            Enable or disable specific communication channels for your organization.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+              <div className="space-y-0.5">
+                <Label className="text-base">SMS Notifications</Label>
+                <p className="text-sm text-slate-500">Send waitlist updates via text message.</p>
+                {formData.smsEnabled !== null && (
+                  <button onClick={() => handleReset('smsEnabled')} className="text-xs text-blue-600 hover:underline">
+                    Reset to global default ({globalDefaults?.smsEnabled ? 'Enabled' : 'Disabled'})
+                  </button>
+                )}
+              </div>
+              <Switch 
+                checked={displaySms} 
+                onCheckedChange={() => handleToggle('smsEnabled', formData.smsEnabled)} 
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
+              <div className="space-y-0.5">
+                <Label className="text-base">Email Notifications</Label>
+                <p className="text-sm text-slate-500">Send queue tickets and receipts via email.</p>
+                {formData.emailEnabled !== null && (
+                  <button onClick={() => handleReset('emailEnabled')} className="text-xs text-blue-600 hover:underline">
+                    Reset to global default ({globalDefaults?.emailEnabled ? 'Enabled' : 'Disabled'})
+                  </button>
+                )}
+              </div>
+              <Switch 
+                checked={displayEmail} 
+                onCheckedChange={() => handleToggle('emailEnabled', formData.emailEnabled)} 
+              />
+            </div>
+          </div>
+          
+          <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <Button 
+              onClick={handleSave} 
+              disabled={saving} 
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+              ) : (
+                <><Save size={16} className="mr-2" /> Save Notification Settings</>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

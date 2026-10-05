@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, Calendar, Loader2, Eye, X } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, FileText, Loader2, Eye, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +12,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-export default function ReportsPage() {
+interface ReportsViewProps {
+  title: string;
+  reportType: string;
+}
+
+export default function ReportsView({ title, reportType }: ReportsViewProps) {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -28,7 +32,11 @@ export default function ReportsPage() {
       const res = await fetch('/api/reports');
       const data = await res.json();
       if (data.success) {
-        setReports(data.data);
+        // Filter by report type if a specific type is requested (using name for now as type is PDF/CSV)
+        const filtered = reportType === 'All' 
+          ? data.data 
+          : data.data.filter((r: any) => r.name.toLowerCase().includes(reportType.toLowerCase()));
+        setReports(filtered);
       }
     } catch (error) {
       console.error(error);
@@ -44,7 +52,7 @@ export default function ReportsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `System Overview ${new Date().toISOString().split('T')[0]}`,
+          name: `${reportType === 'All' ? 'Custom' : reportType} Report - ${new Date().toISOString().split('T')[0]}`,
           type: 'PDF'
         }),
       });
@@ -63,28 +71,12 @@ export default function ReportsPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Generated Reports</h2>
-          <p className="text-sm text-slate-500">Download and manage scheduled system reports.</p>
+          <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
+          <p className="text-sm text-slate-500">Generate, download, and manage {title.toLowerCase()}.</p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700" onClick={generateReport} disabled={generating}>
           {generating ? <Loader2 size={18} className="mr-2 animate-spin" /> : <FileText size={18} className="mr-2" />}
-          Generate Custom Report
-        </Button>
-      </div>
-
-      <div className="flex gap-4 mb-6">
-        <Select defaultValue="all">
-          <SelectTrigger className="w-[200px] bg-white"><SelectValue placeholder="Report Type" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="daily">Daily Summaries</SelectItem>
-            <SelectItem value="weekly">Weekly Analysis</SelectItem>
-            <SelectItem value="monthly">Monthly Reviews</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" className="bg-white">
-          <Calendar size={16} className="mr-2 text-slate-500" />
-          Select Date Range
+          Generate {reportType !== 'All' ? reportType : 'New'} Report
         </Button>
       </div>
 
@@ -108,7 +100,7 @@ export default function ReportsPage() {
                   </tr>
                 ) : reports.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">No reports generated yet.</td>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">No {reportType !== 'All' ? reportType.toLowerCase() : ''} reports generated yet.</td>
                   </tr>
                 ) : (
                   reports.map((report) => (
@@ -177,12 +169,12 @@ export default function ReportsPage() {
             {/* Mock Report Content */}
             <div className="max-w-2xl mx-auto bg-white p-8 shadow-sm border border-slate-100 min-h-full">
               <div className="border-b border-slate-200 pb-4 mb-6">
-                <h1 className="text-3xl font-serif text-slate-900 mb-2">QueueLess System Report</h1>
+                <h1 className="text-3xl font-serif text-slate-900 mb-2">QueueLess Report</h1>
                 <p className="text-slate-500">{selectedReport?.name}</p>
               </div>
               
               <div className="space-y-6 text-slate-700">
-                <p>This is a system-generated report containing aggregated overview data for the entire QueueLess platform.</p>
+                <p>This is a system-generated report containing aggregated analytics data.</p>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 p-4 rounded border border-slate-100">

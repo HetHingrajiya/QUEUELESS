@@ -4,7 +4,9 @@ import { jwtVerify } from 'jose';
 
 // Define the paths that require super admin role
 const SUPER_ADMIN_PATHS = ['/super-admin'];
-const SUPER_ADMIN_API_PATHS = ['/api/super-admin', '/api/organizations', '/api/offices', '/api/services', '/api/counters', '/api/staff', '/api/admins', '/api/roles', '/api/permissions', '/api/priority-rules', '/api/audit-logs', '/api/system-settings', '/api/notifications', '/api/reports'];
+const ADMIN_PATHS = ['/admin'];
+const SUPER_ADMIN_API_PATHS = ['/api/super-admin', '/api/admins', '/api/organization-types', '/api/system-settings', '/api/notifications'];
+const ADMIN_API_PATHS = ['/api/organizations', '/api/offices', '/api/services', '/api/counters', '/api/staff', '/api/roles', '/api/permissions', '/api/priority-rules', '/api/audit-logs', '/api/reports', '/api/admin'];
 
 // This should match the secret in lib/auth.ts
 const getJwtSecret = () => {
@@ -20,9 +22,14 @@ export async function middleware(request: NextRequest) {
 
   // Check if it's a protected path
   const isSuperAdminPath = SUPER_ADMIN_PATHS.some(path => pathname.startsWith(path));
+  const isAdminPath = ADMIN_PATHS.some(path => pathname.startsWith(path));
   const isSuperAdminApi = SUPER_ADMIN_API_PATHS.some(path => pathname.startsWith(path));
+  const isAdminApi = ADMIN_API_PATHS.some(path => pathname.startsWith(path));
 
-  if (!isSuperAdminPath && !isSuperAdminApi) {
+  const isProtectedApi = isSuperAdminApi || isAdminApi;
+  const isProtectedPath = isSuperAdminPath || isAdminPath;
+
+  if (!isProtectedPath && !isProtectedApi) {
     return NextResponse.next();
   }
 
@@ -34,7 +41,7 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
 
   if (!token) {
-    if (isSuperAdminApi) {
+    if (isProtectedApi) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
     const loginUrl = new URL('/auth/login', request.url);
@@ -49,6 +56,13 @@ export async function middleware(request: NextRequest) {
     if (isSuperAdminPath || isSuperAdminApi) {
       if (payload.role !== 'SUPER_ADMIN') {
         if (isSuperAdminApi) {
+          return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL('/unauthorized', request.url));
+      }
+    } else if (isAdminPath || isAdminApi) {
+      if (payload.role !== 'SUPER_ADMIN' && payload.role !== 'ADMIN') {
+        if (isAdminApi) {
           return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
         }
         return NextResponse.redirect(new URL('/unauthorized', request.url));

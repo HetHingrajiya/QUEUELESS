@@ -10,7 +10,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await dbConnect();
     
-    const staff = await User.findOne({ _id: id, role: UserRole.STAFF });
+    // Auth Check
+    const user = await getUserFromCookie();
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const query: any = { _id: id, role: UserRole.STAFF };
+    
+    if (user.role === 'ADMIN') {
+      if (!user.organizationId) {
+         return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+      }
+      query.organizationId = user.organizationId;
+    } else if (user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+
+    const staff = await User.findOne(query);
     
     if (!staff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
@@ -45,13 +62,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       delete body.password; // Don't overwrite with empty password
     }
 
-    const oldStaff = await User.findOne({ _id: id, role: UserRole.STAFF });
+    const query: any = { _id: id, role: UserRole.STAFF };
+    if (user.role === 'ADMIN') {
+       query.organizationId = user.organizationId;
+    }
+
+    const oldStaff = await User.findOne(query);
     if (!oldStaff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
     }
 
     const updatedStaff = await User.findOneAndUpdate(
-      { _id: id, role: UserRole.STAFF },
+      query,
       { $set: body },
       { new: true, runValidators: true }
     );
@@ -95,12 +117,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const oldStaff = await User.findOne({ _id: id, role: UserRole.STAFF });
+    const query: any = { _id: id, role: UserRole.STAFF };
+    if (user.role === 'ADMIN') {
+       query.organizationId = user.organizationId;
+    }
+
+    const oldStaff = await User.findOne(query);
     if (!oldStaff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
     }
 
-    const deletedStaff = await User.findOneAndDelete({ _id: id, role: UserRole.STAFF });
+    const deletedStaff = await User.findOneAndDelete(query);
 
     if (!deletedStaff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
