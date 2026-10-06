@@ -32,6 +32,7 @@ export async function GET(request: Request) {
       query.officeId = officeId;
     }
     
+    if (user.role === 'ADMIN') { const { hasPermission } = await import('@/lib/permissions'); if (!(await hasPermission(user.userId, 'MANAGE_STAFF'))) return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_STAFF permission' }, { status: 403 }); }
     const staff = await User.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: staff });
   } catch (error) {
