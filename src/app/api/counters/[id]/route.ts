@@ -3,7 +3,7 @@ import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
 import { createAuditLog } from '@/lib/auditLogger';
-import { requirePermission } from '@/lib/rbac';
+
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbConnect();
     
     // Auth Check
-    const user = await requirePermission('counters', 'modify');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
@@ -84,7 +84,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await dbConnect();
     
     // Auth Check
-    const user = await requirePermission('counters', 'delete');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }

@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
 import dbConnect from '@/lib/db';
 import { Token } from '@/models/Token';
 import { User, UserRole } from '@/models/User';
@@ -69,7 +68,7 @@ export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     
-    const user = await requirePermission('tokens', 'add');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }

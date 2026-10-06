@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
-import { requirePermission } from '@/lib/rbac';
+
 import mongoose from 'mongoose';
 
 const ADMIN_EDITABLE_FIELDS = new Set(['name', 'description', 'contactNumber', 'email', 'address']);
@@ -40,7 +40,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     await dbConnect();
     const { id } = await params;
-    const user = await requirePermission('organizations', 'modify');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
@@ -122,7 +122,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     await dbConnect();
     const { id } = await params;
-    const user = await requirePermission('organizations', 'delete');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }

@@ -25,16 +25,11 @@ export default async function PermissionsPage() {
 
   const roles = await Role.find({ isSystem: true }).sort({ createdAt: 1 });
   
-  const formattedRoles = roles.map(r => {
-    const rawMatrix = r.permissionMatrix ? Object.fromEntries(r.permissionMatrix) : {};
-    const plainMatrix = JSON.parse(JSON.stringify(rawMatrix));
-    
-    return {
-      _id: r._id.toString(),
-      name: r.name,
-      permissionMatrix: plainMatrix
-    };
-  });
+  const formattedRoles = roles.map(r => ({
+    _id: r._id.toString(),
+    name: r.name,
+    permissions: r.permissions || []
+  }));
 
   return (
     <PermissionsClient initialRoles={formattedRoles} />

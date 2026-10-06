@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import { PriorityRule } from '@/models/PriorityRule';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
-import { requirePermission } from '@/lib/rbac';
+
 
 export async function GET(request: Request) {
   try {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     await dbConnect();
     
     // Auth Check
-    const user = await requirePermission('priorityRules', 'add');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }

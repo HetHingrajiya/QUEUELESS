@@ -3,7 +3,6 @@ import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
 import { createAuditLog } from '@/lib/auditLogger';
-import { requirePermission } from '@/lib/rbac';
 
 export async function GET(request: Request) {
   try {
@@ -11,15 +10,8 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const officeId = url.searchParams.get('officeId');
     let query: any = officeId ? { officeId } : {};
-    const user = await getUserFromCookie();
     
-    // Auth Check for view access
-    if (user && user.role !== 'CITIZEN') {
-       const permittedUser = await requirePermission('services', 'view');
-       if (!permittedUser) {
-         return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
-       }
-    }
+    const user = await getUserFromCookie();
     if (user && user.role === 'ADMIN') {
       query.organizationId = user.organizationId;
     }
@@ -36,8 +28,8 @@ export async function POST(request: Request) {
     await dbConnect();
     
     // Auth Check
-    const user = await requirePermission('services', 'add');
-    if (!user) {
+    const user = await getUserFromCookie();
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

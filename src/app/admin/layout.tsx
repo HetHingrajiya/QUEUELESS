@@ -1,8 +1,4 @@
 import { DashboardLayout, SidebarItem } from '@/components/layout/DashboardLayout';
-import { getUserFromCookie } from '@/lib/auth';
-import dbConnect from '@/lib/db';
-import { Role } from '@/models/Role';
-import { redirect } from 'next/navigation';
 import { 
   LayoutDashboard, 
   MapPin, 
@@ -24,15 +20,14 @@ import { ReactNode } from 'react';
 
 const sidebarItems: SidebarItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: <LayoutDashboard size={20} /> },
-  { name: 'Offices', href: '/admin/offices', icon: <MapPin size={20} />, module: 'offices' },
-  { name: 'Services', href: '/admin/services', icon: <Briefcase size={20} />, module: 'services' },
-  { name: 'Counters', href: '/admin/counters', icon: <Layers size={20} />, module: 'counters' },
-  { name: 'Staff', href: '/admin/staff', icon: <Users size={20} />, module: 'staff' },
+  { name: 'Offices', href: '/admin/offices', icon: <MapPin size={20} /> },
+  { name: 'Services', href: '/admin/services', icon: <Briefcase size={20} /> },
+  { name: 'Counters', href: '/admin/counters', icon: <Layers size={20} /> },
+  { name: 'Staff', href: '/admin/staff', icon: <Users size={20} /> },
   { 
     name: 'Queue', 
     href: '/admin/queue', 
     icon: <ListTodo size={20} />,
-    module: 'queue',
     subItems: [
       { name: 'Live Queue', href: '/admin/queue/live' },
       { name: 'Waiting', href: '/admin/queue/waiting' },
@@ -42,15 +37,14 @@ const sidebarItems: SidebarItem[] = [
       { name: 'No Show', href: '/admin/queue/no-show' }
     ]
   },
-  { name: 'Tokens', href: '/admin/tokens', icon: <Ticket size={20} />, module: 'tokens' },
-  { name: 'Priority Rules', href: '/admin/priority-rules', icon: <ShieldAlert size={20} />, module: 'priorityRules' },
-  { name: 'Working Hours', href: '/admin/working-hours', icon: <Clock size={20} />, module: 'workingHours' },
-  { name: 'Holidays', href: '/admin/holidays', icon: <Calendar size={20} />, module: 'holidays' },
+  { name: 'Tokens', href: '/admin/tokens', icon: <Ticket size={20} /> },
+  { name: 'Priority Rules', href: '/admin/priority-rules', icon: <ShieldAlert size={20} /> },
+  { name: 'Working Hours', href: '/admin/working-hours', icon: <Clock size={20} /> },
+  { name: 'Holidays', href: '/admin/holidays', icon: <Calendar size={20} /> },
   { 
     name: 'Analytics', 
     href: '/admin/analytics', 
     icon: <BarChart3 size={20} />,
-    module: 'analytics',
     subItems: [
       { name: 'Queue Analytics', href: '/admin/analytics/queue' },
       { name: 'Waiting Time', href: '/admin/analytics/waiting-time' },
@@ -65,7 +59,6 @@ const sidebarItems: SidebarItem[] = [
     name: 'Reports', 
     href: '/admin/reports', 
     icon: <FileText size={20} />,
-    module: 'reports',
     subItems: [
       { name: 'Daily Report', href: '/admin/reports/daily' },
       { name: 'Weekly Report', href: '/admin/reports/weekly' },
@@ -76,13 +69,12 @@ const sidebarItems: SidebarItem[] = [
       { name: 'Office Report', href: '/admin/reports/office' }
     ]
   },
-  { name: 'Notifications', href: '/admin/notifications', icon: <Bell size={20} />, module: 'notifications' },
-  { name: 'Audit Logs', href: '/admin/audit-logs', icon: <FileText size={20} />, module: 'auditLogs' },
+  { name: 'Notifications', href: '/admin/notifications', icon: <Bell size={20} /> },
+  { name: 'Audit Logs', href: '/admin/audit-logs', icon: <FileText size={20} /> },
   { 
     name: 'Settings', 
     href: '/admin/settings', 
     icon: <Settings size={20} />,
-    module: 'settings',
     subItems: [
       { name: 'General Settings', href: '/admin/settings/general' },
       { name: 'Queue Settings', href: '/admin/settings/queue' },
@@ -93,22 +85,9 @@ const sidebarItems: SidebarItem[] = [
   { name: 'Profile', href: '/admin/profile', icon: <UserCircle size={20} /> }
 ];
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
-  await dbConnect();
-  const user = await getUserFromCookie();
-  
-  if (!user || user.role !== 'ADMIN') {
-    redirect('/login');
-  }
-
-  const roleRecord = await Role.findOne({ name: user.role, isSystem: true }).lean();
-  let matrix = {};
-  if (roleRecord && roleRecord.permissionMatrix) {
-    matrix = roleRecord.permissionMatrix;
-  }
-
+export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <DashboardLayout sidebarItems={sidebarItems} role="ADMIN" permissionMatrix={matrix}>
+    <DashboardLayout sidebarItems={sidebarItems} role="ADMIN">
       {children}
     </DashboardLayout>
   );

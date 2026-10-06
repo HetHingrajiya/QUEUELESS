@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Holiday } from '@/models/Holiday';
 import { getUserFromCookie } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbConnect();
     const { id } = await params;
     
-    const user = await requirePermission('holidays', 'modify');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
@@ -62,7 +61,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await dbConnect();
     const { id } = await params;
     
-    const user = await requirePermission('holidays', 'delete');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }

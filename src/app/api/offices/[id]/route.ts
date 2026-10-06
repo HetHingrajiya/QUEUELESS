@@ -3,7 +3,6 @@ import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
-import { requirePermission } from '@/lib/rbac';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,14 +11,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     
     const office = await Office.findById(id);
-    
-    const user = await getUserFromCookie();
-    if (user && user.role !== 'CITIZEN') {
-       const permittedUser = await requirePermission('offices', 'view');
-       if (!permittedUser) {
-         return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
-       }
-    }
     
     if (!office) {
       return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
@@ -42,8 +33,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     
     // Auth Check
-    const currentUser = await requirePermission('offices', 'modify');
-    if (!currentUser) {
+    const currentUser = await getUserFromCookie();
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -95,8 +86,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { id } = await params;
     
     // Auth Check
-    const currentUser = await requirePermission('offices', 'delete');
-    if (!currentUser) {
+    const currentUser = await getUserFromCookie();
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

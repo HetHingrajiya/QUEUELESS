@@ -4,7 +4,7 @@ import dbConnect from '@/lib/db';
 import { User, UserRole } from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { createAuditLog } from '@/lib/auditLogger';
-import { requirePermission } from '@/lib/rbac';
+
 
 export async function GET(request: Request) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     await dbConnect();
     
     // Auth Check
-    const user = await requirePermission('staff', 'add');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }

@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
 import dbConnect from '@/lib/db';
 import { Token } from '@/models/Token';
 import { UserRole } from '@/models/User';
@@ -31,7 +30,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await dbConnect();
     
-    const user = await requirePermission('tokens', 'modify');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
@@ -61,7 +60,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await dbConnect();
     
-    const user = await requirePermission('tokens', 'delete');
+    const user = await getUserFromCookie();
     if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
