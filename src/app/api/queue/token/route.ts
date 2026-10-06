@@ -6,6 +6,7 @@ import { User, UserRole } from '@/models/User';
 import { Service } from '@/models/Service';
 import { Counter } from '@/models/Counter';
 import { SystemSettings } from '@/models/SystemSettings';
+import mongoose from 'mongoose';
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { officeId, serviceId } = body;
+
+    if (!mongoose.Types.ObjectId.isValid(officeId) || !mongoose.Types.ObjectId.isValid(serviceId)) {
+      return NextResponse.json({ success: false, message: 'Invalid office or service ID' }, { status: 400 });
+    }
 
     if (!officeId || !serviceId) {
       return NextResponse.json({ success: false, message: 'Office ID and Service ID are required' }, { status: 400 });
@@ -51,9 +56,21 @@ export async function POST(request: Request) {
     });
 
     // E.g., A-1, A-2... (Would use Service Code in reality, like DL-145)
-    const service = await Service.findById(serviceId);
+    const service = await Service.findById(serviceId).lean();
     if (!service) {
       return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
+    }
+
+    const { Office } = await import('@/models/Office');
+    const office = await Office.findById(officeId).lean();
+    if (!office) {
+      return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
+    }
+    if (service.officeId?.toString() !== officeId) {
+      return NextResponse.json({ success: false, message: 'Service does not belong to this office' }, { status: 403 });
+    }
+    if (user?.role !== UserRole.CITIZEN) {
+      return NextResponse.json({ success: false, message: 'Only citizens can create citizen queue tokens' }, { status: 403 });
     }
 
     const tokenNumber = `${service.code}-${(tokenCount + 1).toString().padStart(3, '0')}`;
@@ -91,13 +108,6 @@ export async function POST(request: Request) {
 
     const { createAuditLog } = await import('@/lib/auditLogger');
     
-    // Find office to get organizationId
-    const { Office } = await import('@/models/Office');
-    const office = await Office.findById(officeId).lean();
-    if (!office) {
-      return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
-    }
-
     const newToken = await Token.create({
       tokenNumber,
       citizenId: userId,
