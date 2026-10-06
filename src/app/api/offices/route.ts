@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
+import { requirePermission } from '@/lib/rbac';
 
 export async function GET(request: Request) {
   try {
@@ -13,6 +14,15 @@ export async function GET(request: Request) {
     let query: any = {};
     
     const user = await getUserFromCookie();
+    
+    // Auth Check for view access
+    if (user && user.role !== 'CITIZEN') {
+       const permittedUser = await requirePermission('offices', 'view');
+       if (!permittedUser) {
+         return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+       }
+    }
+
     if (user && user.role === 'ADMIN') {
       query = { organizationId: user.organizationId };
     } else if (orgId) {
@@ -31,8 +41,8 @@ export async function POST(request: Request) {
     await dbConnect();
     
     // Auth Check
-    const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const user = await requirePermission('offices', 'add');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

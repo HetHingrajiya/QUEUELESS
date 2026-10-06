@@ -28,7 +28,7 @@ export default async function PermissionsPage() {
   const formattedRoles = roles.map(r => ({
     _id: r._id.toString(),
     name: r.name,
-    permissions: r.permissions || []
+    permissionMatrix: Object.fromEntries(r.permissionMatrix || new Map())
   }));
 
   return (

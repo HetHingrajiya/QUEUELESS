@@ -3,6 +3,7 @@ import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
 import { createAuditLog } from '@/lib/auditLogger';
+import { requirePermission } from '@/lib/rbac';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -10,6 +11,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbConnect();
     
     const service = await Service.findById(id);
+    
+    const user = await getUserFromCookie();
+    if (user && user.role !== 'CITIZEN') {
+       const permittedUser = await requirePermission('services', 'view');
+       if (!permittedUser) {
+         return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+       }
+    }
     
     if (!service) {
       return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
@@ -31,8 +40,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbConnect();
     
     // Auth Check
-    const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const user = await requirePermission('services', 'modify');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -83,8 +92,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await dbConnect();
     
     // Auth Check
-    const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const user = await requirePermission('services', 'delete');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

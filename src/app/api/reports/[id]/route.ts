@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { Report } from '@/models/Report';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
+import { requirePermission } from '@/lib/rbac';
 import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -78,8 +79,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
   try {
     await dbConnect();
-    const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const user = await requirePermission('reports', 'delete');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {

@@ -8,6 +8,7 @@ import { Menu, X, LogOut, ChevronDown } from 'lucide-react';
 export interface SidebarSubItem {
   name: string;
   href: string;
+  module?: string;
 }
 
 export interface SidebarItem {
@@ -15,15 +16,17 @@ export interface SidebarItem {
   href: string;
   icon: React.ReactNode;
   subItems?: SidebarSubItem[];
+  module?: string;
 }
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   sidebarItems: SidebarItem[];
   role: string;
+  permissionMatrix?: Record<string, any>;
 }
 
-export function DashboardLayout({ children, sidebarItems, role }: DashboardLayoutProps) {
+export function DashboardLayout({ children, sidebarItems, role, permissionMatrix }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const pathname = usePathname();
@@ -74,10 +77,29 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
 
         <nav className="flex-1 px-4 mt-2 space-y-1 overflow-y-auto">
           {sidebarItems.map((item) => {
+            // Check permissions
+            if (role !== 'SUPER_ADMIN' && item.module && permissionMatrix) {
+              const perm = permissionMatrix[item.module];
+              if (!perm || !perm.view) return null;
+            }
+
+            // Filter subItems based on permissions
+            let filteredSubItems = item.subItems;
+            if (role !== 'SUPER_ADMIN' && filteredSubItems && permissionMatrix) {
+              filteredSubItems = filteredSubItems.filter(sub => {
+                if (!sub.module) return true; // Inherits parent or no perm required
+                const perm = permissionMatrix[sub.module];
+                return perm && perm.view;
+              });
+              
+              // If it's a dropdown and all subitems are hidden, we might want to hide the parent
+              // But we rely on the parent's module view permission first.
+            }
+
             // Check if active (including subpaths)
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             // Check if any subitem is active
-            const hasActiveSub = item.subItems?.some(sub => pathname === sub.href) || false;
+            const hasActiveSub = filteredSubItems?.some(sub => pathname === sub.href) || false;
             
             // Auto expand if active
             const isExpanded = expandedMenus[item.name] !== undefined 
@@ -86,7 +108,7 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
 
             return (
               <div key={item.name} className="flex flex-col">
-                {item.subItems && item.subItems.length > 0 ? (
+                {filteredSubItems && filteredSubItems.length > 0 ? (
                   <button
                     onClick={() => toggleSubmenu(item.name)}
                     className={`flex items-center justify-between px-4 py-3 text-sm rounded-xl transition-colors ${
@@ -116,9 +138,9 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
                 )}
 
                 {/* Submenus */}
-                {item.subItems && isExpanded && (
+                {filteredSubItems && filteredSubItems.length > 0 && isExpanded && (
                   <div className="mt-1 ml-4 space-y-1 pl-4 border-l-2 border-slate-100">
-                    {item.subItems.map(sub => {
+                    {filteredSubItems.map(sub => {
                       const isSubActive = pathname === sub.href;
                       return (
                         <Link

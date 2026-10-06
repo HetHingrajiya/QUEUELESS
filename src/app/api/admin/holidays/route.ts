@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Holiday } from '@/models/Holiday';
 import { getUserFromCookie } from '@/lib/auth';
+import { requirePermission } from '@/lib/rbac';
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,8 +22,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const user = await getUserFromCookie();
-    if (!user || user.role !== 'ADMIN') {
+    const user = await requirePermission('holidays', 'add');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

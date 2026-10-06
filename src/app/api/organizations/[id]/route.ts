@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
+import { requirePermission } from '@/lib/rbac';
 import mongoose from 'mongoose';
 
 const ADMIN_EDITABLE_FIELDS = new Set(['name', 'description', 'contactNumber', 'email', 'address']);
@@ -39,9 +40,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     await dbConnect();
     const { id } = await params;
-    const user = await getUserFromCookie();
-
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const user = await requirePermission('organizations', 'modify');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -122,9 +122,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     await dbConnect();
     const { id } = await params;
-    const user = await getUserFromCookie();
-
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    const user = await requirePermission('organizations', 'delete');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {

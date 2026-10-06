@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
+import { getUserMatrix } from '@/lib/rbac';
 import { DeleteButton } from '@/components/DeleteButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -18,6 +19,13 @@ export default async function AdminOfficesPage() {
   const user = await getUserFromCookie();
   if (!user || user.role !== 'ADMIN') redirect('/login');
   
+  const matrix = await getUserMatrix(user);
+  const perms = matrix?.offices || { view: false, add: false, modify: false, delete: false };
+
+  if (!perms.view) {
+    redirect('/admin/dashboard'); // Or an unauthorized page
+  }
+  
   const offices = await getOffices(user.organizationId as string);
 
   return (
@@ -27,12 +35,14 @@ export default async function AdminOfficesPage() {
           <h2 className="text-2xl font-bold text-slate-800">My Offices</h2>
           <p className="text-sm text-slate-500">Manage branches under your organization.</p>
         </div>
-        <Link href="/admin/offices/add">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus size={18} className="mr-2" />
-            Add Office
-          </Button>
-        </Link>
+        {perms.add && (
+          <Link href="/admin/offices/add">
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus size={18} className="mr-2" />
+              Add Office
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>
@@ -59,12 +69,19 @@ export default async function AdminOfficesPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
-                        <Link href={`/admin/offices/${office._id}/edit`}>
-                          <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
-                            <Edit size={14} className="text-slate-600" />
-                          </Button>
-                        </Link>
-                        <DeleteButton url={`/api/offices/${office._id}`} entityName="Office" />
+                        {perms.modify && (
+                          <Link href={`/admin/offices/${office._id}/edit`}>
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
+                              <Edit size={14} className="text-slate-600" />
+                            </Button>
+                          </Link>
+                        )}
+                        {perms.delete && (
+                          <DeleteButton url={`/api/offices/${office._id}`} entityName="Office" />
+                        )}
+                        {!perms.modify && !perms.delete && (
+                          <span className="text-xs text-slate-400">No actions</span>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -4,6 +4,7 @@ import { Report } from '@/models/Report';
 import { Token } from '@/models/Token';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
+import { requirePermission } from '@/lib/rbac';
 import mongoose from 'mongoose';
 
 export async function GET(request: Request) {
@@ -33,9 +34,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await dbConnect();
-    const user = await getUserFromCookie();
-
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const user = await requirePermission('reports', 'add');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 

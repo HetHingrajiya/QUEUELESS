@@ -3,6 +3,7 @@ import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
 import { createAuditLog } from '@/lib/auditLogger';
+import { requirePermission } from '@/lib/rbac';
 
 export async function GET(request: Request) {
   try {
@@ -28,10 +29,9 @@ export async function POST(request: Request) {
     await dbConnect();
     
     // Auth Check from cookie
-    const user = await getUserFromCookie();
-
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
-      return NextResponse.json({ success: false, message: 'Unauthorized access' }, { status: 403 });
+    const user = await requirePermission('counters', 'add');
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
     const body = await request.json();

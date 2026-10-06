@@ -3,6 +3,7 @@ import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
 import { createAuditLog } from '@/lib/auditLogger';
+import { requirePermission } from '@/lib/rbac';
 
 export async function GET(request: Request) {
   try {
@@ -19,8 +20,8 @@ export async function POST(request: Request) {
     await dbConnect();
     
     // Auth Check from headers set by middleware
-    const user = await getUserFromCookie();
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    const user = await requirePermission('organizations', 'add');
+    if (!user) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
