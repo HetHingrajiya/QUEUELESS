@@ -3,6 +3,7 @@ import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
 import { createAuditLog } from '@/lib/auditLogger';
+import { hasPermission } from '@/lib/permissions';
 
 export async function GET(request: Request) {
   try {
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
        query._id = user.organizationId;
     }
 
+    if (user.role === 'ADMIN' && !(await hasPermission(user.userId, 'MANAGE_ORGANIZATIONS'))) return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_ORGANIZATIONS permission' }, { status: 403 });
     const orgs = await Organization.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: orgs });
   } catch (error) {
