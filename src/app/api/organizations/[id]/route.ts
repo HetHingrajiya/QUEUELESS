@@ -123,8 +123,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await dbConnect();
     const { id } = await params;
     const user = await getUserFromCookie();
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ success: false, message: 'Forbidden: Only SUPER_ADMIN can delete organizations' }, { status: 403 });
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid organization ID' }, { status: 400 });

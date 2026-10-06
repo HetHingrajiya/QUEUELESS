@@ -56,8 +56,12 @@ export async function POST(req: Request) {
       }
     }
     const notification = await Notification.create({
-      ...body,
-      userId: targetUserId
+      userId: targetUserId,
+      title: body.title,
+      message: body.message,
+      type: body.type,
+      link: body.link,
+      isRead: false
     });
     
     // Emit via socket
