@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       query.organizationId = orgId;
     }
     
+    if (user.role === 'ADMIN') { const { hasPermission } = await import('@/lib/permissions'); if (!(await hasPermission(user.userId, 'MANAGE_OFFICES'))) return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_OFFICES permission' }, { status: 403 }); }
     const counters = await Counter.find(query).populate('officeId').populate('serviceId').sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: counters });
   } catch (error) {
