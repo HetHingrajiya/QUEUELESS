@@ -1,81 +1,205 @@
-"use client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Activity, Clock, UserSquare2, TrendingDown } from 'lucide-react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getUserFromCookie } from '@/lib/auth';
+import dbConnect from '@/lib/db';
+import { Service } from '@/models/Service';
+import { Token } from '@/models/Token';
+import mongoose from 'mongoose';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+export default async function AdminServiceAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getUserFromCookie();
+  
+  if (!user || user.role !== 'ADMIN') {
+    redirect('/login');
+  }
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  await dbConnect();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=admin/services/[id]/analytics');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
-        }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      <div className="p-6 text-center text-red-600">
+        <h2 className="font-bold text-xl">Invalid Service ID</h2>
       </div>
     );
   }
 
-  if (error) {
+  const service = await Service.findById(id).lean();
+  if (!service || service.organizationId?.toString() !== user.organizationId) {
     return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
+      <div className="p-6 text-center text-slate-800">
+        <h2 className="font-bold text-xl">Service not found</h2>
+        <Link href="/admin/services">
+          <Button variant="outline" className="mt-4">Back to Services</Button>
+        </Link>
+      </div>
     );
   }
 
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">analytics Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  // Aggregate stats for last 30 days
+  const pipeline = [
+    { 
+      $match: { 
+        serviceId: new mongoose.Types.ObjectId(id),
+        createdAt: { $gte: thirtyDaysAgo }
+      } 
+    },
+    {
+      $group: {
+        _id: null,
+        totalTokens: { $sum: 1 },
+        completedTokens: {
+          $sum: { $cond: [{ $eq: ["$status", "COMPLETED"] }, 1, 0] }
+        },
+        noShowTokens: {
+          $sum: { $cond: [{ $eq: ["$status", "NO_SHOW"] }, 1, 0] }
+        },
+        avgServiceTimeStr: {
+          $avg: {
+            $cond: [
+              { $and: [{ $eq: ["$status", "COMPLETED"] }, { $ne: ["$servedAt", null] }, { $ne: ["$completedAt", null] }] },
+              { $divide: [{ $subtract: ["$completedAt", "$servedAt"] }, 60000] }, // in minutes
+              null
+            ]
+          }
+        },
+        avgWaitTimeStr: {
+          $avg: {
+            $cond: [
+              { $ne: ["$servedAt", null] },
+              { $divide: [{ $subtract: ["$servedAt", "$createdAt"] }, 60000] }, // in minutes
+              null
+            ]
+          }
+        }
+      }
+    }
+  ];
+
+  const stats = await Token.aggregate(pipeline);
+  const data = stats[0] || {
+    totalTokens: 0,
+    completedTokens: 0,
+    noShowTokens: 0,
+    avgServiceTimeStr: 0,
+    avgWaitTimeStr: 0
+  };
+
+  const avgWaitTime = data.avgWaitTimeStr ? Math.round(data.avgWaitTimeStr) : 0;
+  const avgServiceTime = data.avgServiceTimeStr ? Math.round(data.avgServiceTimeStr) : 0;
+  const noShowRate = data.totalTokens > 0 ? Math.round((data.noShowTokens / data.totalTokens) * 100) : 0;
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto pb-12 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Link href={`/admin/services/${id}`}>
+            <Button variant="ghost" size="sm" className="mr-2">
+              <ArrowLeft size={16} />
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Service Analytics</h2>
+            <p className="text-sm text-slate-500">{service.name} - Last 30 Days</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">Total Requests</p>
+                <h3 className="text-3xl font-bold text-slate-800">{data.totalTokens}</h3>
+              </div>
+              <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                <Activity size={20} />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-4">Last 30 days</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">Avg Wait Time</p>
+                <h3 className="text-3xl font-bold text-slate-800">{avgWaitTime}<span className="text-sm font-normal text-slate-500 ml-1">min</span></h3>
+              </div>
+              <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                <Clock size={20} />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-4">Average across all offices</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">Avg Service Time</p>
+                <h3 className="text-3xl font-bold text-slate-800">{avgServiceTime}<span className="text-sm font-normal text-slate-500 ml-1">min</span></h3>
+              </div>
+              <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                <UserSquare2 size={20} />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-4">Average handle time</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">No-Show Rate</p>
+                <h3 className="text-3xl font-bold text-slate-800">{noShowRate}%</h3>
+              </div>
+              <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                <TrendingDown size={20} />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-4">{data.noShowTokens} missed appointments</p>
           </CardContent>
         </Card>
       </div>
-    );
-  }
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">analytics</h1>
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <CardTitle>Detailed Breakdown</CardTitle>
+          <CardDescription>Performance metrics for this service</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+             <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex justify-between items-center">
+                <span className="font-medium text-slate-700">Configured Average Time</span>
+                <span className="font-bold">{service.averageServiceTime} mins</span>
+             </div>
+             <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex justify-between items-center">
+                <span className="font-medium text-slate-700">Actual Average Time</span>
+                <span className={`font-bold ${avgServiceTime > service.averageServiceTime ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {avgServiceTime} mins
+                </span>
+             </div>
+             <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 flex justify-between items-center">
+                <span className="font-medium text-slate-700">Completion Rate</span>
+                <span className="font-bold">
+                  {data.totalTokens > 0 ? Math.round((data.completedTokens / data.totalTokens) * 100) : 0}%
+                </span>
+             </div>
+          </div>
         </CardContent>
       </Card>
     </div>

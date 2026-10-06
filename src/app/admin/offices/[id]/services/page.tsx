@@ -1,81 +1,119 @@
-"use client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Briefcase, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getUserFromCookie } from '@/lib/auth';
+import dbConnect from '@/lib/db';
+import { Office } from '@/models/Office';
+import { Service } from '@/models/Service';
+import mongoose from 'mongoose';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+export default async function AdminOfficeServicesPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getUserFromCookie();
+  
+  if (!user || user.role !== 'ADMIN') {
+    redirect('/login');
+  }
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  await dbConnect();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/data?entity=admin/offices/[id]/services');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
-        }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      <div className="p-6 text-center text-red-600">
+        <h2 className="font-bold text-xl">Invalid Office ID</h2>
       </div>
     );
   }
 
-  if (error) {
+  const office = await Office.findById(id).lean();
+  if (!office || office.organizationId?.toString() !== user.organizationId) {
     return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">services Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
+      <div className="p-6 text-center text-slate-800">
+        <h2 className="font-bold text-xl">Office not found</h2>
+        <Link href="/admin/offices">
+          <Button variant="outline" className="mt-4">Back to Offices</Button>
+        </Link>
       </div>
     );
   }
+
+  const services = await Service.find({ officeId: id }).lean();
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">services</h1>
+    <div className="space-y-6 max-w-5xl mx-auto pb-12 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Link href={`/admin/offices/${id}`}>
+            <Button variant="ghost" size="sm" className="mr-2">
+              <ArrowLeft size={16} />
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Office Services</h2>
+            <p className="text-sm text-slate-500">{office.name}</p>
+          </div>
+        </div>
+        <Link href="/admin/services/add">
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus size={16} className="mr-2" />
+            Add Service
+          </Button>
+        </Link>
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <CardTitle>Services</CardTitle>
+          <CardDescription>All services offered by this office</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left text-slate-600">
+              <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-4">Name/Code</th>
+                  <th className="px-6 py-4">Avg Time</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {services.map((service) => (
+                  <tr key={service._id.toString()} className="bg-white border-b hover:bg-slate-50">
+                    <td className="px-6 py-4 font-medium text-slate-900">
+                      <div className="flex items-center">
+                        <Briefcase size={14} className="mr-2 text-slate-400" />
+                        {service.name} ({service.code})
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">{service.averageServiceTime} mins</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        service.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {service.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link href={`/admin/services/${service._id}`}>
+                        <Button variant="outline" size="sm">View</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+                
+                {services.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                      No services found for this office.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

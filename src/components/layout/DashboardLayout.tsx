@@ -75,7 +75,7 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
         <nav className="flex-1 px-4 mt-2 space-y-1 overflow-y-auto">
           {sidebarItems.map((item) => {
             // Check if active (including subpaths)
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive = pathname === item.href || (pathname?.startsWith(`${item.href}/`) ?? false);
             // Check if any subitem is active
             const hasActiveSub = item.subItems?.some(sub => pathname === sub.href) || false;
             
@@ -163,7 +163,7 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
               <Menu size={24} />
             </button>
             <h1 className="text-xl font-semibold text-slate-800">
-              {sidebarItems.find(i => pathname === i.href || pathname.startsWith(`${i.href}/`))?.name || 'Dashboard'}
+              {sidebarItems.find(i => pathname === i.href || (pathname?.startsWith(`${i.href}/`) ?? false))?.name || 'Dashboard'}
             </h1>
           </div>
           <div className="flex items-center space-x-4">

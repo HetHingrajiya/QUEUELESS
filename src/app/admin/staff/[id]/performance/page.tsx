@@ -1,81 +1,133 @@
-"use client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { getUserFromCookie } from '@/lib/auth';
+import dbConnect from '@/lib/db';
+import { User, UserRole } from '@/models/User';
+import { Token } from '@/models/Token';
+import mongoose from 'mongoose';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+export default async function AdminStaffPerformancePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const currentUser = await getUserFromCookie();
+  
+  if (!currentUser || currentUser.role !== 'ADMIN') {
+    redirect('/login');
+  }
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  await dbConnect();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=admin/staff/[id]/performance');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
-        }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      <div className="p-6 text-center text-red-600">
+        <h2 className="font-bold text-xl">Invalid Staff ID</h2>
       </div>
     );
   }
 
-  if (error) {
+  const staff = await User.findOne({ _id: id, role: UserRole.STAFF }).lean();
+
+  if (!staff || staff.organizationId?.toString() !== currentUser.organizationId) {
     return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
+      <div className="p-6 text-center text-slate-800">
+        <h2 className="font-bold text-xl">Staff member not found or unauthorized</h2>
+        <Link href="/admin/staff">
+          <Button variant="outline" className="mt-4">Back to Staff</Button>
+        </Link>
+      </div>
     );
   }
 
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">performance Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
+  // Get last 30 days performance
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const pipeline = [
+    {
+      $match: {
+        servedBy: new mongoose.Types.ObjectId(id),
+        status: 'COMPLETED',
+        completedAt: { $gte: thirtyDaysAgo }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalServed: { $sum: 1 },
+        avgServiceTime: {
+          $avg: {
+            $divide: [{ $subtract: ["$completedAt", "$servedAt"] }, 60000] // minutes
+          }
+        }
+      }
+    }
+  ];
+
+  const stats = await Token.aggregate(pipeline);
+  const data = stats[0] || { totalServed: 0, avgServiceTime: 0 };
+  const avgTime = Math.round(data.avgServiceTime);
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto pb-12 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Link href={`/admin/staff/${id}`}>
+            <Button variant="ghost" size="sm" className="mr-2">
+              <ArrowLeft size={16} />
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Staff Performance</h2>
+            <p className="text-sm text-slate-500">{staff.fullName} - Last 30 Days</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">Total Tokens Served</p>
+                <h3 className="text-3xl font-bold text-slate-800">{data.totalServed}</h3>
+              </div>
+              <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                <CheckCircle size={20} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-slate-500 mb-1">Avg Service Time</p>
+                <h3 className="text-3xl font-bold text-slate-800">{avgTime} <span className="text-sm font-normal text-slate-500">min</span></h3>
+              </div>
+              <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                <Clock size={20} />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
-    );
-  }
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">performance</h1>
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <CardTitle>Performance Insights</CardTitle>
+          <CardDescription>Overview of service metrics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-600">
+            {data.totalServed === 0 ? (
+              <p>Not enough data to calculate performance insights for the last 30 days.</p>
+            ) : (
+              <p>Staff member has served <b>{data.totalServed}</b> customers in the last 30 days, averaging <b>{avgTime} minutes</b> per customer.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
