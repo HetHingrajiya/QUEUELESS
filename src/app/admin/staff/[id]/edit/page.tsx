@@ -29,7 +29,8 @@ export default function AdminEditStaff({ params }: { params: Promise<{ id: strin
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetching, setFetching] = useState(true);
   
-  const { id } = use(params);
+  const unwrappedParams = use(params);
+  const id = unwrappedParams.id;
   
   const [offices, setOffices] = useState<any[]>([]);
 

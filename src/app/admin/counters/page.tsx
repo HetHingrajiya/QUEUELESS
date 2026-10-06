@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Settings, PlayCircle, PauseCircle, PowerOff, Edit, Trash2 } from 'lucide-react';
+import { Plus, Settings, PlayCircle, PauseCircle, PowerOff, Edit, Trash2, Eye } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Counter, CounterStatus } from '@/models/Counter';
 import { Service } from '@/models/Service';
@@ -29,7 +29,7 @@ export default async function AdminCounters() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Counter Management</h2>
         <Link href="/admin/counters/add">
@@ -76,14 +76,16 @@ export default async function AdminCounters() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
+                        <Link href={`/admin/counters/${counter._id}`}>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700" title="View Dashboard">
+                            <Eye size={14} />
+                          </Button>
+                        </Link>
                         <Link href={`/admin/counters/${counter._id}/edit`}>
                           <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
                             <Edit size={14} className="text-slate-600" />
                           </Button>
                         </Link>
-                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Settings">
-                          <Settings size={14} className="text-slate-600" />
-                        </Button>
                         <DeleteButton url={`/api/counters/${counter._id}`} entityName="Counter" />
                       </div>
                     </td>

@@ -30,7 +30,8 @@ export default function AdminEditService({ params }: { params: Promise<{ id: str
   const [fetching, setFetching] = useState(true);
   const [offices, setOffices] = useState<any[]>([]);
   
-  const { id } = use(params);
+  const unwrappedParams = use(params);
+  const id = unwrappedParams.id;
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceSchema),

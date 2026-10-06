@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IReport extends Document {
   name: string;
-  reportType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM';
+  reportType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM' | 'QUEUE' | 'STAFF' | 'SERVICE' | 'OFFICE';
   type: 'CSV' | 'PDF';
   organizationId?: mongoose.Types.ObjectId;
   generatedBy: mongoose.Types.ObjectId;
@@ -33,7 +33,7 @@ export interface IReport extends Document {
 const ReportSchema = new Schema(
   {
     name: { type: String, required: true },
-    reportType: { type: String, enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM'], default: 'CUSTOM' },
+    reportType: { type: String, enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM', 'QUEUE', 'STAFF', 'SERVICE', 'OFFICE'], default: 'CUSTOM' },
     type: { type: String, enum: ['CSV', 'PDF'], default: 'CSV' },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
     generatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },

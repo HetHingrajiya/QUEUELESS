@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
@@ -54,11 +54,16 @@ export default async function AdminOfficesPage() {
                     <td className="px-6 py-4">{office.city || '-'}</td>
                     <td className="px-6 py-4">
                       <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
-                        ACTIVE
+                        {office.status || 'ACTIVE'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
+                        <Link href={`/admin/offices/${office._id}`}>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700" title="View Dashboard">
+                            <Eye size={14} />
+                          </Button>
+                        </Link>
                         <Link href={`/admin/offices/${office._id}/edit`}>
                           <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
                             <Edit size={14} className="text-slate-600" />

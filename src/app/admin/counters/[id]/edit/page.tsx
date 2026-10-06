@@ -31,7 +31,8 @@ export default function AdminEditCounter({ params }: { params: Promise<{ id: str
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetching, setFetching] = useState(true);
   
-  const { id } = use(params);
+  const unwrappedParams = use(params);
+  const id = unwrappedParams.id;
   
   const [offices, setOffices] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
