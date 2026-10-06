@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { SystemSettings } from '@/models/SystemSettings';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
+import { hasPermission } from '@/lib/permissions';
 
 
 export async function GET(request: Request) {
@@ -25,10 +26,14 @@ export async function PUT(request: Request) {
   try {
     await dbConnect();
     
-    // Auth Check
+    // Auth + permission check: system settings are restricted to SUPER_ADMIN
+    // and ADMIN users explicitly granted MANAGE_SETTINGS.
     const user = await getUserFromCookie();
     if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'SUPER_ADMIN' && !(user.role === 'ADMIN' && await hasPermission(user.userId, 'MANAGE_SETTINGS'))) {
+      return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_SETTINGS permission' }, { status: 403 });
     }
 
     const body = await request.json();
