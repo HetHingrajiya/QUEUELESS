@@ -23,12 +23,16 @@ export async function POST(req: NextRequest) {
 
     const { action, tokenId } = await req.json();
 
-    const staffUser = await User.findById(user?.userId).lean();
+    if (!user?.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const staffUser = await User.findById(user.userId).lean();
     if (!staffUser || !staffUser.officeId) {
        return NextResponse.json({ success: false, message: 'Staff user or office not found' }, { status: 404 });
     }
 
-    const counter = await Counter.findOne({ staffId: staffUser._id }).lean();
+    const counter = await Counter.findOne({ staffId: staffUser._id, officeId: staffUser.officeId }).lean();
     if (!counter) {
       return NextResponse.json({ success: false, message: 'No counter assigned' }, { status: 404 });
     }
@@ -82,8 +86,13 @@ export async function POST(req: NextRequest) {
       await Counter.findByIdAndUpdate(counter._id, { status: CounterStatus.SERVING });
 
     } else if (tokenId) {
-      token = await Token.findById(tokenId);
-      if (!token) return NextResponse.json({ success: false, message: 'Token not found' }, { status: 404 });
+      token = await Token.findOne({
+        _id: tokenId,
+        officeId: staffUser.officeId,
+        counterId: counter._id,
+        ...(counter.serviceIds?.length ? { serviceId: { $in: counter.serviceIds } } : {}),
+      });
+      if (!token) return NextResponse.json({ success: false, message: 'Token not found or not assigned to your counter' }, { status: 404 });
 
       const now = new Date();
 
