@@ -6,9 +6,20 @@ import { Organization } from '@/models/Organization';
 import { Office } from '@/models/Office';
 import { Service } from '@/models/Service';
 import { Counter, CounterStatus } from '@/models/Counter';
+import { getUserFromCookie } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const user = await getUserFromCookie();
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ success: false, message: 'Forbidden: Only SUPER_ADMIN can seed the database' }, { status: 403 });
+    }
+
+    // Never expose destructive seed behavior without explicit server-side authorization.
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DB_SEED !== 'true') {
+      return NextResponse.json({ success: false, message: 'Database seeding is disabled in production' }, { status: 403 });
+    }
+
     await dbConnect();
 
     // Clear existing data
