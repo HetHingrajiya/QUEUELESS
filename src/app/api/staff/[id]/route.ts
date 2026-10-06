@@ -83,7 +83,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.officeId !== undefined) updateData.officeId = body.officeId;
     if (body.counterId !== undefined) updateData.counterId = body.counterId;
     if (body.serviceId !== undefined) updateData.serviceId = body.serviceId;
-    if (body.roleId !== undefined) updateData.roleId = body.roleId;
+    if (body.roleId !== undefined) {
+      const { Role } = await import('@/models/Role');
+      const assignedRole = await Role.findById(body.roleId);
+      if (assignedRole && (assignedRole.name === 'SUPER_ADMIN' || assignedRole.name === 'ADMIN')) {
+         return NextResponse.json({ success: false, message: 'Forbidden: Cannot assign Admin/Super Admin roles through Staff API' }, { status: 403 });
+      }
+      updateData.roleId = body.roleId;
+    }
     if (body.employeeId !== undefined) updateData.employeeId = body.employeeId;
     if (body.status !== undefined) updateData.status = body.status;
     

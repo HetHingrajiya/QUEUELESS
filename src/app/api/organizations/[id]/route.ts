@@ -41,14 +41,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     await dbConnect();
     const { id } = await params;
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid organization ID' }, { status: 400 });
     }
-    if (user.role === 'ADMIN' && user.organizationId?.toString() !== id) {
-      return NextResponse.json({ success: false, message: 'Forbidden: You can only update your own organization' }, { status: 403 });
+    if (user.role === 'ADMIN') {
+      if (user.organizationId?.toString() !== id) {
+        return NextResponse.json({ success: false, message: 'Forbidden: You can only update your own organization' }, { status: 403 });
+      }
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManage = await hasPermission(user.userId, 'MANAGE_ORGANIZATIONS');
+      if (!canManage) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_ORGANIZATIONS permission' }, { status: 403 });
+      }
     }
 
     const body = await request.json();

@@ -74,6 +74,14 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
+    if (body.roleId) {
+      const { Role } = await import('@/models/Role');
+      const assignedRole = await Role.findById(body.roleId);
+      if (assignedRole && (assignedRole.name === 'SUPER_ADMIN' || assignedRole.name === 'ADMIN')) {
+         return NextResponse.json({ success: false, message: 'Forbidden: Cannot assign Admin/Super Admin roles through Staff API' }, { status: 403 });
+      }
+    }
+
     const newUser = await User.create({
       fullName: body.fullName,
       email: body.email,

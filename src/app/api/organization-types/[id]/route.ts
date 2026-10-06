@@ -34,7 +34,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Organization Type not found' }, { status: 404 });
     }
 
-    const type = await OrganizationType.findByIdAndUpdate(resolvedParams.id, body, { new: true, runValidators: true });
+    const updateData: any = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.isActive !== undefined) updateData.isActive = body.isActive;
+
+    const type = await OrganizationType.findByIdAndUpdate(resolvedParams.id, { $set: updateData }, { new: true, runValidators: true });
     
     await createAuditLog({
       action: 'UPDATE',

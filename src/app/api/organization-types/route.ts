@@ -29,7 +29,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Name is required' }, { status: 400 });
     }
 
-    const type = await OrganizationType.create(body);
+    const type = await OrganizationType.create({
+      name: body.name,
+      description: body.description,
+      isActive: body.isActive !== undefined ? body.isActive : true
+    });
 
     await createAuditLog({
       action: 'CREATE',
