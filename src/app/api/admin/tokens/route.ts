@@ -5,29 +5,33 @@ import { Token } from '@/models/Token';
 import { User, UserRole } from '@/models/User';
 import { Office } from '@/models/Office';
 import { Service } from '@/models/Service';
+import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
     
     const user = await getUserFromCookie();
-    const role = user?.role;
     
-    if (role !== UserRole.ADMIN && role !== UserRole.SUPER_ADMIN) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const adminUser = await User.findById(user?.userId).lean();
-    if (!adminUser) {
-       return NextResponse.json({ success: false, message: 'Admin user not found' }, { status: 404 });
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageQueue = await hasPermission(user.userId, 'MANAGE_QUEUE');
+      if (!canManageQueue) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_QUEUE permission' }, { status: 403 });
+      }
     }
 
     let officeQuery: any = {};
 
-    if (role === UserRole.SUPER_ADMIN) {
+    if (user.role === 'SUPER_ADMIN') {
       // SUPER_ADMIN sees all tokens across all offices
-    } else if (adminUser.organizationId) {
-      const offices = await Office.find({ organizationId: adminUser.organizationId }).lean();
+    } else if (user.organizationId) {
+      const offices = await Office.find({ organizationId: user.organizationId }).lean();
       const officeIds = offices.map(o => o._id);
       
       if (officeIds.length > 0) {
@@ -39,7 +43,7 @@ export async function GET(req: NextRequest) {
        return NextResponse.json({ success: false, message: 'Admin has no organization assigned' }, { status: 404 });
     }
 
-    // Get all tokens (could add pagination later)
+    // Get all tokens
     const tokens = await Token.find(officeQuery)
       .sort({ createdAt: -1 })
       .populate('serviceId', 'name')
@@ -69,8 +73,17 @@ export async function POST(req: NextRequest) {
     await dbConnect();
     
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageQueue = await hasPermission(user.userId, 'MANAGE_QUEUE');
+      if (!canManageQueue) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_QUEUE permission' }, { status: 403 });
+      }
     }
 
     const body = await req.json();
@@ -78,6 +91,15 @@ export async function POST(req: NextRequest) {
 
     if (!officeId || !serviceId) {
       return NextResponse.json({ success: false, message: 'Office ID and Service ID are required' }, { status: 400 });
+    }
+
+    const office = await Office.findById(officeId).lean();
+    if (!office) {
+      return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
+    }
+
+    if (user.role === 'ADMIN' && office.organizationId?.toString() !== user.organizationId) {
+       return NextResponse.json({ success: false, message: 'Unauthorized office' }, { status: 403 });
     }
 
     let citizenId = user.userId;
@@ -113,6 +135,18 @@ export async function POST(req: NextRequest) {
       officeId,
       serviceId,
       status: 'WAITING',
+    });
+
+    await createAuditLog({
+      action: 'CREATE',
+      module: 'Queue',
+      description: `Admin created token: ${newToken.tokenNumber}`,
+      userId: user.userId,
+      userRole: user.role,
+      entityType: 'Token',
+      entityId: newToken._id.toString(),
+      organizationId: office.organizationId,
+      request: req,
     });
 
     return NextResponse.json({ success: true, data: newToken });

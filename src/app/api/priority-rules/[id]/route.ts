@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     
     const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    if (!user || user.role === 'CITIZEN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -19,8 +19,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Rule not found' }, { status: 404 });
     }
     
-    if (user.role === 'ADMIN' && rule.organizationId.toString() !== user.organizationId) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (user.role === 'ADMIN' || user.role === 'STAFF') {
+       if (rule.organizationId.toString() !== user.organizationId) {
+          return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+       }
     }
 
     return NextResponse.json({ success: true, data: rule });
@@ -35,8 +37,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params;
     
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageSettings = await hasPermission(user.userId, 'MANAGE_SETTINGS');
+      if (!canManageSettings) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_SETTINGS permission' }, { status: 403 });
+      }
     }
 
     const oldRule = await PriorityRule.findById(id);
@@ -79,6 +90,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       entityId: id,
       oldData: oldRule.toObject(),
       newData: updatedRule.toObject(),
+      organizationId: oldRule.organizationId,
       request: req,
     });
 
@@ -94,8 +106,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { id } = await params;
     
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageSettings = await hasPermission(user.userId, 'MANAGE_SETTINGS');
+      if (!canManageSettings) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_SETTINGS permission' }, { status: 403 });
+      }
     }
 
     const oldRule = await PriorityRule.findById(id);
@@ -118,6 +139,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       entityType: 'PriorityRule',
       entityId: id,
       oldData: oldRule.toObject(),
+      organizationId: oldRule.organizationId,
       request: req,
     });
 

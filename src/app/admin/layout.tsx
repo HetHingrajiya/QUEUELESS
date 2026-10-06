@@ -23,7 +23,17 @@ const sidebarItems: SidebarItem[] = [
   { name: 'Offices', href: '/admin/offices', icon: <MapPin size={20} /> },
   { name: 'Services', href: '/admin/services', icon: <Briefcase size={20} /> },
   { name: 'Counters', href: '/admin/counters', icon: <Layers size={20} /> },
-  { name: 'Staff', href: '/admin/staff', icon: <Users size={20} /> },
+  { 
+    name: 'Staff', 
+    href: '/admin/staff', 
+    icon: <Users size={20} />,
+    subItems: [
+      { name: 'All Staff', href: '/admin/staff' },
+      { name: 'Attendance', href: '/admin/staff/attendance' },
+      { name: 'Performance', href: '/admin/staff/performance' },
+      { name: 'History', href: '/admin/staff/history' }
+    ]
+  },
   { 
     name: 'Queue', 
     href: '/admin/queue', 

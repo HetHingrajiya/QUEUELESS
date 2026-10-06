@@ -9,7 +9,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     await dbConnect();
     
-    const service = await Service.findById(id);
+    // Auth Check
+    const user = await getUserFromCookie();
+    if (!user) {
+       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const query: any = { _id: id };
+    
+    if (user.role === 'ADMIN' || user.role === 'STAFF') {
+       query.organizationId = user.organizationId;
+    }
+    
+    const service = await Service.findOne(query);
     
     if (!service) {
       return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
@@ -31,21 +43,51 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbConnect();
     
     // Auth Check
-    const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const currentUser = await getUserFromCookie();
+    if (!currentUser || currentUser.role === 'CITIZEN' || currentUser.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (currentUser.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageServices = await hasPermission(currentUser.userId, 'MANAGE_SERVICES');
+      if (!canManageServices) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_SERVICES permission' }, { status: 403 });
+      }
     }
 
     const body = await req.json();
     
-    const oldService = await Service.findById(id);
-    if (!oldService) {
-      return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
+    const query: any = { _id: id };
+    if (currentUser.role === 'ADMIN') {
+       query.organizationId = currentUser.organizationId;
     }
 
-    const updatedService = await Service.findByIdAndUpdate(
-      id,
-      { $set: body },
+    const oldService = await Service.findOne(query);
+    if (!oldService) {
+      return NextResponse.json({ success: false, message: 'Service not found or unauthorized' }, { status: 404 });
+    }
+
+    // Explicit field allowance
+    const updateData: any = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.code !== undefined) updateData.code = body.code;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.department !== undefined) updateData.department = body.department;
+    if (body.officeId !== undefined) updateData.officeId = body.officeId;
+    if (body.estimatedTime !== undefined) updateData.estimatedTime = body.estimatedTime;
+    if (body.documentsRequired !== undefined) updateData.documentsRequired = body.documentsRequired;
+    if (body.status !== undefined) updateData.status = body.status;
+    if (body.prefix !== undefined) updateData.prefix = body.prefix;
+
+    if (currentUser.role === 'SUPER_ADMIN' && body.organizationId) {
+       updateData.organizationId = body.organizationId;
+    }
+
+    const updatedService = await Service.findOneAndUpdate(
+      query,
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 
@@ -57,12 +99,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       action: 'UPDATE',
       module: 'Services',
       description: `Updated service: ${updatedService.name}`,
-      userId: user.userId,
-      userRole: user.role,
+      userId: currentUser.userId,
+      userRole: currentUser.role,
       entityType: 'Service',
       entityId: id,
       oldData: oldService.toObject(),
       newData: updatedService.toObject(),
+      organizationId: oldService.organizationId,
       request: req,
     });
 
@@ -83,17 +126,31 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await dbConnect();
     
     // Auth Check
-    const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    const currentUser = await getUserFromCookie();
+    if (!currentUser || currentUser.role === 'CITIZEN' || currentUser.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const oldService = await Service.findById(id);
-    if (!oldService) {
-      return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
+    // RBAC
+    if (currentUser.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageServices = await hasPermission(currentUser.userId, 'MANAGE_SERVICES');
+      if (!canManageServices) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_SERVICES permission' }, { status: 403 });
+      }
     }
 
-    const deletedService = await Service.findByIdAndDelete(id);
+    const query: any = { _id: id };
+    if (currentUser.role === 'ADMIN') {
+       query.organizationId = currentUser.organizationId;
+    }
+
+    const oldService = await Service.findOne(query);
+    if (!oldService) {
+      return NextResponse.json({ success: false, message: 'Service not found or unauthorized' }, { status: 404 });
+    }
+
+    const deletedService = await Service.findOneAndDelete(query);
 
     if (!deletedService) {
       return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
@@ -103,11 +160,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       action: 'DELETE',
       module: 'Services',
       description: `Deleted service: ${oldService.name}`,
-      userId: user.userId,
-      userRole: user.role,
+      userId: currentUser.userId,
+      userRole: currentUser.role,
       entityType: 'Service',
       entityId: id,
       oldData: oldService.toObject(),
+      organizationId: oldService.organizationId,
       request: req,
     });
 

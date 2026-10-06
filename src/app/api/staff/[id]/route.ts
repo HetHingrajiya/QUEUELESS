@@ -5,7 +5,6 @@ import { User, UserRole } from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { createAuditLog } from '@/lib/auditLogger';
 
-
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   try {
@@ -13,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     
     // Auth Check
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
     
@@ -28,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
-    const staff = await User.findOne(query);
+    const staff = await User.findOne(query).populate('officeId').populate('counterId').populate('serviceId');
     
     if (!staff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
@@ -51,18 +50,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     
     // Auth Check
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageStaff = await hasPermission(user.userId, 'MANAGE_STAFF');
+      if (!canManageStaff) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_STAFF permission' }, { status: 403 });
+      }
     }
 
     const body = await req.json();
     
-    if (body.password) {
-      body.password = await bcrypt.hash(body.password, 10);
-    } else {
-      delete body.password; // Don't overwrite with empty password
-    }
-
     const query: any = { _id: id, role: UserRole.STAFF };
     if (user.role === 'ADMIN') {
        query.organizationId = user.organizationId;
@@ -70,12 +72,33 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const oldStaff = await User.findOne(query);
     if (!oldStaff) {
-      return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'Staff not found or unauthorized' }, { status: 404 });
+    }
+
+    // Explicit field allowance (Prevent Mass Assignment)
+    const updateData: any = {};
+    if (body.fullName !== undefined) updateData.fullName = body.fullName;
+    if (body.email !== undefined) updateData.email = body.email;
+    if (body.mobile !== undefined) updateData.mobile = body.mobile;
+    if (body.officeId !== undefined) updateData.officeId = body.officeId;
+    if (body.counterId !== undefined) updateData.counterId = body.counterId;
+    if (body.serviceId !== undefined) updateData.serviceId = body.serviceId;
+    if (body.roleId !== undefined) updateData.roleId = body.roleId;
+    if (body.employeeId !== undefined) updateData.employeeId = body.employeeId;
+    if (body.status !== undefined) updateData.status = body.status;
+    
+    // SUPER_ADMIN can change org
+    if (user.role === 'SUPER_ADMIN' && body.organizationId) {
+      updateData.organizationId = body.organizationId;
+    }
+
+    if (body.password) {
+      updateData.password = await bcrypt.hash(body.password, 10);
     }
 
     const updatedStaff = await User.findOneAndUpdate(
       query,
-      { $set: body },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 
@@ -93,6 +116,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       entityId: id,
       oldData: oldStaff.toObject(),
       newData: updatedStaff.toObject(),
+      organizationId: oldStaff.organizationId,
       request: req,
     });
 
@@ -114,8 +138,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     
     // Auth Check
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageStaff = await hasPermission(user.userId, 'MANAGE_STAFF');
+      if (!canManageStaff) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_STAFF permission' }, { status: 403 });
+      }
     }
 
     const query: any = { _id: id, role: UserRole.STAFF };
@@ -125,7 +158,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const oldStaff = await User.findOne(query);
     if (!oldStaff) {
-      return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'Staff not found or unauthorized' }, { status: 404 });
     }
 
     const deletedStaff = await User.findOneAndDelete(query);
@@ -143,6 +176,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       entityType: 'User',
       entityId: id,
       oldData: oldStaff.toObject(),
+      organizationId: oldStaff.organizationId,
       request: req,
     });
 

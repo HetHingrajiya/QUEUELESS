@@ -9,13 +9,28 @@ import { createAuditLog } from '@/lib/auditLogger';
 export async function GET(request: Request) {
   try {
     await dbConnect();
+    const user = await getUserFromCookie();
+    
+    if (!user || user.role === 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+    
     const url = new URL(request.url);
     const officeId = url.searchParams.get('officeId');
     const organizationId = url.searchParams.get('organizationId');
     
     const query: any = { role: UserRole.STAFF };
-    if (officeId) query.officeId = officeId;
-    if (organizationId) query.organizationId = organizationId;
+    
+    // Organization isolation
+    if (user.role !== 'SUPER_ADMIN') {
+      query.organizationId = user.organizationId;
+    } else if (organizationId) {
+      query.organizationId = organizationId;
+    }
+
+    if (officeId) {
+      query.officeId = officeId;
+    }
     
     const staff = await User.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: staff });
@@ -30,11 +45,27 @@ export async function POST(request: Request) {
     
     // Auth Check
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageStaff = await hasPermission(user.userId, 'MANAGE_STAFF');
+      if (!canManageStaff) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_STAFF permission' }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
+    
+    // Organization isolation
+    const targetOrgId = user.role === 'SUPER_ADMIN' ? body.organizationId : user.organizationId;
+    
+    if (!targetOrgId) {
+      return NextResponse.json({ success: false, message: 'Organization ID is required' }, { status: 400 });
+    }
     
     const existingUser = await User.findOne({ email: body.email });
     if (existingUser) {
@@ -48,8 +79,12 @@ export async function POST(request: Request) {
       email: body.email,
       password: hashedPassword,
       role: UserRole.STAFF,
-      organizationId: body.organizationId,
-      officeId: body.officeId
+      organizationId: targetOrgId,
+      officeId: body.officeId,
+      counterId: body.counterId,
+      serviceId: body.serviceId,
+      roleId: body.roleId,
+      employeeId: body.employeeId
     });
 
     await createAuditLog({
@@ -61,6 +96,7 @@ export async function POST(request: Request) {
       entityType: 'User',
       entityId: newUser._id.toString(),
       newData: newUser.toObject(),
+      organizationId: targetOrgId,
       request,
     });
 

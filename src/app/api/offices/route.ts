@@ -7,13 +7,18 @@ import { createAuditLog } from '@/lib/auditLogger';
 export async function GET(request: Request) {
   try {
     await dbConnect();
-    // Allow reading offices by anyone
     const url = new URL(request.url);
     const orgId = url.searchParams.get('organizationId');
     let query: any = {};
     
     const user = await getUserFromCookie();
-    if (user && user.role === 'ADMIN') {
+    
+    // Auth Check
+    if (!user) {
+       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (user.role === 'ADMIN' || user.role === 'STAFF') {
       query = { organizationId: user.organizationId };
     } else if (orgId) {
       query = { organizationId: orgId };
@@ -32,18 +37,45 @@ export async function POST(request: Request) {
     
     // Auth Check
     const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageOffices = await hasPermission(user.userId, 'MANAGE_OFFICES');
+      if (!canManageOffices) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_OFFICES permission' }, { status: 403 });
+      }
     }
 
     const body = await request.json();
     
+    // Organization isolation
+    const targetOrgId = user.role === 'SUPER_ADMIN' ? body.organizationId : user.organizationId;
+    if (!targetOrgId) {
+       return NextResponse.json({ success: false, message: 'Organization ID is required' }, { status: 400 });
+    }
+
     const existingOffice = await Office.findOne({ code: body.code });
     if (existingOffice) {
       return NextResponse.json({ success: false, message: 'Office code already exists' }, { status: 400 });
     }
 
-    const newOffice = await Office.create(body);
+    // Explicit field allowance
+    const newOffice = await Office.create({
+      name: body.name,
+      code: body.code,
+      organizationId: targetOrgId,
+      address: body.address,
+      city: body.city,
+      state: body.state,
+      pincode: body.pincode,
+      email: body.email,
+      phone: body.phone,
+      status: body.status || 'ACTIVE'
+    });
 
     await createAuditLog({
       action: 'CREATE',
@@ -53,6 +85,7 @@ export async function POST(request: Request) {
       userRole: user.role,
       entityType: 'Office',
       entityId: newOffice._id.toString(),
+      organizationId: targetOrgId,
       newData: newOffice.toObject(),
       request,
     });

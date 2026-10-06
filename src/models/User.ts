@@ -17,6 +17,7 @@ export interface IUser extends Document {
   officeId?: mongoose.Types.ObjectId;
   serviceId?: mongoose.Types.ObjectId; // For staff
   counterId?: mongoose.Types.ObjectId; // For staff
+  roleId?: mongoose.Types.ObjectId; // Custom role for permissions
   employeeId?: string; // For staff
   status: 'ACTIVE' | 'INACTIVE';
   lastLogin?: Date;
@@ -40,6 +41,7 @@ const UserSchema: Schema = new Schema(
     officeId: { type: Schema.Types.ObjectId, ref: 'Office', index: true },
     serviceId: { type: Schema.Types.ObjectId, ref: 'Service' },
     counterId: { type: Schema.Types.ObjectId, ref: 'Counter' },
+    roleId: { type: Schema.Types.ObjectId, ref: 'Role' },
     employeeId: { type: String },
     status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
     lastLogin: { type: Date },

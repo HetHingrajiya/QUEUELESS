@@ -9,11 +9,20 @@ export async function GET(request: Request) {
     await dbConnect();
     const url = new URL(request.url);
     const officeId = url.searchParams.get('officeId');
+    const orgId = url.searchParams.get('organizationId');
     let query: any = officeId ? { officeId } : {};
     
     const user = await getUserFromCookie();
-    if (user && user.role === 'ADMIN') {
+    
+    // Auth Check
+    if (!user) {
+       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (user.role === 'ADMIN' || user.role === 'STAFF') {
       query.organizationId = user.organizationId;
+    } else if (orgId) {
+      query.organizationId = orgId;
     }
     
     const services = await Service.find(query).sort({ createdAt: -1 });
@@ -29,18 +38,45 @@ export async function POST(request: Request) {
     
     // Auth Check
     const user = await getUserFromCookie();
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageServices = await hasPermission(user.userId, 'MANAGE_SERVICES');
+      if (!canManageServices) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_SERVICES permission' }, { status: 403 });
+      }
     }
 
     const body = await request.json();
     
-    const existingService = await Service.findOne({ code: body.code });
+    // Organization isolation
+    const targetOrgId = user.role === 'SUPER_ADMIN' ? body.organizationId : user.organizationId;
+    if (!targetOrgId) {
+       return NextResponse.json({ success: false, message: 'Organization ID is required' }, { status: 400 });
+    }
+    
+    const existingService = await Service.findOne({ code: body.code, organizationId: targetOrgId });
     if (existingService) {
-      return NextResponse.json({ success: false, message: 'Service code already exists' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Service code already exists in this organization' }, { status: 400 });
     }
 
-    const newService = await Service.create(body);
+    // Explicit field allowance
+    const newService = await Service.create({
+      name: body.name,
+      code: body.code,
+      description: body.description,
+      department: body.department,
+      organizationId: targetOrgId,
+      officeId: body.officeId,
+      estimatedTime: body.estimatedTime,
+      documentsRequired: body.documentsRequired || [],
+      status: body.status || 'ACTIVE',
+      prefix: body.prefix
+    });
 
     await createAuditLog({
       action: 'CREATE',
@@ -50,6 +86,7 @@ export async function POST(request: Request) {
       userRole: user.role,
       entityType: 'Service',
       entityId: newService._id.toString(),
+      organizationId: targetOrgId,
       newData: newService.toObject(),
       request,
     });

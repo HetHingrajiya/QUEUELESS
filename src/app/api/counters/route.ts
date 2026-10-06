@@ -4,17 +4,23 @@ import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
 import { createAuditLog } from '@/lib/auditLogger';
 
-
 export async function GET(request: Request) {
   try {
     await dbConnect();
     const url = new URL(request.url);
     const officeId = url.searchParams.get('officeId');
+    const orgId = url.searchParams.get('organizationId');
     let query: any = officeId ? { officeId } : {};
     
     const user = await getUserFromCookie();
-    if (user && user.role === 'ADMIN') {
-      // In real scenario, filter by org
+    if (!user) {
+       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (user.role === 'ADMIN' || user.role === 'STAFF') {
+      query.organizationId = user.organizationId;
+    } else if (orgId) {
+      query.organizationId = orgId;
     }
     
     const counters = await Counter.find(query).populate('officeId').populate('serviceId').sort({ createdAt: -1 });
@@ -30,22 +36,33 @@ export async function POST(request: Request) {
     
     // Auth Check from cookie
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canManageOffices = await hasPermission(user.userId, 'MANAGE_OFFICES');
+      if (!canManageOffices) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_OFFICES permission' }, { status: 403 });
+      }
     }
 
     const body = await request.json();
     
-    // In a real app, use the officeId from the authenticated Admin token, 
-    // but allow Super Admin to pass officeId in body.
-    const finalOfficeId = user.role === 'ADMIN' && user.officeId ? user.officeId : body.officeId;
+    // Organization isolation
+    const targetOrgId = user.role === 'SUPER_ADMIN' ? body.organizationId : user.organizationId;
+    if (!targetOrgId) {
+       return NextResponse.json({ success: false, message: 'Organization ID is required' }, { status: 400 });
+    }
 
-    if (!finalOfficeId) {
+    if (!body.officeId) {
       return NextResponse.json({ success: false, message: 'Office ID is required' }, { status: 400 });
     }
 
     // Check for duplicate counter number in the same office
-    const existingCounter = await Counter.findOne({ number: body.number, officeId: finalOfficeId });
+    const existingCounter = await Counter.findOne({ number: body.number, officeId: body.officeId });
     if (existingCounter) {
       return NextResponse.json({ 
         success: false, 
@@ -57,7 +74,8 @@ export async function POST(request: Request) {
     const newCounter = await Counter.create({
       number: body.number,
       name: body.name,
-      officeId: finalOfficeId,
+      officeId: body.officeId,
+      organizationId: targetOrgId,
       serviceId: body.serviceId,
       staffId: body.staffId || null,
       status: body.status || 'OFFLINE'
@@ -71,6 +89,7 @@ export async function POST(request: Request) {
       userRole: user.role,
       entityType: 'Counter',
       entityId: newCounter._id.toString(),
+      organizationId: targetOrgId,
       newData: newCounter.toObject(),
       request,
     });
