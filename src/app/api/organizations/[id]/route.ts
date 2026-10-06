@@ -3,17 +3,34 @@ import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
 import { getUserFromCookie } from '@/lib/auth';
 import { createAuditLog } from '@/lib/auditLogger';
+import mongoose from 'mongoose';
+
+const ADMIN_EDITABLE_FIELDS = new Set(['name', 'description', 'contactNumber', 'email', 'address']);
+const ADMIN_SETTING_FIELDS = new Set(['maxQueueSize', 'noShowTimeout', 'checkInBuffer', 'smsEnabled', 'emailEnabled']);
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const resolvedParams = await params;
-    const org = await Organization.findById(resolvedParams.id).lean();
+    const user = await getUserFromCookie();
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid organization ID' }, { status: 400 });
+    }
+    if (user.role === 'ADMIN' && user.organizationId?.toString() !== id) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+
+    const org = await Organization.findById(id).lean();
     if (!org) {
       return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: org });
   } catch (error) {
+    console.error('Organization GET error:', error);
     return NextResponse.json({ success: false, message: 'Server Error' }, { status: 500 });
   }
 }
@@ -21,58 +38,63 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const resolvedParams = await params;
-    
-    // Auth Check
+    const { id } = await params;
     const user = await getUserFromCookie();
+
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
-    
-    if (user.role === 'ADMIN' && user.organizationId !== resolvedParams.id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid organization ID' }, { status: 400 });
+    }
+    if (user.role === 'ADMIN' && user.organizationId?.toString() !== id) {
       return NextResponse.json({ success: false, message: 'Forbidden: You can only update your own organization' }, { status: 403 });
     }
 
     const body = await request.json();
-    
-    const oldOrg = await Organization.findById(resolvedParams.id);
+    const oldOrg = await Organization.findById(id);
     if (!oldOrg) {
       return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
     }
 
-    // Convert nested settings to dot notation to prevent overwriting
     const updateQuery: any = { $set: {}, $unset: {} };
-    for (const key in body) {
-      if (key === 'settings' && typeof body.settings === 'object') {
-        for (const settingKey in body.settings) {
-          if (body.settings[settingKey] === null) {
+    for (const [key, value] of Object.entries(body || {})) {
+      if (key === 'settings' && value && typeof value === 'object' && !Array.isArray(value)) {
+        for (const [settingKey, settingValue] of Object.entries(value as Record<string, unknown>)) {
+          if (!ADMIN_SETTING_FIELDS.has(settingKey)) continue;
+          if (settingValue === null) {
             updateQuery.$unset[`settings.${settingKey}`] = 1;
           } else {
-            updateQuery.$set[`settings.${settingKey}`] = body.settings[settingKey];
+            updateQuery.$set[`settings.${settingKey}`] = settingValue;
           }
         }
+        continue;
+      }
+
+      if (!ADMIN_EDITABLE_FIELDS.has(key)) continue;
+      if (value === null) {
+        updateQuery.$unset[key] = 1;
       } else {
-        if (body[key] === null) {
-          updateQuery.$unset[key] = 1;
-        } else {
-          updateQuery.$set[key] = body[key];
-        }
+        updateQuery.$set[key] = value;
       }
     }
 
     if (Object.keys(updateQuery.$set).length === 0) delete updateQuery.$set;
     if (Object.keys(updateQuery.$unset).length === 0) delete updateQuery.$unset;
 
-    const org = await Organization.findByIdAndUpdate(
-      resolvedParams.id, 
-      updateQuery, 
-      { new: true, runValidators: true, strict: false }
-    );
-    
+    if (!updateQuery.$set && !updateQuery.$unset) {
+      return NextResponse.json({ success: false, message: 'No editable fields supplied' }, { status: 400 });
+    }
+
+    const org = await Organization.findByIdAndUpdate(id, updateQuery, {
+      new: true,
+      runValidators: true,
+    });
+
     if (!org) {
       return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
     }
-    
+
     await createAuditLog({
       action: 'UPDATE',
       module: 'Organizations',
@@ -91,6 +113,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (error.code === 11000) {
       return NextResponse.json({ success: false, message: 'Organization with this code already exists' }, { status: 400 });
     }
+    console.error('Organization PUT error:', error);
     return NextResponse.json({ success: false, message: 'Server Error' }, { status: 500 });
   }
 }
@@ -98,25 +121,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
-    const resolvedParams = await params;
-    
-    // Auth Check
+    const { id } = await params;
     const user = await getUserFromCookie();
+
     if (!user || user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid organization ID' }, { status: 400 });
+    }
 
-    const oldOrg = await Organization.findById(resolvedParams.id);
+    const oldOrg = await Organization.findById(id);
     if (!oldOrg) {
       return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
     }
 
-    const org = await Organization.findByIdAndDelete(resolvedParams.id);
-    
-    if (!org) {
-      return NextResponse.json({ success: false, message: 'Organization not found' }, { status: 404 });
-    }
-    
+    await oldOrg.deleteOne();
+
     await createAuditLog({
       action: 'DELETE',
       module: 'Organizations',
@@ -124,13 +145,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       userId: user.userId,
       userRole: user.role,
       entityType: 'Organization',
-      entityId: resolvedParams.id,
+      entityId: id,
       oldData: oldOrg.toObject(),
       request,
     });
 
     return NextResponse.json({ success: true, message: 'Organization deleted successfully' });
   } catch (error) {
+    console.error('Organization DELETE error:', error);
     return NextResponse.json({ success: false, message: 'Server Error' }, { status: 500 });
   }
 }
