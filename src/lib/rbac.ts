@@ -50,7 +50,7 @@ export async function requirePermission(
   const roleRecord = await Role.findOne({ name: user.role, isSystem: true }).lean();
   if (!roleRecord || !roleRecord.permissionMatrix) return null;
 
-  const matrix = Object.fromEntries(roleRecord.permissionMatrix);
+  const matrix = roleRecord.permissionMatrix;
   
   if (hasPermission(user, matrix, module, action)) {
     return user;
@@ -70,7 +70,7 @@ export async function getUserMatrix(user: UserSession | null): Promise<IPermissi
   const roleRecord = await Role.findOne({ name: user.role, isSystem: true }).lean();
   if (!roleRecord || !roleRecord.permissionMatrix) return null;
 
-  return Object.fromEntries(roleRecord.permissionMatrix) as IPermissionMatrix;
+  return roleRecord.permissionMatrix as IPermissionMatrix;
 }
 
 /**

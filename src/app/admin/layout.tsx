@@ -104,7 +104,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const roleRecord = await Role.findOne({ name: user.role, isSystem: true }).lean();
   let matrix = {};
   if (roleRecord && roleRecord.permissionMatrix) {
-    matrix = Object.fromEntries(roleRecord.permissionMatrix);
+    matrix = roleRecord.permissionMatrix;
   }
 
   return (

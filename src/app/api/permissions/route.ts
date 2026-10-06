@@ -47,9 +47,19 @@ export async function PUT(request: Request) {
     for (const update of rolePermissions) {
       if (update.roleName === 'SUPER_ADMIN') continue; // Do not modify super admin
 
-      await Role.findByIdAndUpdate(update.roleId, {
-        $set: { permissionMatrix: update.permissionMatrix }
-      });
+      const role = await Role.findById(update.roleId);
+      if (role) {
+        if (!role.permissionMatrix) {
+          role.permissionMatrix = new Map();
+        } else {
+          role.permissionMatrix.clear();
+        }
+        for (const [key, value] of Object.entries(update.permissionMatrix)) {
+          role.permissionMatrix.set(key, value);
+        }
+        role.markModified('permissionMatrix');
+        await role.save();
+      }
     }
 
     await createAuditLog({

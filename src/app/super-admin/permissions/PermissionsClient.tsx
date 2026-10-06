@@ -40,7 +40,7 @@ export function PermissionsClient({ initialRoles }: { initialRoles: any[] }) {
 
     setRoles(prevRoles => prevRoles.map(role => {
       if (role._id === selectedRoleId) {
-        const matrix = { ...(role.permissionMatrix || {}) };
+        const matrix = JSON.parse(JSON.stringify(role.permissionMatrix || {}));
         if (!matrix[moduleId]) {
           matrix[moduleId] = { view: false, add: false, modify: false, delete: false };
         }
@@ -70,7 +70,7 @@ export function PermissionsClient({ initialRoles }: { initialRoles: any[] }) {
 
     setRoles(prevRoles => prevRoles.map(role => {
       if (role._id === selectedRoleId) {
-        const matrix = { ...(role.permissionMatrix || {}) };
+        const matrix = JSON.parse(JSON.stringify(role.permissionMatrix || {}));
         
         PERMISSION_MODULES.forEach(mod => {
           if (!matrix[mod.id]) {

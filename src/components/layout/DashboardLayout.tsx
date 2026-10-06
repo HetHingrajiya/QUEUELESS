@@ -97,7 +97,7 @@ export function DashboardLayout({ children, sidebarItems, role, permissionMatrix
             }
 
             // Check if active (including subpaths)
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive = pathname === item.href || (pathname?.startsWith(`${item.href}/`) ?? false);
             // Check if any subitem is active
             const hasActiveSub = filteredSubItems?.some(sub => pathname === sub.href) || false;
             
@@ -185,7 +185,7 @@ export function DashboardLayout({ children, sidebarItems, role, permissionMatrix
               <Menu size={24} />
             </button>
             <h1 className="text-xl font-semibold text-slate-800">
-              {sidebarItems.find(i => pathname === i.href || pathname.startsWith(`${i.href}/`))?.name || 'Dashboard'}
+              {sidebarItems.find(i => pathname === i.href || pathname?.startsWith(`${i.href}/`))?.name || 'Dashboard'}
             </h1>
           </div>
           <div className="flex items-center space-x-4">
