@@ -50,6 +50,10 @@ export async function POST(req: Request) {
       if (!targetUser || targetUser.organizationId?.toString() !== user.organizationId?.toString()) {
         return NextResponse.json({ success: false, message: 'Forbidden: Target user not in your organization' }, { status: 403 });
       }
+    } else if (user.role !== 'SUPER_ADMIN') {
+      if (targetUserId !== user.userId) {
+         return NextResponse.json({ success: false, message: 'Forbidden: Cannot create notification for other users' }, { status: 403 });
+      }
     }
     const notification = await Notification.create({
       ...body,

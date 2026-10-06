@@ -9,12 +9,21 @@ export async function GET(req: NextRequest) {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
-    const orgId = user.organizationId;
-    if (!orgId) {
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canViewAnalytics = await hasPermission(user.userId, 'VIEW_ANALYTICS');
+      if (!canViewAnalytics) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing VIEW_ANALYTICS permission' }, { status: 403 });
+      }
+    }
+
+    const orgId = user.role === 'SUPER_ADMIN' ? null : user.organizationId;
+    if (user.role === 'ADMIN' && !orgId) {
       return NextResponse.json({ success: false, message: 'No organization' }, { status: 400 });
     }
 
@@ -30,14 +39,18 @@ export async function GET(req: NextRequest) {
     end.setHours(23, 59, 59, 999);
 
     // Get all office IDs belonging to this organization
-    const orgOfficeQuery: any = { organizationId: new mongoose.Types.ObjectId(orgId) };
+    const orgOfficeQuery: any = {};
+    if (orgId) {
+       orgOfficeQuery.organizationId = new mongoose.Types.ObjectId(orgId);
+    }
+
     if (officeId && mongoose.Types.ObjectId.isValid(officeId)) {
       orgOfficeQuery._id = new mongoose.Types.ObjectId(officeId);
     }
     const orgOffices = await Office.find(orgOfficeQuery).select('_id').lean();
     const orgOfficeIds = orgOffices.map(o => o._id);
 
-    if (orgOfficeIds.length === 0) {
+    if (orgOfficeIds.length === 0 && orgId) {
       return NextResponse.json({
         success: true,
         data: {
@@ -48,9 +61,13 @@ export async function GET(req: NextRequest) {
     }
 
     const matchBase: any = {
-      officeId: { $in: orgOfficeIds },
       createdAt: { $gte: start, $lte: end },
     };
+    
+    if (orgId || officeId) {
+      matchBase.officeId = { $in: orgOfficeIds };
+    }
+
     if (serviceId && mongoose.Types.ObjectId.isValid(serviceId)) {
       matchBase.serviceId = new mongoose.Types.ObjectId(serviceId);
     }

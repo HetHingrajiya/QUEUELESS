@@ -18,6 +18,9 @@ export default async function AdminServicesPage() {
   const user = await getUserFromCookie();
   if (!user || user.role !== 'ADMIN') redirect('/login');
 
+  const { hasPermission } = await import('@/lib/permissions');
+  const canManageServices = await hasPermission(user.userId, 'MANAGE_SERVICES');
+  if (!canManageServices) redirect('/admin/unauthorized');
   
   const services = await getServices(user.organizationId as string);
 

@@ -11,8 +11,17 @@ export async function GET(request: Request) {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canViewAnalytics = await hasPermission(user.userId, 'VIEW_ANALYTICS');
+      if (!canViewAnalytics) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing VIEW_ANALYTICS permission' }, { status: 403 });
+      }
     }
 
     const query: any = {};
@@ -34,12 +43,21 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
-    if (!user) {
+    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
+    // RBAC
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      const canViewAnalytics = await hasPermission(user.userId, 'VIEW_ANALYTICS');
+      if (!canViewAnalytics) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing VIEW_ANALYTICS permission' }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
-    const orgId = user.role === 'ADMIN' ? user.organizationId : (body.organizationId || null);
+    const orgId = user.role === 'SUPER_ADMIN' ? body.organizationId : user.organizationId;
 
     // Calculate date range from reportType
     const now = new Date();
@@ -185,6 +203,7 @@ export async function POST(request: Request) {
       entityType: 'Report',
       entityId: newReport._id.toString(),
       newData: { reportType, dateRangeStart, dateRangeEnd, summary: summaryData },
+      organizationId: orgId,
       request,
     });
 

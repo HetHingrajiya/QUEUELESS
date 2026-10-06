@@ -15,8 +15,16 @@ export default async function AdminStaffQueueHistoryPage({ params }: { params: P
   const { id } = await params;
   const currentUser = await getUserFromCookie();
   
-  if (!currentUser || currentUser.role !== 'ADMIN') {
+  if (!currentUser || currentUser.role === 'CITIZEN' || currentUser.role === 'STAFF') {
     redirect('/login');
+  }
+
+  if (currentUser.role === 'ADMIN') {
+    const { hasPermission } = await import('@/lib/permissions');
+    const canManageStaff = await hasPermission(currentUser.userId, 'MANAGE_STAFF');
+    if (!canManageStaff) {
+      redirect('/admin/unauthorized');
+    }
   }
 
   await dbConnect();

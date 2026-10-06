@@ -89,10 +89,20 @@ export async function POST(request: Request) {
 
     const recommendedArrivalTime = new Date(Date.now() + (estimatedWaitTime * 60000) - (checkInBuffer * 60000)); 
 
+    const { createAuditLog } = await import('@/lib/auditLogger');
+    
+    // Find office to get organizationId
+    const { Office } = await import('@/models/Office');
+    const office = await Office.findById(officeId).lean();
+    if (!office) {
+      return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
+    }
+
     const newToken = await Token.create({
       tokenNumber,
       citizenId: userId,
       officeId,
+      organizationId: office.organizationId,
       serviceId,
       status: TokenStatus.WAITING,
       estimatedWaitTime,
@@ -100,7 +110,6 @@ export async function POST(request: Request) {
       queuePosition: waitingTokensCount + 1,
     });
 
-    const { createAuditLog } = await import('@/lib/auditLogger');
     await createAuditLog({
       action: 'CREATE',
       module: 'Queue',

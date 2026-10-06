@@ -29,9 +29,7 @@ const sidebarItems: SidebarItem[] = [
     icon: <Users size={20} />,
     subItems: [
       { name: 'All Staff', href: '/admin/staff' },
-      { name: 'Attendance', href: '/admin/staff/attendance' },
-      { name: 'Performance', href: '/admin/staff/performance' },
-      { name: 'History', href: '/admin/staff/history' }
+      { name: 'Add Staff', href: '/admin/staff/add' }
     ]
   },
   { 

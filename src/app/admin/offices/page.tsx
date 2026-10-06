@@ -18,6 +18,10 @@ export default async function AdminOfficesPage() {
   const user = await getUserFromCookie();
   if (!user || user.role !== 'ADMIN') redirect('/login');
   
+  const { hasPermission } = await import('@/lib/permissions');
+  const canManageOffices = await hasPermission(user.userId, 'MANAGE_OFFICES');
+  if (!canManageOffices) redirect('/admin/unauthorized');
+
   const offices = await getOffices(user.organizationId as string);
 
   return (
