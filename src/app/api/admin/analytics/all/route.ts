@@ -167,35 +167,46 @@ export async function GET(req: NextRequest) {
 
     const avgNoShowRate = totalGen > 0 ? ((totalNoShows / totalGen) * 100).toFixed(1) : "0.0";
 
-    // 5. Staff Performance Data
-    // For MVP, we will count tokens served per staff if tracked, else dummy names if none tracked
-    // Wait, `Token` might not have `servedBy` stored, or it does? `servedBy` is not in Token schema if it wasn't added.
-    // Let's check if we can just get random staff, or if not, use dummy data. Actually, let's look at `User` model for staff.
+    // 5. Staff Performance Data – based on Token.staffId
     const staffMembers = await User.find({ organizationId: orgId, role: 'STAFF' });
-    const staffData = staffMembers.map(staff => ({
-      name: staff.name,
-      served: Math.floor(Math.random() * 50) + 10, // Mocked for now because Token doesn't track servedBy yet
-      avgTime: Math.floor(Math.random() * 15) + 5
-    }));
-    
-    // Sort and find top
-    staffData.sort((a, b) => b.served - a.served);
+    const staffTokenMap = new Map<string, { served: number; totalServiceMs: number }>();
+    staffMembers.forEach(s => staffTokenMap.set(s._id.toString(), { served: 0, totalServiceMs: 0 }));
+
+    recentTokens.forEach(t => {
+      if (t.staffId && t.status === 'COMPLETED' && t.startTime && t.completionTime) {
+        const key = t.staffId.toString();
+        if (staffTokenMap.has(key)) {
+          const d = staffTokenMap.get(key)!;
+          d.served++;
+          d.totalServiceMs += new Date(t.completionTime).getTime() - new Date(t.startTime).getTime();
+        }
+      }
+    });
+
+    const staffData = staffMembers.map(staff => {
+      const d = staffTokenMap.get(staff._id.toString()) || { served: 0, totalServiceMs: 0 };
+      return {
+        name: staff.fullName,
+        served: d.served,
+        avgTime: d.served > 0 ? Math.round(d.totalServiceMs / d.served / 60000) : 0
+      };
+    }).sort((a, b) => b.served - a.served);
+
     const topPerformer = staffData.length > 0 ? staffData[0].name : 'N/A';
-    let fastestTime = 999;
-    staffData.forEach(s => { if (s.avgTime < fastestTime) fastestTime = s.avgTime; });
+    let fastestTime = staffData.reduce((min, s) => s.avgTime > 0 && s.avgTime < min ? s.avgTime : min, 999);
     if (fastestTime === 999) fastestTime = 0;
 
-    // 6. Office Performance Data
+    // 6. Office Performance Data – real token counts and real completion rate as efficiency
     const offices = await Office.find({ organizationId: orgId });
-    const officeMap = new Map<string, { tokens: number, efficiency: number }>();
-    
-    offices.forEach(o => officeMap.set(o.name, { tokens: 0, efficiency: Math.floor(Math.random() * 20) + 80 })); // mocked efficiency
-    
+    const officeMap = new Map<string, { tokens: number; completed: number }>();
+    offices.forEach(o => officeMap.set(o.name, { tokens: 0, completed: 0 }));
+
     recentTokens.forEach(t => {
       if (t.officeId && typeof t.officeId === 'object') {
         const oName = (t.officeId as any).name;
         if (officeMap.has(oName)) {
           officeMap.get(oName)!.tokens++;
+          if (t.status === 'COMPLETED') officeMap.get(oName)!.completed++;
         }
       }
     });
@@ -203,7 +214,7 @@ export async function GET(req: NextRequest) {
     const officeData = Array.from(officeMap.entries()).map(([name, data]) => ({
       name,
       tokens: data.tokens,
-      efficiency: data.efficiency
+      efficiency: data.tokens > 0 ? Math.round((data.completed / data.tokens) * 100) : 0
     }));
 
     let busiestOffice = 'N/A';

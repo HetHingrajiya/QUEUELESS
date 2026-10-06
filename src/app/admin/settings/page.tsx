@@ -1,85 +1,62 @@
-"use client";
-
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Plus, Filter } from 'lucide-react';
 import Link from 'next/link';
+import { Settings2, Bell, Shield, Building2, ChevronRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+
+const settingsLinks = [
+  {
+    href: '/admin/settings/general',
+    icon: <Building2 className="text-blue-600" size={22} />,
+    title: 'General Settings',
+    description: 'Organization name, contact info, and address.',
+  },
+  {
+    href: '/admin/settings/queue',
+    icon: <Settings2 className="text-emerald-600" size={22} />,
+    title: 'Queue Settings',
+    description: 'Queue capacity, no-show timeout, and check-in buffer.',
+  },
+  {
+    href: '/admin/settings/notifications',
+    icon: <Bell className="text-amber-500" size={22} />,
+    title: 'Notification Settings',
+    description: 'Configure notification channels and preferences.',
+  },
+  {
+    href: '/admin/settings/security',
+    icon: <Shield className="text-purple-600" size={22} />,
+    title: 'Security Settings',
+    description: 'Session timeout and login security policies.',
+  },
+];
 
 export default function SettingsPage() {
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <h2 className="text-2xl font-bold text-slate-800">Settings</h2>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <Filter size={16} className="mr-2" />
-            Filter
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
-            <Plus size={16} className="mr-2" />
-            Add New
-          </Button>
-        </div>
+    <div className="space-y-6 p-6 max-w-3xl">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800">Settings</h2>
+        <p className="text-sm text-slate-500 mt-1">Manage your organization's configuration and security preferences.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Settings Data</CardTitle>
-          <CardDescription>Manage and view information related to settings</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-          </div>
-          
-          <div className="border border-slate-200 rounded-md overflow-hidden">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">ID</th>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                <tr className="hover:bg-slate-50 transition-colors text-slate-600">
-                  <td className="px-4 py-3">#001</td>
-                  <td className="px-4 py-3 font-medium text-slate-800">Sample Record 1</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Active</span>
-                  </td>
-                  <td className="px-4 py-3">2026-10-04</td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="text-blue-600">View</Button>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-50 transition-colors text-slate-600">
-                  <td className="px-4 py-3">#002</td>
-                  <td className="px-4 py-3 font-medium text-slate-800">Sample Record 2</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">Pending</span>
-                  </td>
-                  <td className="px-4 py-3">2026-10-04</td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="text-blue-600">View</Button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {settingsLinks.map((item) => (
+          <Link key={item.href} href={item.href}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer border border-slate-200 hover:border-blue-200">
+              <CardContent className="flex items-center justify-between p-5">
+                <div className="flex items-center space-x-4">
+                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-100">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-800">{item.title}</p>
+                    <p className="text-sm text-slate-500">{item.description}</p>
+                  </div>
+                </div>
+                <ChevronRight className="text-slate-400" size={18} />
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

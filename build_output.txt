@@ -1,0 +1,264 @@
+
+> queueless@0.1.0 build
+> next build
+
+▲ Next.js 16.3.8 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 57ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.3s
+  Skipping validation of types
+  Finished TypeScript config validation in 17ms ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/155) ...
+  Generating static pages using 11 workers (38/155) 
+  Generating static pages using 11 workers (77/155) 
+  Generating static pages using 11 workers (116/155) 
+✓ Generating static pages using 11 workers (155/155) in 4.9s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ○ /admin/analytics
+├ ○ /admin/analytics/no-show
+├ ○ /admin/analytics/no-show-rate
+├ ○ /admin/analytics/office-performance
+├ ○ /admin/analytics/peak-hours
+├ ○ /admin/analytics/queue
+├ ○ /admin/analytics/service-time
+├ ○ /admin/analytics/staff-performance
+├ ○ /admin/analytics/waiting-time
+├ ○ /admin/audit-logs
+├ ƒ /admin/counters
+├ ƒ /admin/counters/[id]
+├ ƒ /admin/counters/[id]/edit
+├ ○ /admin/counters/add
+├ ○ /admin/dashboard
+├ ○ /admin/holidays
+├ ƒ /admin/holidays/[id]/edit
+├ ○ /admin/holidays/add
+├ ○ /admin/notifications
+├ ○ /admin/notifications/send
+├ ○ /admin/notifications/templates
+├ ƒ /admin/offices
+├ ƒ /admin/offices/[id]
+├ ƒ /admin/offices/[id]/analytics
+├ ƒ /admin/offices/[id]/counters
+├ ƒ /admin/offices/[id]/edit
+├ ƒ /admin/offices/[id]/queue
+├ ƒ /admin/offices/[id]/services
+├ ƒ /admin/offices/[id]/staff
+├ ○ /admin/offices/add
+├ ○ /admin/priority-rules
+├ ƒ /admin/priority-rules/[id]/edit
+├ ○ /admin/priority-rules/add
+├ ○ /admin/profile
+├ ○ /admin/queue
+├ ƒ /admin/queue/completed
+├ ƒ /admin/queue/live
+├ ƒ /admin/queue/no-show
+├ ƒ /admin/queue/serving
+├ ƒ /admin/queue/skipped
+├ ƒ /admin/queue/waiting
+├ ○ /admin/reports
+├ ○ /admin/reports/daily
+├ ○ /admin/reports/monthly
+├ ○ /admin/reports/office
+├ ○ /admin/reports/queue
+├ ○ /admin/reports/service
+├ ○ /admin/reports/staff
+├ ○ /admin/reports/weekly
+├ ƒ /admin/services
+├ ƒ /admin/services/[id]
+├ ƒ /admin/services/[id]/analytics
+├ ƒ /admin/services/[id]/edit
+├ ƒ /admin/services/[id]/queue
+├ ○ /admin/services/add
+├ ○ /admin/settings
+├ ○ /admin/settings/general
+├ ○ /admin/settings/notifications
+├ ○ /admin/settings/queue
+├ ○ /admin/settings/security
+├ ƒ /admin/staff
+├ ƒ /admin/staff/[id]
+├ ƒ /admin/staff/[id]/attendance
+├ ƒ /admin/staff/[id]/edit
+├ ƒ /admin/staff/[id]/performance
+├ ƒ /admin/staff/[id]/queue-history
+├ ○ /admin/staff/add
+├ ○ /admin/tokens
+├ ƒ /admin/tokens/[id]/edit
+├ ○ /admin/tokens/add
+├ ○ /admin/working-hours
+├ ƒ /api/admin/analytics
+├ ƒ /api/admin/analytics/all
+├ ƒ /api/admin/analytics/export
+├ ƒ /api/admin/analytics/queue
+├ ƒ /api/admin/dashboard
+├ ƒ /api/admin/holidays
+├ ƒ /api/admin/holidays/[id]
+├ ƒ /api/admin/priority-rules
+├ ƒ /api/admin/priority-rules/[id]
+├ ƒ /api/admin/tokens
+├ ƒ /api/admin/tokens/[id]
+├ ƒ /api/admins
+├ ƒ /api/admins/[id]
+├ ƒ /api/audit-logs
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/citizen/queue/[tokenId]
+├ ƒ /api/citizen/token
+├ ƒ /api/counters
+├ ƒ /api/counters/[id]
+├ ƒ /api/notifications
+├ ƒ /api/offices
+├ ƒ /api/offices/[id]
+├ ƒ /api/organization-types
+├ ƒ /api/organization-types/[id]
+├ ƒ /api/organizations
+├ ƒ /api/organizations/[id]
+├ ƒ /api/permissions
+├ ƒ /api/priority-rules
+├ ƒ /api/priority-rules/[id]
+├ ƒ /api/profile
+├ ƒ /api/profile/change-password
+├ ƒ /api/queue/token
+├ ƒ /api/reports
+├ ƒ /api/reports/[id]
+├ ƒ /api/roles
+├ ƒ /api/roles/[id]
+├ ƒ /api/seed
+├ ƒ /api/services
+├ ƒ /api/services/[id]
+├ ƒ /api/staff
+├ ƒ /api/staff/[id]
+├ ƒ /api/staff/counter/status
+├ ƒ /api/staff/dashboard
+├ ƒ /api/staff/token/action
+├ ƒ /api/system-settings
+├ ○ /citizen
+├ ○ /citizen/check-in
+├ ○ /citizen/check-in/success
+├ ○ /citizen/favorites
+├ ○ /citizen/feedback
+├ ○ /citizen/help
+├ ○ /citizen/history
+├ ○ /citizen/home
+├ ○ /citizen/notifications
+├ ○ /citizen/offices
+├ ƒ /citizen/offices/[id]
+├ ƒ /citizen/offices/[id]/services
+├ ○ /citizen/profile
+├ ○ /citizen/queue
+├ ƒ /citizen/queue/[tokenId]
+├ ƒ /citizen/queue/[tokenId]/leave-time
+├ ƒ /citizen/queue/[tokenId]/prediction
+├ ƒ /citizen/services/[id]
+├ ○ /citizen/settings
+├ ○ /citizen/token
+├ ○ /citizen/token-history
+├ ƒ /citizen/token-history/[id]
+├ ○ /citizen/token/confirmation
+├ ○ /login
+├ ○ /staff
+├ ○ /staff/counter
+├ ○ /staff/counter/pause
+├ ○ /staff/counter/resume
+├ ○ /staff/current-token
+├ ○ /staff/dashboard
+├ ○ /staff/notifications
+├ ○ /staff/profile
+├ ○ /staff/queue
+├ ƒ /staff/queue-history
+├ ƒ /staff/queue/[id]
+├ ○ /staff/queue/live
+├ ○ /staff/token-history
+├ ○ /super-admin
+├ ƒ /super-admin/admins
+├ ƒ /super-admin/admins/[id]
+├ ƒ /super-admin/admins/[id]/edit
+├ ○ /super-admin/admins/add
+├ ƒ /super-admin/analytics
+├ ○ /super-admin/analytics/ai
+├ ○ /super-admin/analytics/offices
+├ ○ /super-admin/analytics/organizations
+├ ○ /super-admin/analytics/queue
+├ ○ /super-admin/audit-logs
+├ ƒ /super-admin/counters
+├ ƒ /super-admin/counters/[id]
+├ ƒ /super-admin/counters/[id]/edit
+├ ○ /super-admin/counters/add
+├ ○ /super-admin/dashboard
+├ ○ /super-admin/notifications
+├ ○ /super-admin/notifications/send
+├ ○ /super-admin/notifications/templates
+├ ƒ /super-admin/offices
+├ ƒ /super-admin/offices/[id]
+├ ƒ /super-admin/offices/[id]/edit
+├ ○ /super-admin/offices/add
+├ ○ /super-admin/organization-types
+├ ƒ /super-admin/organization-types/[id]/edit
+├ ○ /super-admin/organization-types/add
+├ ƒ /super-admin/organizations
+├ ƒ /super-admin/organizations/[id]
+├ ƒ /super-admin/organizations/[id]/admins
+├ ƒ /super-admin/organizations/[id]/analytics
+├ ƒ /super-admin/organizations/[id]/edit
+├ ƒ /super-admin/organizations/[id]/offices
+├ ƒ /super-admin/organizations/[id]/staff
+├ ○ /super-admin/organizations/add
+├ ƒ /super-admin/permissions
+├ ƒ /super-admin/permissions/[id]
+├ ƒ /super-admin/permissions/[id]/edit
+├ ○ /super-admin/permissions/add
+├ ƒ /super-admin/priority-rules
+├ ƒ /super-admin/priority-rules/[id]/edit
+├ ○ /super-admin/priority-rules/add
+├ ƒ /super-admin/profile
+├ ○ /super-admin/queue
+├ ○ /super-admin/queue-settings
+├ ƒ /super-admin/queue/completed
+├ ƒ /super-admin/queue/live
+├ ƒ /super-admin/queue/no-show
+├ ƒ /super-admin/queue/serving
+├ ƒ /super-admin/queue/skipped
+├ ƒ /super-admin/queue/waiting
+├ ○ /super-admin/reports
+├ ○ /super-admin/reports/organizations
+├ ○ /super-admin/reports/system
+├ ƒ /super-admin/roles
+├ ƒ /super-admin/roles/[id]
+├ ƒ /super-admin/roles/[id]/edit
+├ ○ /super-admin/roles/add
+├ ƒ /super-admin/services
+├ ƒ /super-admin/services/[id]
+├ ƒ /super-admin/services/[id]/edit
+├ ○ /super-admin/services/add
+├ ƒ /super-admin/staff
+├ ƒ /super-admin/staff/[id]
+├ ƒ /super-admin/staff/[id]/edit
+├ ○ /super-admin/staff/add
+├ ○ /super-admin/system-settings
+├ ○ /super-admin/system-settings/general
+├ ○ /super-admin/system-settings/notifications
+├ ○ /super-admin/system-settings/queue
+└ ○ /super-admin/system-settings/security
+
+Route (pages)
+─ ƒ /api/socket
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
