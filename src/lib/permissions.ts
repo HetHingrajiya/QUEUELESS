@@ -1,6 +1,7 @@
 import { Role } from '@/models/Role';
 import { User } from '@/models/User';
 import mongoose from 'mongoose';
+import dbConnect from '@/lib/db';
 
 export const PERMISSIONS = {
   MANAGE_ORGANIZATIONS: 'MANAGE_ORGANIZATIONS',
@@ -29,23 +30,25 @@ export async function hasPermission(
   permission: Permission,
 ): Promise<boolean> {
   if (!userId || !mongoose.Types.ObjectId.isValid(userId.toString())) return false;
-
+  
+  await dbConnect();
   const user = await User.findById(userId).lean();
   if (!user) return false;
   if (user.role === 'SUPER_ADMIN') return true;
   if (user.role === 'CITIZEN') return false;
   if (user.role !== 'ADMIN' && user.role !== 'STAFF') return false;
-  let roleDoc;
+  let role;
   if (user.roleId) {
     if (typeof user.roleId === 'object' && 'permissions' in user.roleId) {
-      return Array.isArray((user.roleId as any).permissions) && (user.roleId as any).permissions.includes(permission);
+      return Array.isArray((user.roleId as any).permissions)
+        && (user.roleId as any).permissions.includes(permission);
     }
-    roleDoc = await Role.findById(user.roleId).lean();
+    role = await Role.findById(user.roleId).lean();
   } else {
-    roleDoc = await Role.findOne({ name: user.role, isSystem: true }).lean();
+    role = await Role.findOne({ isSystem: true, name: user.role }).lean();
   }
-
-  return !!roleDoc && Array.isArray(roleDoc.permissions) && roleDoc.permissions.includes(permission);
+  
+  return !!role && Array.isArray(role.permissions) && role.permissions.includes(permission);
 }
 
 export async function requirePermission(
@@ -69,19 +72,20 @@ export async function getUserPermissions(
 ): Promise<string[]> {
   if (!userId || !mongoose.Types.ObjectId.isValid(userId.toString())) return [];
 
+  await dbConnect();
   const user = await User.findById(userId).lean();
   if (!user) return [];
   if (user.role === 'SUPER_ADMIN') return [...ALL_PERMISSIONS];
   if (user.role === 'CITIZEN') return [];
-  let roleDoc;
+  let role;
   if (user.roleId) {
     if (typeof user.roleId === 'object' && 'permissions' in user.roleId) {
       return Array.isArray((user.roleId as any).permissions) ? (user.roleId as any).permissions : [];
     }
-    roleDoc = await Role.findById(user.roleId).lean();
+    role = await Role.findById(user.roleId).lean();
   } else {
-    roleDoc = await Role.findOne({ name: user.role, isSystem: true }).lean();
+    role = await Role.findOne({ isSystem: true, name: user.role }).lean();
   }
 
-  return roleDoc && Array.isArray(roleDoc.permissions) ? roleDoc.permissions : [];
+  return role && Array.isArray(role.permissions) ? role.permissions : [];
 }
