@@ -8,10 +8,21 @@ import { Service } from '@/models/Service';
 import { User } from '@/models/User';
 import Link from 'next/link';
 import { DeleteButton } from '@/components/DeleteButton';
+import { redirect } from 'next/navigation';
+import { getUserFromCookie } from '@/lib/auth';
+import { Office } from '@/models/Office';
 
 async function getCounters() {
   await dbConnect();
-  const counters = await Counter.find({}).populate('serviceId').populate('staffId').sort({ number: 1 });
+  const user = await getUserFromCookie();
+  if (!user || user.role !== 'ADMIN') redirect('/login');
+  
+  const offices = await Office.find({ organizationId: user.organizationId }).select('_id');
+  const counters = await Counter.find({ officeId: { $in: offices } })
+    .populate('officeId')
+    .populate('serviceIds')
+    .populate('staffId')
+    .sort({ number: 1 });
   return counters;
 }
 
@@ -48,6 +59,7 @@ export default async function AdminCounters() {
                 <tr>
                   <th scope="col" className="px-6 py-4">Counter Number</th>
                   <th scope="col" className="px-6 py-4">Name</th>
+                  <th scope="col" className="px-6 py-4">Office</th>
                   <th scope="col" className="px-6 py-4">Assigned Service</th>
                   <th scope="col" className="px-6 py-4">Assigned Staff</th>
                   <th scope="col" className="px-6 py-4">Status</th>
@@ -64,7 +76,10 @@ export default async function AdminCounters() {
                       {counter.name}
                     </td>
                     <td className="px-6 py-4">
-                      {counter.serviceId ? (counter.serviceId as any).name : <span className="text-slate-400 italic">Unassigned</span>}
+                      {counter.officeId ? (counter.officeId as any).name : <span className="text-slate-400 italic">Unassigned</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {counter.serviceIds && counter.serviceIds.length > 0 ? counter.serviceIds.map((s: any) => s.name).join(', ') : <span className="text-slate-400 italic">Unassigned</span>}
                     </td>
                     <td className="px-6 py-4">
                       {counter.staffId ? (counter.staffId as any).fullName : <span className="text-slate-400 italic">Unassigned</span>}
@@ -94,7 +109,7 @@ export default async function AdminCounters() {
                 
                 {counters.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                       No counters found. Create your first counter to get started.
                     </td>
                   </tr>

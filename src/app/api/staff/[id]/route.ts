@@ -103,6 +103,43 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updateData.password = await bcrypt.hash(body.password, 10);
     }
 
+    const { Counter } = await import('@/models/Counter');
+
+    // Handle counter assignment synchronization
+    if (updateData.counterId !== undefined) {
+      const newCounterId = updateData.counterId;
+      
+      // If setting a new counter, validate office/org
+      if (newCounterId) {
+        const newCounter = await Counter.findById(newCounterId);
+        if (!newCounter) {
+          return NextResponse.json({ success: false, message: 'Assigned counter not found' }, { status: 404 });
+        }
+        const expectedOfficeId = updateData.officeId || oldStaff.officeId;
+        const expectedOrgId = updateData.organizationId || oldStaff.organizationId;
+        
+        if (newCounter.officeId.toString() !== expectedOfficeId?.toString() || 
+            newCounter.organizationId.toString() !== expectedOrgId?.toString()) {
+          return NextResponse.json({ success: false, message: 'Counter office or organization mismatch' }, { status: 400 });
+        }
+      }
+
+      // If the staff had an old counter that is DIFFERENT from the new one, release the old one
+      if (oldStaff.counterId && oldStaff.counterId.toString() !== newCounterId?.toString()) {
+        await Counter.findByIdAndUpdate(oldStaff.counterId, { $set: { staffId: null } });
+      }
+
+      // If there is a new counter, set its staffId to this staff (and steal it from whoever had it before)
+      if (newCounterId) {
+        // Find if another staff had this counter and remove it from them
+        const previousStaff = await User.findOne({ counterId: newCounterId, role: 'STAFF' });
+        if (previousStaff && previousStaff._id.toString() !== id) {
+          await User.findByIdAndUpdate(previousStaff._id, { $set: { counterId: null } });
+        }
+        await Counter.findByIdAndUpdate(newCounterId, { $set: { staffId: id } });
+      }
+    }
+
     const updatedStaff = await User.findOneAndUpdate(
       query,
       { $set: updateData },
@@ -172,6 +209,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     if (!deletedStaff) {
       return NextResponse.json({ success: false, message: 'Staff not found' }, { status: 404 });
+    }
+
+    if (deletedStaff.counterId) {
+      const { Counter } = await import('@/models/Counter');
+      await Counter.findByIdAndUpdate(deletedStaff.counterId, { $set: { staffId: null } });
     }
 
     await createAuditLog({

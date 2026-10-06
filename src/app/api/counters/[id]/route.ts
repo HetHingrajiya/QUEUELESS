@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
+import { Office } from '@/models/Office';
 import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -15,16 +16,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
        return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    const query: any = { _id: id };
-    
-    if (user.role === 'ADMIN' || user.role === 'STAFF') {
-       query.organizationId = user.organizationId;
-    }
-    
-    const counter = await Counter.findOne(query);
-    
+    const counter = await Counter.findById(id).lean();
     if (!counter) {
       return NextResponse.json({ success: false, message: 'Counter not found' }, { status: 404 });
+    }
+
+    if (user.role === 'ADMIN' || user.role === 'STAFF') {
+       const office = await Office.findById(counter.officeId).lean();
+       if (!office || office.organizationId?.toString() !== user.organizationId) {
+         return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+       }
     }
 
     return NextResponse.json({
@@ -60,13 +61,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json();
     
     const query: any = { _id: id };
-    if (currentUser.role === 'ADMIN') {
-       query.organizationId = currentUser.organizationId;
-    }
 
     const oldCounter = await Counter.findOne(query);
     if (!oldCounter) {
       return NextResponse.json({ success: false, message: 'Counter not found or unauthorized' }, { status: 404 });
+    }
+
+    if (currentUser.role === 'ADMIN') {
+       const office = await Office.findById(oldCounter.officeId).lean();
+       if (!office || office.organizationId?.toString() !== currentUser.organizationId) {
+         return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+       }
     }
 
     // Explicit field allowance
@@ -74,12 +79,45 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.name !== undefined) updateData.name = body.name;
     if (body.number !== undefined) updateData.number = body.number;
     if (body.officeId !== undefined) updateData.officeId = body.officeId;
-    if (body.serviceId !== undefined) updateData.serviceId = body.serviceId;
+    if (body.serviceIds !== undefined) updateData.serviceIds = body.serviceIds;
+    else if (body.serviceId !== undefined) updateData.serviceIds = body.serviceId ? [body.serviceId] : [];
     if (body.staffId !== undefined) updateData.staffId = body.staffId;
     if (body.status !== undefined) updateData.status = body.status;
 
     if (currentUser.role === 'SUPER_ADMIN' && body.organizationId) {
        updateData.organizationId = body.organizationId;
+    }
+
+    const { User } = await import('@/models/User');
+
+    if (updateData.staffId !== undefined) {
+      const newStaffId = updateData.staffId;
+      
+      if (newStaffId) {
+        const newStaff = await User.findById(newStaffId);
+        if (!newStaff) return NextResponse.json({ success: false, message: 'Assigned staff not found' }, { status: 404 });
+        
+        const expectedOfficeId = updateData.officeId || oldCounter.officeId;
+        const expectedOffice = await Office.findById(expectedOfficeId).lean();
+        const expectedOrgId = expectedOffice?.organizationId;
+        
+        if (newStaff.officeId?.toString() !== expectedOfficeId?.toString() || 
+            newStaff.organizationId?.toString() !== expectedOrgId?.toString()) {
+          return NextResponse.json({ success: false, message: 'Staff office or organization mismatch' }, { status: 400 });
+        }
+      }
+
+      if (oldCounter.staffId && oldCounter.staffId.toString() !== newStaffId?.toString()) {
+        await User.findByIdAndUpdate(oldCounter.staffId, { $set: { counterId: null } });
+      }
+
+      if (newStaffId) {
+        const previousCounter = await Counter.findOne({ staffId: newStaffId });
+        if (previousCounter && previousCounter._id.toString() !== id) {
+          await Counter.findByIdAndUpdate(previousCounter._id, { $set: { staffId: null } });
+        }
+        await User.findByIdAndUpdate(newStaffId, { $set: { counterId: id } });
+      }
     }
 
     const updatedCounter = await Counter.findOneAndUpdate(
@@ -138,19 +176,28 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     const query: any = { _id: id };
-    if (currentUser.role === 'ADMIN') {
-       query.organizationId = currentUser.organizationId;
-    }
 
     const oldCounter = await Counter.findOne(query);
     if (!oldCounter) {
       return NextResponse.json({ success: false, message: 'Counter not found or unauthorized' }, { status: 404 });
     }
 
+    if (currentUser.role === 'ADMIN') {
+       const office = await Office.findById(oldCounter.officeId).lean();
+       if (!office || office.organizationId?.toString() !== currentUser.organizationId) {
+         return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+       }
+    }
+
     const deletedCounter = await Counter.findOneAndDelete(query);
 
     if (!deletedCounter) {
       return NextResponse.json({ success: false, message: 'Counter not found' }, { status: 404 });
+    }
+
+    if (deletedCounter.staffId) {
+      const { User } = await import('@/models/User');
+      await User.findByIdAndUpdate(deletedCounter.staffId, { $set: { counterId: null } });
     }
 
     await createAuditLog({

@@ -11,7 +11,7 @@ export interface ICounter extends Document {
   number: string;
   name: string;
   officeId: mongoose.Types.ObjectId;
-  serviceId?: mongoose.Types.ObjectId;
+  serviceIds?: mongoose.Types.ObjectId[];
   staffId?: mongoose.Types.ObjectId;
   currentServiceTokenId?: mongoose.Types.ObjectId;
   status: CounterStatus;
@@ -24,7 +24,7 @@ const CounterSchema: Schema = new Schema(
     number: { type: String, required: true },
     name: { type: String, required: true },
     officeId: { type: Schema.Types.ObjectId, ref: 'Office', required: true, index: true },
-    serviceId: { type: Schema.Types.ObjectId, ref: 'Service' },
+    serviceIds: [{ type: Schema.Types.ObjectId, ref: 'Service' }],
     staffId: { type: Schema.Types.ObjectId, ref: 'User' },
     currentServiceTokenId: { type: Schema.Types.ObjectId, ref: 'Token' },
     status: { 

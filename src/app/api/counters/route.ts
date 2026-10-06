@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     }
     
     if (user.role === 'ADMIN') { const { hasPermission } = await import('@/lib/permissions'); if (!(await hasPermission(user.userId, 'MANAGE_OFFICES'))) return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_OFFICES permission' }, { status: 403 }); }
-    const counters = await Counter.find(query).populate('officeId').populate('serviceId').sort({ createdAt: -1 });
+    const counters = await Counter.find(query).populate('officeId').populate('serviceIds').sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: counters });
   } catch (error) {
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
@@ -76,11 +76,22 @@ export async function POST(request: Request) {
       number: body.number,
       name: body.name,
       officeId: body.officeId,
-      organizationId: targetOrgId,
-      serviceId: body.serviceId,
+      serviceIds: body.serviceIds || (body.serviceId ? [body.serviceId] : []),
       staffId: body.staffId || null,
       status: body.status || 'OFFLINE'
     });
+
+    if (body.staffId) {
+      const { User } = await import('@/models/User');
+      
+      // If the staff was assigned to another counter, clear it there
+      const previousCounter = await Counter.findOne({ staffId: body.staffId, _id: { $ne: newCounter._id } });
+      if (previousCounter) {
+        await Counter.findByIdAndUpdate(previousCounter._id, { $set: { staffId: null } });
+      }
+      
+      await User.findByIdAndUpdate(body.staffId, { $set: { counterId: newCounter._id } });
+    }
 
     await createAuditLog({
       action: 'CREATE',

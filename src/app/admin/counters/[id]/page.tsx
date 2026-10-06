@@ -54,8 +54,9 @@ export default async function AdminCountersidPage({ params }: { params: Promise<
   }
 
   const assignedStaff = counter.staffId ? await User.findById(counter.staffId).lean() : null;
-  const service = counter.serviceId ? await Service.findById(counter.serviceId).lean() : null;
-  
+  const services = counter.serviceIds && counter.serviceIds.length > 0 
+    ? await Service.find({ _id: { $in: counter.serviceIds } }).lean() 
+    : [];
   // Metrics
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -137,8 +138,8 @@ export default async function AdminCountersidPage({ params }: { params: Promise<
                   <p className="text-lg font-bold text-slate-900">{office.name}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                  <p className="text-sm font-medium text-slate-500 mb-1">Assigned Service</p>
-                  <p className="text-lg font-bold text-slate-900">{service ? service.name : 'None'}</p>
+                  <p className="text-sm font-medium text-slate-500 mb-1">Assigned Services</p>
+                  <p className="text-lg font-bold text-slate-900">{services.length > 0 ? services.map(s => s.name).join(', ') : 'All Services'}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
                   <p className="text-sm font-medium text-slate-500 mb-1">Assigned Staff</p>

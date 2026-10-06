@@ -45,9 +45,9 @@ export default async function AdminOfficeCountersPage({ params }: { params: Prom
   
   // Populate service and staff names manually to avoid lean() projection issues
   const populatedCounters = await Promise.all(counters.map(async (c) => {
-    const service = c.serviceId ? await Service.findById(c.serviceId).select('name').lean() : null;
+    const services = c.serviceIds && c.serviceIds.length > 0 ? await Service.find({ _id: { $in: c.serviceIds } }).select('name').lean() : [];
     const staff = c.staffId ? await User.findById(c.staffId).select('fullName').lean() : null;
-    return { ...c, serviceName: service?.name || '-', staffName: staff?.fullName || '-' };
+    return { ...c, serviceName: services.length > 0 ? services.map(s => s.name).join(', ') : '-', staffName: staff?.fullName || '-' };
   }));
 
   return (

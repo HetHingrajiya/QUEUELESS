@@ -96,6 +96,16 @@ export async function POST(request: Request) {
       employeeId: body.employeeId
     });
 
+    if (body.counterId) {
+      const { Counter } = await import('@/models/Counter');
+      // If another staff had this counter, clear their assignment
+      const previousStaff = await User.findOne({ counterId: body.counterId, _id: { $ne: newUser._id } });
+      if (previousStaff) {
+        await User.findByIdAndUpdate(previousStaff._id, { $set: { counterId: null } });
+      }
+      await Counter.findByIdAndUpdate(body.counterId, { $set: { staffId: newUser._id } });
+    }
+
     await createAuditLog({
       action: 'CREATE',
       module: 'Staff',

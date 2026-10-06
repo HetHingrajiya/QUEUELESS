@@ -17,7 +17,7 @@ const counterSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   number: z.coerce.number().min(1, 'Number must be greater than 0'),
   officeId: z.string().min(1, 'Office is required'),
-  serviceId: z.string().min(1, 'Service is required'),
+  serviceIds: z.array(z.string()).min(1, 'At least one service is required'),
   staffId: z.string().optional(),
 });
 
@@ -67,6 +67,7 @@ export default function AdminAddCounter() {
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<CounterFormValues>({
     resolver: zodResolver(counterSchema),
+    defaultValues: { serviceIds: [] }
   });
 
   const onSubmit = async (data: CounterFormValues) => {
@@ -138,7 +139,7 @@ export default function AdminAddCounter() {
                 onValueChange={(val: any) => { 
                   if (val) {
                     setValue('officeId', val as string); 
-                    setValue('serviceId', ''); // Reset service when office changes
+                    setValue('serviceIds', []); // Reset service when office changes
                     setValue('staffId', ''); // Reset staff when office changes
                     fetchServicesAndStaff(val as string);
                   }
@@ -160,24 +161,40 @@ export default function AdminAddCounter() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="service">Assign Service *</Label>
-              <Select 
-                value={watch('serviceId') || ""} 
-                onValueChange={(val: any) => { if (val) setValue('serviceId', val as string); }} 
-                disabled={!watch('officeId') || services.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={!watch('officeId') ? "Select an office first" : "Select service"}>
-                    {services.find(s => s._id === watch('serviceId'))?.name}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map(s => (
-                    <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.serviceId && <p className="text-sm text-red-600">{errors.serviceId.message}</p>}
+              <Label>Assign Services *</Label>
+              <div className="space-y-2 max-h-48 overflow-y-auto p-3 border border-slate-200 rounded-md bg-slate-50">
+                {offices.length > 0 && !watch('officeId') ? (
+                  <p className="text-sm text-slate-500 italic">Select an office first to see services</p>
+                ) : services.length === 0 ? (
+                  <p className="text-sm text-slate-500 italic">No services found for this office</p>
+                ) : (
+                  services.map(s => {
+                    const currentServiceIds = watch('serviceIds') || [];
+                    const isChecked = currentServiceIds.includes(s._id);
+                    return (
+                      <div key={s._id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`service-${s._id}`}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setValue('serviceIds', [...currentServiceIds, s._id]);
+                            } else {
+                              setValue('serviceIds', currentServiceIds.filter(id => id !== s._id));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={`service-${s._id}`} className="font-normal cursor-pointer">
+                          {s.name}
+                        </Label>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              {errors.serviceIds && <p className="text-sm text-red-600">{errors.serviceIds.message}</p>}
             </div>
 
             <div className="space-y-2">

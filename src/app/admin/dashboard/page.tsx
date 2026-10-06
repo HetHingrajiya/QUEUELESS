@@ -106,7 +106,7 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <p className="font-medium text-slate-800">{c.name}</p>
-                        <p className="text-xs text-slate-500">{c.serviceId?.name || 'All Services'}</p>
+                        <p className="text-xs text-slate-500">{c.serviceIds && c.serviceIds.length > 0 ? c.serviceIds.map((s: any) => s.name).join(', ') : 'All Services'}</p>
                       </div>
                     </div>
                     <div className="text-right">

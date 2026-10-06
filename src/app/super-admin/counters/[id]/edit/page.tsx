@@ -18,7 +18,7 @@ const counterSchema = z.object({
   name: z.string().optional(),
   organizationId: z.string().min(1, 'Organization is required'),
   officeId: z.string().min(1, 'Office is required'),
-  serviceId: z.string().optional(),
+  serviceIds: z.array(z.string()).optional(),
   status: z.string()
 });
 
@@ -37,6 +37,7 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<CounterFormValues>({
     resolver: zodResolver(counterSchema),
+    defaultValues: { serviceIds: [] }
   });
 
   const fetchOffices = async (orgId: string) => {
@@ -89,7 +90,7 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
             name: counter.name || '',
             organizationId: orgId,
             officeId: counter.officeId,
-            serviceId: counter.serviceId || 'null',
+            serviceIds: counter.serviceIds && counter.serviceIds.length > 0 ? counter.serviceIds : (counter.serviceId ? [counter.serviceId] : []),
             status: counter.status || 'OFFLINE'
           });
         } else {
@@ -111,9 +112,6 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
     
     try {
       const payload = { ...data };
-      if (payload.serviceId === 'null') {
-        payload.serviceId = undefined;
-      }
 
       const res = await fetch(`/api/counters/${unwrappedParams.id}`, {
         method: 'PUT',
@@ -224,21 +222,40 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="service">Assign Specific Service</Label>
-                <Select value={watch('serviceId') || ""} onValueChange={(val: any) => { if (val) setValue('serviceId', val as string); }} disabled={services.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Services (Default)">
-                      {services.find(svc => svc._id === watch('serviceId'))?.name || "All Services (Default)"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="null">All Services (Default)</SelectItem>
-                    {services.map(svc => (
-                      <SelectItem key={svc._id} value={svc._id}>{svc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2 col-span-2">
+                <Label>Assign Services</Label>
+                <div className="space-y-2 max-h-48 overflow-y-auto p-3 border border-slate-200 rounded-md bg-slate-50">
+                  {offices.length > 0 && !watch('officeId') ? (
+                    <p className="text-sm text-slate-500 italic">Select an office first to see services</p>
+                  ) : services.length === 0 ? (
+                    <p className="text-sm text-slate-500 italic">No services found for this office (All Services Default)</p>
+                  ) : (
+                    services.map(s => {
+                      const currentServiceIds = watch('serviceIds') || [];
+                      const isChecked = currentServiceIds.includes(s._id);
+                      return (
+                        <div key={s._id} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`service-${s._id}`}
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setValue('serviceIds', [...currentServiceIds, s._id]);
+                              } else {
+                                setValue('serviceIds', currentServiceIds.filter(id => id !== s._id));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`service-${s._id}`} className="font-normal cursor-pointer">
+                            {s.name}
+                          </Label>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>

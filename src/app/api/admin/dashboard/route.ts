@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     const noShow = todaysTokens.filter(t => t.status === 'NO_SHOW').length;
 
     // Get active counters
-    const counters = await Counter.find(officeQuery).populate('serviceId', 'name').lean();
+    const counters = await Counter.find(officeQuery).populate('serviceIds', 'name').lean();
     const activeCounters = counters.filter(c => c.status === 'ACTIVE' || c.status === 'SERVING').length;
 
     // Get staff
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
         counters: counters.map(c => ({
           name: c.name,
           isOnline: c.status !== 'OFFLINE',
-          serviceId: c.serviceId,
+          serviceIds: c.serviceIds,
         })),
         recentActivity: recentActivity.map((a: any) => ({
           tokenNumber: a.tokenId?.tokenNumber || 'Unknown',
