@@ -1,81 +1,130 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Bell, Check, Loader2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
+export default function StaffNotificationsPage() {
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [markLoading, setMarkLoading] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/notifications');
+      const json = await res.json();
+      if (json.success) {
+        setNotifications(json.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=staff/notifications');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
-        }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchNotifications();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
-  }
+  const markAllAsRead = async () => {
+    try {
+      setMarkLoading(true);
+      const res = await fetch('/api/notifications', { method: 'PATCH' });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setMarkLoading(false);
+    }
+  };
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'SUCCESS': return <CheckCircle2 className="text-emerald-500 h-6 w-6" />;
+      case 'WARNING': return <AlertTriangle className="text-amber-500 h-6 w-6" />;
+      case 'ERROR': return <XCircle className="text-red-500 h-6 w-6" />;
+      default: return <Info className="text-blue-500 h-6 w-6" />;
+    }
+  };
 
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">notifications Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">notifications</h1>
+    <div className="space-y-6 pb-12">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Bell className="h-6 w-6 text-slate-700" />
+          <h2 className="text-2xl font-bold text-slate-800">Notifications</h2>
+          {unreadCount > 0 && (
+            <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+              {unreadCount} new
+            </span>
+          )}
+        </div>
+        
+        {unreadCount > 0 && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={markAllAsRead} 
+            disabled={markLoading}
+          >
+            {markLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+            Mark all as read
+          </Button>
+        )}
+      </div>
+
       <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+        <CardHeader>
+          <CardTitle>Recent Alerts</CardTitle>
+          <CardDescription>Stay updated on queue and system activities</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-slate-100">
+            {loading ? (
+              <div className="p-12 text-center text-slate-500">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+                <p>Loading notifications...</p>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-12 text-center text-slate-500">
+                <Bell className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                <p>You have no notifications yet.</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div 
+                  key={notification._id} 
+                  className={`p-6 flex items-start space-x-4 transition-colors ${!notification.isRead ? 'bg-blue-50/50 hover:bg-blue-50' : 'hover:bg-slate-50'}`}
+                >
+                  <div className="shrink-0 mt-1">
+                    {getIcon(notification.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${!notification.isRead ? 'text-slate-900' : 'text-slate-700'}`}>
+                      {notification.title}
+                    </p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-2">
+                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                    </p>
+                  </div>
+                  {!notification.isRead && (
+                    <div className="shrink-0 h-2 w-2 rounded-full bg-blue-600 mt-2"></div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

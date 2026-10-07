@@ -1,86 +1,182 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Plus, Filter, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Loader2, Eye, Filter } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function StaffQueuePage() {
-  const router = useRouter();
-  
+  const [tokens, setTokens] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 1 });
+
+  const fetchQueueData = async (page = 1, search = '', status = '') => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/staff/tokens?page=${page}&search=${search}&status=${status}`);
+      const json = await res.json();
+      if (json.success) {
+        setTokens(json.data);
+        if (json.pagination) {
+          setPagination(json.pagination);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueueData(pagination.page, searchQuery, statusFilter);
+  }, [pagination.page]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchQueueData(1, searchQuery, statusFilter);
+  };
+
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchQueueData(1, searchQuery, e.target.value);
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <Button variant="ghost" size="sm" className="mr-2" onClick={() => router.back()}>
-            <ArrowLeft size={16} />
-          </Button>
-          <h2 className="text-2xl font-bold text-slate-800">Staff - Queue</h2>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <Filter size={16} className="mr-2" />
-            Filter
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
-            <Plus size={16} className="mr-2" />
-            Add New
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold text-slate-800">All Assigned Queue</h2>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Staff - Queue Data</CardTitle>
-          <CardDescription>Manage and view information related to staff - queue</CardDescription>
+          <CardTitle>Tokens List</CardTitle>
+          <CardDescription>View all historical and active tokens assigned to your services</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-6">
-            <div className="relative w-64">
+            <form onSubmit={handleSearch} className="relative w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Search..." 
+                placeholder="Search token..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
+            </form>
+            <div className="flex space-x-2">
+              <select 
+                value={statusFilter}
+                onChange={handleStatusChange}
+                className="border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Statuses</option>
+                <option value="WAITING">Waiting</option>
+                <option value="CALLED">Called</option>
+                <option value="SERVING">Serving</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="NO_SHOW">No Show</option>
+                <option value="SKIPPED">Skipped</option>
+              </select>
             </div>
           </div>
           
-          <div className="border border-slate-200 rounded-md overflow-hidden">
+          <div className="border border-slate-200 rounded-md overflow-hidden mb-4">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
                 <tr>
-                  <th className="px-4 py-3 font-medium">ID</th>
-                  <th className="px-4 py-3 font-medium">Name / Reference</th>
+                  <th className="px-4 py-3 font-medium">Token Number</th>
+                  <th className="px-4 py-3 font-medium">Citizen Name</th>
+                  <th className="px-4 py-3 font-medium">Service</th>
+                  <th className="px-4 py-3 font-medium">Priority</th>
                   <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="px-4 py-3 font-medium">Created At</th>
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="hover:bg-slate-50 transition-colors text-slate-600">
-                    <td className="px-4 py-3">#00{item}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">Sample Record {item}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${item % 2 === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {item % 2 === 0 ? 'Active' : 'Pending'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">2026-10-04</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600"><Eye size={16} /></Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600"><Edit size={16} /></Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600"><Trash2 size={16} /></Button>
-                      </div>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      Loading queue...
                     </td>
                   </tr>
-                ))}
+                ) : tokens.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                      No tokens found.
+                    </td>
+                  </tr>
+                ) : (
+                  tokens.map((item) => (
+                    <tr key={item._id} className="hover:bg-slate-50 transition-colors text-slate-600">
+                      <td className="px-4 py-3 font-bold text-slate-900">{item.tokenNumber}</td>
+                      <td className="px-4 py-3 font-medium text-slate-800">{item.citizenName}</td>
+                      <td className="px-4 py-3">{item.serviceName}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.priority === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>
+                          {item.priority}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                          item.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                          item.status === 'WAITING' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                          item.status === 'NO_SHOW' ? 'bg-red-100 text-red-700 border-red-200' :
+                          'bg-blue-100 text-blue-700 border-blue-200'
+                        }`}>
+                          {item.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link href={`/staff/queue/${item._id}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600">
+                            <Eye size={16} />
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+
+          {!loading && pagination.pages > 1 && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-500">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
+              </span>
+              <div className="flex space-x-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={pagination.page === 1}
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                >
+                  Previous
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={pagination.page === pagination.pages}
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

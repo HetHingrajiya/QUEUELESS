@@ -27,11 +27,14 @@ export async function GET(req: NextRequest) {
     const staffId = staffUser._id;
     const officeId = staffUser.officeId;
 
-    // Get the counter assigned to this staff member
-    const counter = await Counter.findOne({ staffId, officeId }).populate('serviceIds', 'name').lean();
+    // Get the counter assigned to this staff member (ignore officeId strict check, if they are assigned, they are assigned)
+    const counter = await Counter.findOne({ staffId }).populate('serviceIds', 'name').lean();
     if (!counter) {
       return NextResponse.json({ success: false, message: 'No counter assigned to this staff member' }, { status: 404 });
     }
+    
+    // Normalize serviceIds
+    const serviceIdsArray = counter.serviceIds || [];
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -47,8 +50,8 @@ export async function GET(req: NextRequest) {
 
     // Get waiting tokens (only for services this counter handles)
     const waitingTokens = await Token.find({
-      officeId,
-      serviceId: { $in: counter.serviceIds.map((s: any) => s._id) },
+      officeId: counter.officeId, // Use counter's officeId
+      serviceId: { $in: serviceIdsArray.map((s: any) => s._id) },
       status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     })
@@ -73,8 +76,8 @@ export async function GET(req: NextRequest) {
 
     // Count all waiting for counter services
     const totalWaitingCount = await Token.countDocuments({
-      officeId,
-      serviceId: { $in: counter.serviceIds.map((s: any) => s._id) },
+      officeId: counter.officeId,
+      serviceId: { $in: serviceIdsArray.map((s: any) => s._id) },
       status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
@@ -87,7 +90,7 @@ export async function GET(req: NextRequest) {
           name: counter.name,
           number: counter.number,
           status: counter.status,
-          serviceNames: counter.serviceIds.map((s: any) => s.name).join(', ')
+          serviceNames: serviceIdsArray.map((s: any) => s.name).join(', ')
         },
         currentToken: currentToken ? {
           _id: currentToken._id,
