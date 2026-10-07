@@ -2,17 +2,27 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
 import { Counter } from '@/models/Counter';
+import { getUserFromCookie } from '@/lib/auth';
 
-export async function GET(req: NextRequest, { params }: { params: { tokenId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ tokenId: string }> }) {
   try {
     await dbConnect();
+    const user = await getUserFromCookie();
     
-    const { tokenId } = params;
+    if (!user || user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { tokenId } = await params;
 
     const myToken = await Token.findById(tokenId).populate('serviceId', 'name').populate('officeId', 'name').lean();
     
     if (!myToken) {
       return NextResponse.json({ success: false, message: 'Token not found' }, { status: 404 });
+    }
+
+    if (myToken.citizenId?.toString() !== user.userId) {
+       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const officeId = myToken.officeId._id;
@@ -53,9 +63,18 @@ export async function GET(req: NextRequest, { params }: { params: { tokenId: str
     // Next 5 tokens (just for display of queue progress)
     const nextTokens = allWaiting.slice(0, 5).map(t => t.tokenNumber);
 
-    // Calculate estimated wait
-    // simplistic calculation: avg 5 min per person ahead
-    const estimatedWaitMin = peopleAhead * 5;
+    // Calculate estimated wait using ML
+    const { predictWaitTime } = await import('@/lib/ml');
+    const mlPrediction = await predictWaitTime(
+      serviceId.toString(), 
+      officeId.toString(), 
+      myToken.priority || 'NORMAL'
+    );
+    // Fallback if prediction is strictly a fallback
+    let estimatedWaitMin = mlPrediction.estimated_wait_time_mins;
+    if (mlPrediction.prediction_source === 'FALLBACK' && peopleAhead > 0) {
+       estimatedWaitMin = peopleAhead * 5;
+    }
 
     return NextResponse.json({
       success: true,
@@ -72,7 +91,8 @@ export async function GET(req: NextRequest, { params }: { params: { tokenId: str
         peopleAhead,
         estimatedWaitMin,
         nextTokens,
-        aiConfidence: 91 // static for now as per prompt request
+        aiConfidence: mlPrediction.confidence_score,
+        predictionSource: mlPrediction.prediction_source || 'ML_MODEL'
       }
     });
 

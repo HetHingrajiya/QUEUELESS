@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, PlayCircle, CheckCircle2, XCircle, AlertTriangle, MonitorPlay } from 'lucide-react';
 import dbConnect from '@/lib/db';
@@ -47,12 +48,12 @@ export default async function SuperAdminQueueOverview() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Queue Management Overview</h2>
-          <p className="text-sm text-slate-500">System-wide real-time queue statistics.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Queue Management Overview"
+        description="System-wide real-time queue statistics."
+      />
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cards.map((card, idx) => (

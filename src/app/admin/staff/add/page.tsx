@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -17,7 +16,7 @@ const staffSchema = z.object({
   fullName: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  officeId: z.string().min(1, 'Office is required'),
+  officeId: z.string().optional(),
 });
 
 type StaffFormValues = z.infer<typeof staffSchema>;
@@ -125,24 +124,7 @@ export default function AdminAddStaff() {
                 <Input id="password" type="password" {...register('password')} placeholder="••••••••" />
                 {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="office">Assign Office *</Label>
-                <Select value={watch('officeId') || ""} onValueChange={(val: any) => { if (val) setValue('officeId', val as string); }} disabled={offices.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select office">
-                      {offices.find(office => office._id === watch('officeId'))?.name}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {offices.map(office => (
-                      <SelectItem key={office._id} value={office._id}>{office.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.officeId && <p className="text-sm text-red-600">{errors.officeId.message}</p>}
               </div>
-            </div>
-
             <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
               <Link href="/admin/staff">
                 <Button variant="outline" type="button">Cancel</Button>

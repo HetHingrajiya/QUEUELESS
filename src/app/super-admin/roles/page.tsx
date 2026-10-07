@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 export const dynamic = 'force-dynamic';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,18 +53,13 @@ export default async function RolesPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Role Management</h2>
-          <p className="text-sm text-slate-500">Define access roles and view assignments.</p>
-        </div>
-        <Link href="/super-admin/roles/add">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus size={18} className="mr-2" />
-            Create Custom Role
-          </Button>
-        </Link>
-      </div>
+      
+      <PageHeader 
+        title="Role Management"
+        description="Define access roles and view assignments."
+        action={{ label: 'Action', href: '/super-admin/roles/add', icon: <Plus size={18} /> }}
+      />
+
 
       <Card>
         <CardContent className="p-0">

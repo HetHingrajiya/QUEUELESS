@@ -1,36 +1,34 @@
 "use client";
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, ArrowLeft, MapPin, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
+export default function LeaveTimePage({ params }: { params: Promise<{ tokenId: string }> }) {
+  const router = useRouter();
+  const unwrappedParams = use(params);
+  const tokenId = unwrappedParams.tokenId;
+
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchLeaveTime = async () => {
       try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=citizen/queue/[tokenId]/leave-time');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
+        const res = await fetch(`/api/citizen/queue/${tokenId}/leave-time`);
+        const json = await res.json();
+        if (json.success) {
           setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
         }
       } catch (err) {
-        setError("Failed to load module data. Please try again later.");
+        console.error("Failed to load leave time", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    fetchLeaveTime();
+  }, [tokenId]);
 
   if (loading) {
     return (
@@ -40,42 +38,32 @@ export default function GenericGeneratedPage() {
     );
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">leave time Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">leave time</h1>
-      <Card>
-        <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+    <div className="space-y-6 pb-24 max-w-md mx-auto pt-4 px-4">
+      <div className="flex items-center mb-6">
+        <Button variant="ghost" size="sm" className="mr-2 -ml-2 text-slate-500" onClick={() => router.back()}>
+          <ArrowLeft size={20} />
+        </Button>
+        <h2 className="text-xl font-bold text-slate-800 flex items-center">
+          <MapPin className="text-indigo-600 mr-2" size={24} />
+          When Should I Leave?
+        </h2>
+      </div>
+
+      <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 shadow-sm overflow-hidden">
+        <div className="bg-indigo-600 h-1.5 w-full"></div>
+        <CardContent className="p-12 text-center">
+          {!data?.travelTimeAvailable ? (
+            <div className="flex flex-col items-center">
+              <AlertCircle size={48} className="text-slate-400 mb-4" />
+              <h3 className="text-lg font-bold text-slate-700 mb-2">Travel time unavailable</h3>
+              <p className="text-sm text-slate-500">We cannot calculate your travel time right now because location services or routing providers are currently unavailable.</p>
+            </div>
+          ) : (
+            <div>
+              {/* Future Implementation for real travel time */}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

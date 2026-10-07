@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,20 @@ import { ArrowLeft, Loader2, MapPin, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+interface OfficeOption {
+  _id: string;
+  name: string;
+}
+
+interface ServiceOption {
+  _id: string;
+  name: string;
+}
+
 export default function CitizenTokenGeneration() {
   const router = useRouter();
-  const [offices, setOffices] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
+  const [offices, setOffices] = useState<ServiceOption[]>([]);
+  const [services, setServices] = useState<ServiceOption[]>([]);
   
   const [selectedOffice, setSelectedOffice] = useState<string>('');
   const [selectedService, setSelectedService] = useState<string>('');
@@ -103,12 +112,12 @@ export default function CitizenTokenGeneration() {
               <label className="text-sm font-medium text-slate-700 flex items-center">
                 <MapPin size={16} className="mr-2 text-blue-500" /> Government Office
               </label>
-              <Select value={selectedOffice} onValueChange={handleOfficeChange}>
+              <Select value={selectedOffice} onValueChange={(val) => { if (val) handleOfficeChange(val); }}>
                 <SelectTrigger className="h-12 border-slate-200">
                   <SelectValue placeholder="Select an office" />
                 </SelectTrigger>
                 <SelectContent>
-                  {offices.map((office: any) => (
+                  {offices.map((office: OfficeOption) => (
                     <SelectItem key={office._id} value={office._id}>
                       {office.name}
                     </SelectItem>
@@ -122,12 +131,12 @@ export default function CitizenTokenGeneration() {
               <label className="text-sm font-medium text-slate-700 flex items-center">
                 <Briefcase size={16} className="mr-2 text-blue-500" /> Required Service
               </label>
-              <Select value={selectedService} onValueChange={setSelectedService} disabled={!selectedOffice}>
+              <Select value={selectedService} onValueChange={(val) => setSelectedService(val || '')} disabled={!selectedOffice}>
                 <SelectTrigger className="h-12 border-slate-200">
                   <SelectValue placeholder="Select a service" />
                 </SelectTrigger>
                 <SelectContent>
-                  {services.map((service: any) => (
+                  {services.map((service: ServiceOption) => (
                     <SelectItem key={service._id} value={service._id}>
                       {service.name}
                     </SelectItem>

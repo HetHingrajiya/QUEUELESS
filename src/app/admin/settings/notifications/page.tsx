@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -118,12 +118,12 @@ export default function NotificationsSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl pb-12">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Notification Settings</h2>
-          <p className="text-sm text-slate-500">Configure how citizens receive alerts and updates.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Notification Settings"
+        description="Configure how citizens receive alerts and updates."
+      />
+
 
       <Card>
         <CardHeader>

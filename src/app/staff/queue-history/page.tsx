@@ -1,5 +1,6 @@
 "use client";
-
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { PageHeader } from '@/components/common/PageHeader';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,9 +63,11 @@ export default function StaffQueueHistoryPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Queue History</h2>
-      </div>
+      
+      <PageHeader 
+        title="Queue History"
+      />
+
 
       <Card>
         <CardHeader>
@@ -130,13 +133,7 @@ export default function StaffQueueHistoryPage() {
                       <td className="px-4 py-3 font-medium text-slate-800">{item.citizenName}</td>
                       <td className="px-4 py-3">{item.serviceName}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                          item.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                          item.status === 'NO_SHOW' ? 'bg-red-100 text-red-700 border-red-200' :
-                          'bg-slate-100 text-slate-700 border-slate-200'
-                        }`}>
-                          {item.status.replace('_', ' ')}
-                        </span>
+                        <StatusBadge status={item.status} />
                       </td>
                       <td className="px-4 py-3">
                         {item.endTime ? new Date(item.endTime).toLocaleString() : new Date(item.createdAt).toLocaleString()}

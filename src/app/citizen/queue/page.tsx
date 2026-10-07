@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Car, Clock, Navigation, CheckCircle2, Ticket } from 'lucide-react';

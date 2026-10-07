@@ -1,20 +1,84 @@
 "use client";
-
 import Link from 'next/link';
-import { Search, MapPin, Clock, ArrowRight, User } from 'lucide-react';
+import { Search, MapPin, Clock, ArrowRight, User, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
+import { PushNotificationManager } from '@/components/common/PushNotificationManager';
+import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
+import { Button } from '@/components/ui/button';
 
 export default function CitizenHome() {
-  const [offices, setOffices] = useState([]);
-  const [activeToken, setActiveToken] = useState(null);
+  const [offices, setOffices] = useState<any[]>([]);
+  const [activeToken, setActiveToken] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser.');
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        });
+        setLocationError(null);
+      },
+      (error) => {
+        setLocationError('Enable location to see distance from nearby offices.');
+      }
+    );
+  };
 
   useEffect(() => {
-    // In a real implementation, this would fetch from /api/citizen/home
-    // setOffices(data.offices);
-    // setActiveToken(data.activeToken);
+    const fetchHomeData = async () => {
+      try {
+        const res = await fetch('/api/citizen/home');
+        const json = await res.json();
+        if (json.success) {
+          setOffices(json.data.offices || []);
+          setActiveToken(json.data.activeToken);
+        }
+      } catch (error) {
+        console.error('Failed to load home data', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHomeData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[50vh]">
+        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      </div>
+    );
+  }
+
+  // Process offices with distance
+  const processedOffices = offices.map(office => {
+    let dist: number | null = null;
+    if (userLocation && office.latitude != null && office.longitude != null) {
+      dist = calculateDistanceKm(userLocation.lat, userLocation.lon, office.latitude, office.longitude);
+    }
+    return { ...office, distanceVal: dist, distanceStr: formatDistance(dist) };
+  });
+
+  if (userLocation) {
+    processedOffices.sort((a, b) => {
+      if (a.distanceVal === null && b.distanceVal === null) return 0;
+      if (a.distanceVal === null) return 1;
+      if (b.distanceVal === null) return -1;
+      return a.distanceVal - b.distanceVal;
+    });
+  }
 
   return (
     <div className="space-y-8 pb-12">
@@ -76,16 +140,22 @@ export default function CitizenHome() {
 
       {/* Nearby Offices Section */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-800">Nearby Offices</h2>
-          <Link href="/citizen/offices" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-            View All
-          </Link>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-4 sm:space-y-0">
+          <div className="flex items-center space-x-2">
+            <h2 className="text-xl font-bold text-slate-800">Nearby Offices</h2>
+            {!userLocation && <Button variant="outline" size="sm" onClick={requestLocation} className="text-xs py-1 h-7">Enable Location</Button>}
+          </div>
+          <div className="flex items-center space-x-4">
+            <PushNotificationManager />
+            <Link href="/citizen/offices" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+              View All
+            </Link>
+          </div>
         </div>
         
         {offices.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            {offices.map((office: any, i) => (
+            {processedOffices.map((office: any, i: number) => (
               <Link key={i} href={`/citizen/offices/${office._id}`} className="block transition-transform hover:-translate-y-1">
                 <Card className="hover:shadow-md transition-shadow">
                   <CardContent className="p-5">
@@ -93,7 +163,7 @@ export default function CitizenHome() {
                       <div>
                         <h3 className="font-bold text-lg text-slate-900">{office.name}</h3>
                         <p className="text-slate-500 text-sm flex items-center mt-1">
-                          <MapPin size={14} className="mr-1" /> {office.distance}
+                          <MapPin size={14} className="mr-1" /> {office.distanceStr}
                         </p>
                       </div>
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${office.statusColor}`}>

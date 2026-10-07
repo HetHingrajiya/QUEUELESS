@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,12 +83,12 @@ export default function QueueSettingsPage() {
 
   return (
     <div className="space-y-6 p-6 max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Global Queue Algorithms</h2>
-          <p className="text-sm text-slate-500">Configure core queue AI settings and limitations.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Global Queue Algorithms"
+        description="Configure core queue AI settings and limitations."
+      />
+
 
       <Card>
         <CardHeader>

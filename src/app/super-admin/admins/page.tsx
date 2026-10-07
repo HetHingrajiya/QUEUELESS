@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,18 +19,13 @@ export default async function AdminsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Administrators</h2>
-          <p className="text-sm text-slate-500">Manage organization-level administrators.</p>
-        </div>
-        <Link href="/super-admin/admins/add">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus size={18} className="mr-2" />
-            Add Admin
-          </Button>
-        </Link>
-      </div>
+      
+      <PageHeader 
+        title="Administrators"
+        description="Manage organization-level administrators."
+        action={{ label: 'Add Admin', href: '/super-admin/admins/add', icon: <Plus size={18} /> }}
+      />
+
 
       <Card>
         <CardContent className="p-0">

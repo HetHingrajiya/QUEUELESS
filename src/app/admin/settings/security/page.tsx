@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, ShieldCheck, Clock, Key } from 'lucide-react';
@@ -38,12 +38,12 @@ export default function SecuritySettingsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl pb-12">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Security Policies</h2>
-          <p className="text-sm text-slate-500">View the platform-wide security rules enforced by the Super Admin.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Security Policies"
+        description="View the platform-wide security rules enforced by the Super Admin."
+      />
+
 
       <Card>
         <CardHeader>

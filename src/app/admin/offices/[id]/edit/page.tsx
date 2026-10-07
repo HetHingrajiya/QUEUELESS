@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 const officeSchema = z.object({
@@ -20,20 +19,26 @@ const officeSchema = z.object({
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
   pincode: z.string().min(1, 'Pincode is required'),
+  latitude: z.string().optional().refine(val => !val || (!isNaN(Number(val)) && Number(val) >= -90 && Number(val) <= 90), "Latitude must be between -90 and 90"),
+  longitude: z.string().optional().refine(val => !val || (!isNaN(Number(val)) && Number(val) >= -180 && Number(val) <= 180), "Longitude must be between -180 and 180"),
+  staffIds: z.array(z.string()).optional(),
 });
 
 type OfficeFormValues = z.infer<typeof officeSchema>;
+type FormInputs = z.input<typeof officeSchema>;
 
 export default function AdminEditOffice({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [orgId, setOrgId] = useState<string>('');
+  const [availableStaff, setAvailableStaff] = useState<any[]>([]);
   const unwrappedParams = use(params);
   const id = unwrappedParams.id;
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<OfficeFormValues>({
     resolver: zodResolver(officeSchema),
+    defaultValues: { staffIds: [] }
   });
 
   useEffect(() => {
@@ -42,6 +47,14 @@ export default function AdminEditOffice({ params }: { params: Promise<{ id: stri
       .then(data => {
         if (data.success && data.data.user.organizationId) {
           setOrgId(data.data.user.organizationId);
+          fetch('/api/staff?organizationId=' + data.data.user.organizationId)
+            .then(res => res.json())
+            .then(staffData => {
+              if (staffData.success) {
+                setAvailableStaff(staffData.data);
+              }
+            })
+            .catch(console.error);
         }
       })
       .catch(console.error);
@@ -50,13 +63,17 @@ export default function AdminEditOffice({ params }: { params: Promise<{ id: stri
       .then(res => res.json())
       .then(data => {
         if (data.success) {
+          const office = data.data;
           reset({
-            name: data.data.name,
-            code: data.data.code,
-            address: data.data.address,
-            city: data.data.city,
-            state: data.data.state,
-            pincode: data.data.pincode,
+            name: office.name,
+            code: office.code,
+            address: office.address,
+            city: office.city,
+            state: office.state,
+            pincode: office.pincode,
+            staffIds: office.staffIds || [],
+            latitude: office.latitude != null ? String(office.latitude) : '',
+            longitude: office.longitude != null ? String(office.longitude) : '',
           });
         }
       })
@@ -147,7 +164,7 @@ export default function AdminEditOffice({ params }: { params: Promise<{ id: stri
               </div>
               <div className="space-y-2">
                 <Label htmlFor="state">State *</Label>
-                <Select value={watch('state') || ""} onValueChange={(val: string) => setValue('state', val)}>
+                <Select value={watch('state') || ""} onValueChange={(val: any) => setValue('state', val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select state">
                       {watch('state')}
@@ -166,6 +183,50 @@ export default function AdminEditOffice({ params }: { params: Promise<{ id: stri
                 <Input id="pincode" {...register('pincode')} placeholder="e.g. 360001" />
                 {errors.pincode && <p className="text-sm text-red-600">{errors.pincode.message}</p>}
               </div>
+            </div>
+
+
+            
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Office Location</Label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                          setValue('latitude', String(position.coords.latitude));
+                          setValue('longitude', String(position.coords.longitude));
+                        },
+                        (error) => {
+                          alert('Location permission denied or unavailable. Please enter coordinates manually.');
+                        }
+                      );
+                    } else {
+                      alert('Geolocation is not supported by this browser.');
+                    }
+                  }}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Use Current Location
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="latitude">Latitude</Label>
+                  <Input id="latitude" {...register('latitude')} placeholder="e.g. 22.3039" />
+                  {errors.latitude && <p className="text-sm text-red-600">{errors.latitude?.message as string}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="longitude">Longitude</Label>
+                  <Input id="longitude" {...register('longitude')} placeholder="e.g. 70.8022" />
+                  {errors.longitude && <p className="text-sm text-red-600">{errors.longitude?.message as string}</p>}
+                </div>
+              </div>
+              <p className="text-xs text-slate-500">Used to calculate distance from citizens to this office.</p>
             </div>
 
             <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">

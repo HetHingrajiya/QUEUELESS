@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -7,12 +6,14 @@ import { Home, Search, Ticket, Bell, User, LogOut, Menu, X } from 'lucide-react'
 
 const navItems = [
   { name: 'Home', href: '/citizen/home', icon: <Home size={24} /> },
-  { name: 'Queue', href: '/citizen/queue', icon: <Ticket size={24} /> },
-  { name: 'History', href: '/citizen/history', icon: <Bell size={24} /> },
+  { name: 'Search', href: '/citizen/offices', icon: <Search size={24} /> },
+  { name: 'History', href: '/citizen/token-history', icon: <Ticket size={24} /> },
+  { name: 'Profile', href: '/citizen/profile', icon: <User size={24} /> },
 ];
 
 export default function CitizenLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const currentPath = pathname || '';
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -33,7 +34,7 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isActive = currentPath === item.href || currentPath.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.name}
@@ -97,7 +98,7 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-50">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = currentPath === item.href || currentPath.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.name}

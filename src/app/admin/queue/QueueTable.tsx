@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Search, Filter, Activity } from 'lucide-react';
@@ -40,12 +41,12 @@ export default async function QueueTable({
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">{title}</h2>
-          <p className="text-sm text-slate-500">{description}</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title={title}
+        description={description}
+      />
+
 
       <Card>
         <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">

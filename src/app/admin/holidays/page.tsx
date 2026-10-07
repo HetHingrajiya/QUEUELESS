@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,17 +54,13 @@ export default function HolidaysPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Holidays</h2>
-          <p className="text-sm text-slate-500">Manage organization-wide holidays where all offices will be closed.</p>
-        </div>
-        <Link href="/admin/holidays/add">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus size={16} className="mr-2" /> Add Holiday
-          </Button>
-        </Link>
-      </div>
+      
+      <PageHeader 
+        title="Holidays"
+        description="Manage organization-wide holidays where all offices will be closed."
+        action={{ label: 'Add Holiday', href: '/admin/holidays/add', icon: <Plus size={18} /> }}
+      />
+
 
       <Card>
         <CardContent className="p-0">

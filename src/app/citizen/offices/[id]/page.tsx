@@ -1,19 +1,130 @@
+"use client";
 import Link from 'next/link';
-import { MapPin, Clock, Users, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { use, useEffect, useState } from 'react';
+import { MapPin, Clock, Users, ArrowLeft, ArrowRight, CheckCircle2, Loader2, Info, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-
-import { use } from 'react';
+import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
+import { Button } from '@/components/ui/button';
 
 export default function OfficeDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [data, setData] = useState<{ office: any, services: any[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
+
+  useEffect(() => {
+    const fetchOfficeDetails = async () => {
+      try {
+        const res = await fetch(`/api/citizen/offices/${id}`);
+        const json = await res.json();
+        
+        if (json.success) {
+          setData(json.data);
+        } else {
+          setError(json.message || 'Failed to load office details');
+        }
+      } catch (err) {
+        setError('An error occurred. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchOfficeDetails();
+
+    // Try to get location silently if already granted
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
+          });
+        },
+        () => {} // Silent fail
+      );
+    }
+
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="py-12 text-center">
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl inline-block mb-4">
+          <Info size={32} className="mx-auto mb-2" />
+          <p>{error || 'Office not found'}</p>
+        </div>
+        <div>
+          <Link href="/citizen/offices" className="text-blue-600 font-medium hover:underline">
+            ← Back to Offices
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  
+  const { office, services } = data;
+  let distStr = null;
+  if (userLocation && office.latitude != null && office.longitude != null) {
+    distStr = formatDistance(calculateDistanceKm(userLocation.lat, userLocation.lon, office.latitude, office.longitude));
+  }
+
+  const totalWaiting = services.reduce((acc, curr) => acc + curr.waitingCount, 0);
+
+  const toggleFavorite = () => {
+    try {
+      const stored = localStorage.getItem('queueless_favorites');
+      let favs = stored ? JSON.parse(stored) : [];
+      const isFav = favs.some((f: any) => f._id === office._id);
+      
+      if (isFav) {
+        favs = favs.filter((f: any) => f._id !== office._id);
+      } else {
+        favs.push(office);
+      }
+      localStorage.setItem('queueless_favorites', JSON.stringify(favs));
+      // Optionally could add state to toggle UI immediately, but reloading works for MVP or we just let it be stateless visually
+      window.location.reload(); 
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Determine if it's currently a favorite
+  let isFavorite = false;
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('queueless_favorites');
+    if (stored) {
+      isFavorite = JSON.parse(stored).some((f: any) => f._id === office._id);
+    }
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex items-center mb-6">
-        <Link href="/citizen/home" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-          <ArrowLeft size={24} />
-        </Link>
-        <h1 className="text-2xl font-bold text-slate-900">RTO Rajkot</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Link href="/citizen/offices" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+            <ArrowLeft size={24} />
+          </Link>
+          <h1 className="text-2xl font-bold text-slate-900">{office.name}</h1>
+        </div>
+        <button 
+          onClick={toggleFavorite}
+          className={`p-2 rounded-full transition-colors ${isFavorite ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}
+        >
+          <Heart size={24} fill={isFavorite ? 'currentColor' : 'none'} />
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -22,12 +133,12 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
             <CheckCircle2 size={18} className="mr-2" />
             <span className="font-semibold text-sm">Open Now</span>
           </div>
-          <p className="text-xs text-slate-600">Closes at 6:00 PM</p>
+          <p className="text-xs text-slate-600">Standard operating hours</p>
         </div>
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
           <div className="flex items-center text-blue-600 mb-2">
             <Users size={18} className="mr-2" />
-            <span className="font-semibold text-sm">47 Waiting</span>
+            <span className="font-semibold text-sm">{totalWaiting} Waiting</span>
           </div>
           <p className="text-xs text-slate-600">Total current queue</p>
         </div>
@@ -36,49 +147,66 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
       <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div className="flex items-start text-sm text-slate-600 space-x-3 mb-4">
           <MapPin size={18} className="text-slate-400 mt-0.5 flex-shrink-0" />
-          <p>Marketing Yard Rd, Navagam, Rajkot, Gujarat 360003</p>
+          <p>{office.address}</p>
         </div>
+        
+        {office.latitude != null && office.longitude != null && (
+          <div className="flex items-center text-sm text-slate-600 space-x-3 border-t border-slate-100 pt-4">
+            <MapPin size={18} className="text-blue-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1 flex items-center justify-between">
+              <span className="font-medium">{distStr || 'Distance unavailable'}</span>
+              <a 
+                href={`https://www.google.com/maps?q=${office.latitude},${office.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 font-medium hover:underline text-xs bg-blue-50 px-3 py-1.5 rounded-lg"
+              >
+                Get Directions
+              </a>
+            </div>
+          </div>
+        )}
         <div className="flex items-start text-sm text-slate-600 space-x-3 border-t border-slate-100 pt-4">
           <Clock size={18} className="text-slate-400 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="mb-1"><span className="font-medium">Active Counters:</span> 6</p>
-            <p><span className="font-medium">Avg Service Time:</span> 3.2 minutes</p>
+            <p className="mb-1"><span className="font-medium">Active Counters:</span> {office.countersCount}</p>
           </div>
         </div>
       </div>
 
       <div>
         <h2 className="text-xl font-bold text-slate-800 mb-4">Select Service</h2>
-        <div className="space-y-3">
-          {[
-            { id: '1', name: 'Driving Licence', wait: '18', time: '32 min' },
-            { id: '2', name: 'Vehicle Registration', wait: '11', time: '20 min' },
-            { id: '3', name: 'Permit', wait: '7', time: '15 min' },
-            { id: '4', name: 'Address Change', wait: '4', time: '10 min' },
-            { id: '5', name: 'Duplicate RC', wait: '2', time: '5 min' },
-          ].map((service) => (
-            <Link key={service.id} href={`/citizen/services/${service.id}`} className="block transition-transform hover:scale-[1.01]">
-              <Card className="hover:border-blue-300 transition-colors">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-slate-900 mb-2">{service.name}</h3>
-                    <div className="flex items-center text-xs text-slate-500 space-x-4">
-                      <span className="flex items-center">
-                        <Users size={14} className="mr-1" /> {service.wait} waiting
-                      </span>
-                      <span className="flex items-center">
-                        <Clock size={14} className="mr-1" /> ~{service.time}
-                      </span>
+        
+        {services.length > 0 ? (
+          <div className="space-y-3">
+            {services.map((service) => (
+              <Link key={service._id} href={`/citizen/services/${service._id}`} className="block transition-transform hover:scale-[1.01]">
+                <Card className="hover:border-blue-300 transition-colors">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-slate-900 mb-2">{service.name}</h3>
+                      <div className="flex items-center text-xs text-slate-500 space-x-4">
+                        <span className="flex items-center">
+                          <Users size={14} className="mr-1" /> {service.waitingCount} waiting
+                        </span>
+                        <span className="flex items-center">
+                          <Clock size={14} className="mr-1" /> ~{service.estimatedTime} min
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <ArrowRight size={18} />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <ArrowRight size={18} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <p className="text-slate-500">No services available at this office currently.</p>
+          </div>
+        )}
       </div>
     </div>
   );

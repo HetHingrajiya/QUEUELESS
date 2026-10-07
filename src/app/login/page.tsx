@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -152,38 +151,6 @@ export default function LoginPage() {
             </div>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-slate-500">Demo Accounts</span>
-              </div>
-            </div>
-            
-            <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                <p className="font-semibold text-slate-700 mb-1">Super Admin</p>
-                <p className="text-slate-500 break-all">superadmin@queueless.demo</p>
-              </div>
-              <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                <p className="font-semibold text-slate-700 mb-1">Admin</p>
-                <p className="text-slate-500 break-all">admin@queueless.demo</p>
-              </div>
-              <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                <p className="font-semibold text-slate-700 mb-1">Staff</p>
-                <p className="text-slate-500 break-all">staff1@queueless.demo</p>
-              </div>
-              <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                <p className="font-semibold text-slate-700 mb-1">Citizen</p>
-                <p className="text-slate-500 break-all">citizen1@queueless.demo</p>
-              </div>
-            </div>
-            <p className="mt-4 text-center text-xs text-slate-500">
-              Password for all accounts: <span className="font-mono bg-slate-100 px-1 rounded">password123</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>

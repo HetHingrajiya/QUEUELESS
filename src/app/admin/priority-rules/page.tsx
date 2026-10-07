@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Plus, AlertCircle, ShieldAlert, Edit, Trash2 } from 'lucide-react';

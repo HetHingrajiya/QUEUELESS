@@ -64,6 +64,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Office code already exists' }, { status: 400 });
     }
 
+    let { latitude, longitude } = body;
+
+    if (latitude !== undefined && latitude !== null) {
+      latitude = Number(latitude);
+      if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+        return NextResponse.json({ success: false, message: 'Invalid latitude' }, { status: 400 });
+      }
+    } else {
+      latitude = null;
+    }
+
+    if (longitude !== undefined && longitude !== null) {
+      longitude = Number(longitude);
+      if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+        return NextResponse.json({ success: false, message: 'Invalid longitude' }, { status: 400 });
+      }
+    } else {
+      longitude = null;
+    }
+
     // Explicit field allowance
     const newOffice = await Office.create({
       name: body.name,
@@ -75,6 +95,8 @@ export async function POST(request: Request) {
       pincode: body.pincode,
       email: body.email,
       phone: body.phone,
+      latitude,
+      longitude,
       status: body.status || 'ACTIVE'
     });
 

@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'No tokens in queue' }, { status: 404 });
       }
 
-      await Counter.findByIdAndUpdate(counter._id, { status: CounterStatus.SERVING });
+      await Counter.findByIdAndUpdate(counter._id, { status: CounterStatus.ACTIVE });
 
     } else if (tokenId) {
       token = await Token.findOne({
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
         tokenId: token._id,
         officeId: token.officeId,
         serviceId: token.serviceId,
-        eventType: `token:${action.toLowerCase()}`,
+        eventType: ((action === 'CALL_NEXT' || action === 'RECALL') ? 'CALLED' : action === 'START_SERVICE' ? 'SERVING' : action === 'COMPLETE' ? 'COMPLETED' : action === 'SKIP' ? 'SKIPPED' : action === 'NO_SHOW' ? 'NO_SHOW' : String(action)),
         counterId: counter._id,
         staffId: staffUser._id,
       });
@@ -152,6 +152,29 @@ export async function POST(req: NextRequest) {
         status: 'SUCCESS',
         request: req,
       });
+
+      // Send Push Notification to Citizen
+      if (token.citizenId) {
+        const { sendWebPush } = await import('@/lib/push');
+        const citizenIdStr = token.citizenId.toString();
+        const url = `/citizen/queue/${token._id}`;
+        
+        try {
+          if (action === 'CALL_NEXT' || action === 'RECALL') {
+            await sendWebPush(citizenIdStr, 'It is your turn!', `Token ${token.tokenNumber} is now being served at Counter ${counter.name}`, url);
+          } else if (action === 'START_SERVICE') {
+            await sendWebPush(citizenIdStr, 'Service Started', `Your service for Token ${token.tokenNumber} has started.`, url);
+          } else if (action === 'COMPLETE') {
+            await sendWebPush(citizenIdStr, 'Service Completed', `Your service for Token ${token.tokenNumber} is complete. Thank you!`, '/citizen/token-history');
+          } else if (action === 'SKIP') {
+            await sendWebPush(citizenIdStr, 'Token Skipped', `Token ${token.tokenNumber} was skipped by the staff.`, url);
+          } else if (action === 'NO_SHOW') {
+            await sendWebPush(citizenIdStr, 'No-Show Marked', `Token ${token.tokenNumber} was marked as No-Show.`, url);
+          }
+        } catch (pushErr) {
+          console.error('Failed to send push for action', action, pushErr);
+        }
+      }
     }
 
     return NextResponse.json({ success: true, data: token });

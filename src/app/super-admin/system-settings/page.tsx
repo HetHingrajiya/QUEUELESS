@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,12 +73,12 @@ export default function SystemSettingsPage() {
 
   return (
     <div className="space-y-6 p-6 max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">System Settings</h2>
-          <p className="text-sm text-slate-500">Configure global QueueLess parameters.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="System Settings"
+        description="Configure global QueueLess parameters."
+      />
+
 
       <Card>
         <CardHeader>

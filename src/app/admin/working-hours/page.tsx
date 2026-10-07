@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,12 +94,12 @@ export default function WorkingHoursPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Working Hours</h2>
-          <p className="text-sm text-slate-500">Configure operating hours for each day of the week per office.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Working Hours"
+        description="Configure operating hours for each day of the week per office."
+      />
+
 
       <div className="space-y-6">
         {offices.map((office, oIdx) => (

@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -284,7 +283,7 @@ export default function AdminEditCounter({ params }: { params: Promise<{ id: str
             
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={watch('status') || "OFFLINE"} onValueChange={(val: string) => setValue('status', val)}>
+              <Select value={watch('status') || "OFFLINE"} onValueChange={(val: any) => setValue('status', val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status">
                     {watch('status')}

@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -41,12 +41,12 @@ export default function StaffPerformanceAnalyticsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Staff Performance</h2>
-          <p className="text-sm text-slate-500">Measure staff efficiency based on tokens served and average processing time.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Staff Performance"
+        description="Measure staff efficiency based on tokens served and average processing time."
+      />
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>

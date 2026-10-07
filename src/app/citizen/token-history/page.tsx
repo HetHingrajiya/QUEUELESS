@@ -1,88 +1,123 @@
 "use client";
-
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Plus, Filter, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, Calendar, Clock, Building2, Ticket, CheckCircle2, XCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-export default function CitizenTokenhistoryPage() {
-  const router = useRouter();
-  
+export default function CitizenTokenHistoryPage() {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch('/api/citizen/token-history');
+        const json = await res.json();
+        if (json.success) {
+          setHistory(json.data);
+        }
+      } catch (error) {
+        console.error('Failed to load token history', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchHistory();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[50vh]">
+        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      </div>
+    );
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch(status) {
+      case 'COMPLETED': return <CheckCircle2 size={16} className="text-emerald-500 mr-1.5" />;
+      case 'NO_SHOW':
+      case 'CANCELLED': return <XCircle size={16} className="text-red-500 mr-1.5" />;
+      default: return <Clock size={16} className="text-blue-500 mr-1.5" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'COMPLETED': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'NO_SHOW':
+      case 'CANCELLED': return 'bg-red-50 text-red-700 border-red-200';
+      case 'WAITING':
+      case 'CHECKED_IN': return 'bg-blue-50 text-blue-700 border-blue-200 animate-pulse';
+      case 'CALLED':
+      case 'SERVING': return 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <Button variant="ghost" size="sm" className="mr-2" onClick={() => router.back()}>
-            <ArrowLeft size={16} />
-          </Button>
-          <h2 className="text-2xl font-bold text-slate-800">Citizen - Token history</h2>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
-            <Filter size={16} className="mr-2" />
-            Filter
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
-            <Plus size={16} className="mr-2" />
-            Add New
-          </Button>
-        </div>
+    <div className="space-y-6 pb-12 max-w-2xl mx-auto">
+      <div className="flex flex-col space-y-2">
+        <h2 className="text-2xl font-extrabold text-slate-800">Past Visits</h2>
+        <p className="text-slate-500">History of your queue tokens and appointments.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Citizen - Token history Data</CardTitle>
-          <CardDescription>Manage and view information related to citizen - token history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-            </div>
-          </div>
-          
-          <div className="border border-slate-200 rounded-md overflow-hidden">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">ID</th>
-                  <th className="px-4 py-3 font-medium">Name / Reference</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <tr key={item} className="hover:bg-slate-50 transition-colors text-slate-600">
-                    <td className="px-4 py-3">#00{item}</td>
-                    <td className="px-4 py-3 font-medium text-slate-800">Sample Record {item}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${item % 2 === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {item % 2 === 0 ? 'Active' : 'Pending'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">2026-10-04</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600"><Eye size={16} /></Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-600"><Edit size={16} /></Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600"><Trash2 size={16} /></Button>
+      {history.length > 0 ? (
+        <div className="space-y-4">
+          {history.map((token) => (
+            <Link key={token._id} href={`/citizen/queue/${token._id}`} className="block transition-transform hover:-translate-y-1">
+              <Card className="hover:shadow-md transition-shadow border-slate-200">
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mr-4 shrink-0">
+                        <Ticket className="text-slate-400" size={24} />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div>
+                        <h3 className="font-bold text-lg text-slate-900">{token.serviceName}</h3>
+                        <p className="text-sm text-slate-500 flex items-center mt-0.5">
+                          <Building2 size={14} className="mr-1.5 shrink-0" />
+                          <span className="line-clamp-1">{token.officeName}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <p className="text-xl font-black text-slate-800 tracking-tight">{token.tokenNumber}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center text-xs text-slate-500">
+                      <Calendar size={14} className="mr-1.5" />
+                      {new Date(token.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border flex items-center ${getStatusColor(token.status)}`}>
+                      {getStatusIcon(token.status)}
+                      {token.status}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
+          <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+            <Ticket className="h-8 w-8 text-slate-400" />
           </div>
-        </CardContent>
-      </Card>
+          <h3 className="text-lg font-bold text-slate-800 mb-2">No token history</h3>
+          <p className="text-slate-500 max-w-sm mx-auto mb-6">
+            You haven't generated any queue tokens yet.
+          </p>
+          <Link href="/citizen/offices">
+            <span className="inline-flex items-center justify-center h-10 px-6 font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700">
+              Book a Token
+            </span>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

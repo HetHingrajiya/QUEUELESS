@@ -1,81 +1,109 @@
 "use client";
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Star, MessageSquare, Send, CheckCircle2, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 
-export default function GenericGeneratedPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function CitizenFeedbackPage() {
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Using generic endpoint mapping
-        const response = await fetch('/api/generic?route=citizen/feedback');
-        const json = await response.json();
-        
-        if (json.success && json.data) {
-          setData(json.data);
-        } else {
-          // If no specific data found, we intentionally leave it null to show Empty State
-          setData(null);
-        }
-      } catch (err) {
-        setError("Failed to load module data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    // Simulate API call for MVP
+    setTimeout(() => {
+      setSubmitting(false);
+      setSubmitted(true);
+    }, 1000);
+  };
 
-  if (loading) {
+  if (submitted) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50 mt-6">
-        <CardContent className="p-6 text-center text-red-600">
-          <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || (Array.isArray(data) && data.length === 0)) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">feedback Module</h1>
-        <Card className="border-slate-200 bg-white">
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-bold text-slate-700 mb-2">No Data Available</h3>
-            <p className="text-slate-500 mb-4">There are currently no records available in this module.</p>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center py-20 text-center px-4 max-w-lg mx-auto">
+        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+          <CheckCircle2 size={40} className="text-emerald-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">Thank You!</h2>
+        <p className="text-slate-500 mb-8">Your feedback has been submitted successfully. We appreciate your input to help us improve.</p>
+        <Button onClick={() => window.location.href = '/citizen/home'} className="w-full">
+          Return to Dashboard
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6 capitalize">feedback</h1>
-      <Card>
+    <div className="space-y-6 pb-12 max-w-lg mx-auto">
+      <div className="flex flex-col space-y-2 mb-6">
+        <h2 className="text-2xl font-extrabold text-slate-800">Feedback</h2>
+        <p className="text-slate-500">We'd love to hear about your experience.</p>
+      </div>
+
+      <Card className="border-slate-200 overflow-hidden shadow-sm">
+        <div className="bg-blue-600 h-2"></div>
         <CardContent className="p-6">
-          <pre className="text-sm text-slate-600 overflow-auto bg-slate-50 p-4 rounded-lg">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="text-center space-y-3">
+              <Label className="text-base font-bold text-slate-700">How was your overall experience?</Label>
+              <div className="flex justify-center space-x-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="focus:outline-none transition-transform hover:scale-110 p-1"
+                  >
+                    <Star 
+                      size={40} 
+                      className={`${(hoverRating || rating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} transition-colors`} 
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400">
+                {rating === 1 && "Terrible"}
+                {rating === 2 && "Poor"}
+                {rating === 3 && "Average"}
+                {rating === 4 && "Good"}
+                {rating === 5 && "Excellent!"}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="message" className="font-semibold text-slate-700 flex items-center">
+                <MessageSquare size={16} className="mr-2 text-slate-400" />
+                Tell us more (Optional)
+              </Label>
+              <textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="What did you like or dislike?"
+                className="w-full h-32 p-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+              ></textarea>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-lg font-bold bg-blue-600 hover:bg-blue-700"
+              disabled={submitting || rating === 0}
+            >
+              {submitting ? (
+                <><Loader2 className="animate-spin mr-2" /> Submitting...</>
+              ) : (
+                <><Send size={18} className="mr-2" /> Submit Feedback</>
+              )}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

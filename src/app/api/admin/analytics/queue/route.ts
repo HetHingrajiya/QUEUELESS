@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { Token } from '@/models/Token';
 import { getUserFromCookie } from '@/lib/auth';
 import { Service } from '@/models/Service';
+import { Office } from '@/models/Office';
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,6 +15,10 @@ export async function GET(req: NextRequest) {
 
     const orgId = user.organizationId;
     
+    // Fetch offices for this organization
+    const orgOffices = await Office.find({ organizationId: orgId }).select('_id').lean();
+    const orgOfficeIds = orgOffices.map(o => o._id);
+    
     // Today's date range
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -22,20 +27,20 @@ export async function GET(req: NextRequest) {
 
     // 1. Total Tokens Today
     const totalTokensToday = await Token.countDocuments({
-      organizationId: orgId,
+      officeId: { $in: orgOfficeIds },
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
 
     // 2. Tokens Served Today
     const tokensServedToday = await Token.countDocuments({
-      organizationId: orgId,
+      officeId: { $in: orgOfficeIds },
       status: 'COMPLETED',
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
 
     // 3. Avg Wait Time Today (COMPLETED tokens)
     const servedTokens = await Token.find({
-      organizationId: orgId,
+      officeId: { $in: orgOfficeIds },
       status: 'COMPLETED',
       createdAt: { $gte: startOfDay, $lte: endOfDay },
       servedAt: { $exists: true }
@@ -51,7 +56,7 @@ export async function GET(req: NextRequest) {
     
     // 4. Hourly Data for Today
     const todayTokens = await Token.find({
-      organizationId: orgId,
+      officeId: { $in: orgOfficeIds },
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
 
@@ -99,7 +104,7 @@ export async function GET(req: NextRequest) {
     });
 
     // 5. Service Distribution (All time or today, let's do all time for more data)
-    const allTokens = await Token.find({ organizationId: orgId }).populate('serviceId', 'name');
+    const allTokens = await Token.find({ officeId: { $in: orgOfficeIds } }).populate('serviceId', 'name');
     const serviceMap = new Map<string, number>();
     
     allTokens.forEach(t => {

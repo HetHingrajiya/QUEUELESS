@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,7 +125,7 @@ export default function AuditLogsPage() {
             <div className="mt-4 pt-4 border-t flex flex-wrap gap-4">
               <div className="w-48">
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">Action</label>
-                <Select value={action} onValueChange={(v) => { setAction(v); setPage(1); }}>
+                <Select value={action} onValueChange={(v: any) => { setAction(v); setPage(1); }}>
                   <SelectTrigger className="bg-white"><SelectValue placeholder="All Actions" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Actions</SelectItem>
@@ -140,7 +139,7 @@ export default function AuditLogsPage() {
               </div>
               <div className="w-48">
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">Module</label>
-                <Select value={moduleFilter} onValueChange={(v) => { setModuleFilter(v); setPage(1); }}>
+                <Select value={moduleFilter} onValueChange={(v: any) => { setModuleFilter(v); setPage(1); }}>
                   <SelectTrigger className="bg-white"><SelectValue placeholder="All Modules" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Modules</SelectItem>
@@ -153,7 +152,7 @@ export default function AuditLogsPage() {
               </div>
               <div className="w-48">
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">Role</label>
-                <Select value={role} onValueChange={(v) => { setRole(v); setPage(1); }}>
+                <Select value={role} onValueChange={(v: any) => { setRole(v); setPage(1); }}>
                   <SelectTrigger className="bg-white"><SelectValue placeholder="All Roles" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Roles</SelectItem>
@@ -166,7 +165,7 @@ export default function AuditLogsPage() {
               </div>
               <div className="w-48">
                 <label className="text-xs font-semibold text-slate-500 mb-1 block">Status</label>
-                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+                <Select value={statusFilter} onValueChange={(v: any) => { setStatusFilter(v); setPage(1); }}>
                   <SelectTrigger className="bg-white"><SelectValue placeholder="All Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Status</SelectItem>

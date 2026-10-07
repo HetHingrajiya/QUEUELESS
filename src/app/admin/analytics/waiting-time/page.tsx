@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -41,12 +41,12 @@ export default function WaitingTimeAnalyticsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Waiting Time Analytics</h2>
-          <p className="text-sm text-slate-500">Analyze citizen waiting periods across different days.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Waiting Time Analytics"
+        description="Analyze citizen waiting periods across different days."
+      />
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>

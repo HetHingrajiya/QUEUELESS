@@ -24,15 +24,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
        // by org since citizens don't have an org.
     }
     
-    const office = await Office.findOne(query);
+        const office = await Office.findOne(query).lean();
     
     if (!office) {
       return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
     }
 
+    const { User } = await import('@/models/User');
+    const assignedStaff = await User.find({ officeId: office._id, role: 'STAFF' }, '_id').lean();
+    const staffIds = assignedStaff.map((s: any) => s._id.toString());
+
     return NextResponse.json({
       success: true,
-      data: office
+      data: { ...office, staffIds }
     });
 
   } catch (error: any) {
@@ -83,12 +87,35 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.email !== undefined) updateData.email = body.email;
     if (body.phone !== undefined) updateData.phone = body.phone;
     if (body.status !== undefined) updateData.status = body.status;
-
+    
+    if (body.latitude !== undefined) {
+      if (body.latitude === null || body.latitude === '') {
+        updateData.latitude = null;
+      } else {
+        const lat = Number(body.latitude);
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+          return NextResponse.json({ success: false, message: 'Invalid latitude' }, { status: 400 });
+        }
+        updateData.latitude = lat;
+      }
+    }
+    
+    if (body.longitude !== undefined) {
+      if (body.longitude === null || body.longitude === '') {
+        updateData.longitude = null;
+      } else {
+        const lon = Number(body.longitude);
+        if (!Number.isFinite(lon) || lon < -180 || lon > 180) {
+          return NextResponse.json({ success: false, message: 'Invalid longitude' }, { status: 400 });
+        }
+        updateData.longitude = lon;
+      }
+    }
     if (currentUser.role === 'SUPER_ADMIN' && body.organizationId) {
        updateData.organizationId = body.organizationId;
     }
 
-    const updatedOffice = await Office.findOneAndUpdate(
+        const updatedOffice = await Office.findOneAndUpdate(
       query,
       { $set: updateData },
       { new: true, runValidators: true }
@@ -96,6 +123,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!updatedOffice) {
       return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
+    }
+
+    if (body.staffIds && Array.isArray(body.staffIds)) {
+      const { User } = await import('@/models/User');
+      // Unassign those no longer selected
+      await User.updateMany(
+        { officeId: updatedOffice._id, role: 'STAFF', _id: { $nin: body.staffIds } },
+        { $unset: { officeId: 1, counterId: 1 } }
+      );
+      // Assign new ones
+      if (body.staffIds.length > 0) {
+        await User.updateMany(
+          { _id: { $in: body.staffIds }, role: 'STAFF' },
+          { $set: { officeId: updatedOffice._id } }
+        );
+      }
     }
 
     await createAuditLog({

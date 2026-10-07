@@ -1,12 +1,24 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export type QueueEventType = 
+  | 'CREATED' 
+  | 'CALLED' 
+  | 'SERVING'
+  | 'COMPLETED' 
+  | 'NO_SHOW' 
+  | 'SKIPPED' 
+  | 'TRANSFERRED'
+  | 'RECALLED'
+  | string;
+
 export interface IQueueEvent extends Document {
   tokenId: mongoose.Types.ObjectId;
   officeId: mongoose.Types.ObjectId;
-  eventType: 'CREATED' | 'CALLED' | 'COMPLETED' | 'NO_SHOW' | 'SKIPPED' | 'TRANSFERRED';
+  serviceId?: mongoose.Types.ObjectId;
+  eventType: QueueEventType;
   counterId?: mongoose.Types.ObjectId;
   staffId?: mongoose.Types.ObjectId;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
 }
 
@@ -14,9 +26,9 @@ const QueueEventSchema: Schema = new Schema(
   {
     tokenId: { type: Schema.Types.ObjectId, ref: 'Token', required: true, index: true },
     officeId: { type: Schema.Types.ObjectId, ref: 'Office', required: true, index: true },
+    serviceId: { type: Schema.Types.ObjectId, ref: 'Service' },
     eventType: { 
       type: String, 
-      enum: ['CREATED', 'CALLED', 'COMPLETED', 'NO_SHOW', 'SKIPPED', 'TRANSFERRED'], 
       required: true 
     },
     counterId: { type: Schema.Types.ObjectId, ref: 'Counter' },
@@ -24,7 +36,7 @@ const QueueEventSchema: Schema = new Schema(
     metadata: { type: Schema.Types.Mixed },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false }, // Only need when it happened
+    timestamps: { createdAt: true, updatedAt: false },
   }
 );
 

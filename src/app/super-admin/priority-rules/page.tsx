@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 export const dynamic = 'force-dynamic';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,18 +21,13 @@ export default async function PriorityRulesPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Priority Rules</h2>
-          <p className="text-sm text-slate-500">Configure AI dynamic priority multipliers.</p>
-        </div>
-        <Link href="/super-admin/priority-rules/add">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus size={18} className="mr-2" />
-            Add Rule
-          </Button>
-        </Link>
-      </div>
+      
+      <PageHeader 
+        title="Priority Rules"
+        description="Configure AI dynamic priority multipliers."
+        action={{ label: 'Add Rule', href: '/super-admin/priority-rules/add', icon: <Plus size={18} /> }}
+      />
+
 
       <Card>
         <CardContent className="p-0">

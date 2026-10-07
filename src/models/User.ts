@@ -21,6 +21,7 @@ export interface IUser extends Document {
   employeeId?: string; // For staff
   status: 'ACTIVE' | 'INACTIVE';
   lastLogin?: Date;
+  pushSubscription?: any;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +46,7 @@ const UserSchema: Schema = new Schema(
     employeeId: { type: String },
     status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
     lastLogin: { type: Date },
+    pushSubscription: { type: Schema.Types.Mixed }, // Stores Web Push Subscription object
   },
   {
     timestamps: true,

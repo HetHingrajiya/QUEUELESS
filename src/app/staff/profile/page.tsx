@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, User, Building, Monitor, Shield, Mail, Calendar } from 'lucide-react';
@@ -74,9 +74,11 @@ export default function StaffProfilePage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">My Profile</h2>
-      </div>
+      
+      <PageHeader 
+        title="My Profile"
+      />
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-6">

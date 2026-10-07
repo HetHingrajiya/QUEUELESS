@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -130,51 +129,52 @@ export default function StaffDashboard() {
     );
   }
 
-  if (!data?.counter) {
-    return (
-      <div className="flex flex-col justify-center items-center h-[50vh] text-center space-y-4">
-        <h2 className="text-2xl font-bold text-slate-800">No Counter Assigned</h2>
-        <p className="text-slate-500 max-w-md">You have not been assigned to a counter yet. Please contact your administrator.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">{data.counter.name}</h2>
-          <p className="text-slate-500">{data.counter.serviceNames || 'All Services'}</p>
-        </div>
-        <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-          <div className="flex flex-col items-end mr-2 pr-2 border-r border-slate-100">
-            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Status</span>
-            <span className={`flex items-center text-sm font-bold ${data.counter.status === 'ACTIVE' ? 'text-emerald-600' : data.counter.status === 'PAUSED' ? 'text-amber-600' : 'text-slate-500'}`}>
-              <span className={`flex h-2 w-2 rounded-full mr-2 ${data.counter.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : data.counter.status === 'PAUSED' ? 'bg-amber-500' : 'bg-slate-400'}`}></span>
-              {data.counter.status}
-            </span>
+      {data.counter ? (
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">{data.counter.name}</h2>
+            <p className="text-slate-500">{data.counter.serviceNames || 'All Services'}</p>
           </div>
-          <div className="flex space-x-1">
-            {data.counter.status !== 'ACTIVE' && (
-              <Button size="sm" variant="outline" className="h-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handleCounterStatus('ACTIVE')} disabled={actionLoading}>
-                Go Active
-              </Button>
-            )}
-            {data.counter.status === 'ACTIVE' && (
-              <Button size="sm" variant="outline" className="h-8 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={() => handleCounterStatus('PAUSED')} disabled={actionLoading}>
-                Pause
-              </Button>
-            )}
-            {data.counter.status !== 'OFFLINE' && (
-              <Button size="sm" variant="outline" className="h-8 text-slate-600 hover:bg-slate-50" onClick={() => handleCounterStatus('OFFLINE')} disabled={actionLoading}>
-                Offline
-              </Button>
-            )}
+          <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+            <div className="flex flex-col items-end mr-2 pr-2 border-r border-slate-100">
+              <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Status</span>
+              <span className={`flex items-center text-sm font-bold ${data.counter.status === 'ACTIVE' ? 'text-emerald-600' : data.counter.status === 'PAUSED' ? 'text-amber-600' : 'text-slate-500'}`}>
+                <span className={`flex h-2 w-2 rounded-full mr-2 ${data.counter.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : data.counter.status === 'PAUSED' ? 'bg-amber-500' : 'bg-slate-400'}`}></span>
+                {data.counter.status}
+              </span>
+            </div>
+            <div className="flex space-x-1">
+              {data.counter.status !== 'ACTIVE' && (
+                <Button size="sm" variant="outline" className="h-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handleCounterStatus('ACTIVE')} disabled={actionLoading}>
+                  Go Active
+                </Button>
+              )}
+              {data.counter.status === 'ACTIVE' && (
+                <Button size="sm" variant="outline" className="h-8 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={() => handleCounterStatus('PAUSED')} disabled={actionLoading}>
+                  Pause
+                </Button>
+              )}
+              {data.counter.status !== 'OFFLINE' && (
+                <Button size="sm" variant="outline" className="h-8 text-slate-600 hover:bg-slate-50" onClick={() => handleCounterStatus('OFFLINE')} disabled={actionLoading}>
+                  Offline
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Office Dashboard</h2>
+            <p className="text-slate-500">Viewing all office tokens</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {data.counter ? (
         <Card className="md:col-span-2 border-blue-200 shadow-blue-50">
           <CardHeader className="bg-blue-50 border-b border-blue-100 pb-4">
             <CardTitle className="text-blue-800 flex items-center justify-between">
@@ -233,6 +233,14 @@ export default function StaffDashboard() {
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <Card className="md:col-span-2 border-slate-200 shadow-sm flex items-center justify-center py-12">
+           <div className="text-center text-slate-500">
+             <h3 className="text-xl font-bold text-slate-700 mb-2">No Counter Assigned</h3>
+             <p className="max-w-xs mx-auto">You can monitor the office queue, but you cannot serve tokens.</p>
+           </div>
+        </Card>
+      )}
 
         <div className="space-y-6">
           <Card>

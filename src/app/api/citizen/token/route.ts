@@ -96,8 +96,20 @@ export async function POST(req: NextRequest) {
       tokenId: newToken._id,
       officeId,
       serviceId,
-      eventType: 'token:created'
+      eventType: 'CREATED'
     });
+
+    try {
+      const { sendWebPush } = await import('@/lib/push');
+      await sendWebPush(
+        citizen._id.toString(),
+        'Token Generated Successfully',
+        `Your token ${newToken.tokenNumber} for ${service.name} at ${office.name} is confirmed.`,
+        `/citizen/queue/${newToken._id}`
+      );
+    } catch (pushErr) {
+      console.error('Failed to send push on token generation', pushErr);
+    }
 
     return NextResponse.json({
       success: true,

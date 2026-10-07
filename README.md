@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QueueLess Government Office
 
-## Getting Started
+QueueLess is an advanced, AI-powered digital queue management system designed for government offices and public service organizations. It eliminates physical waiting lines, improves service efficiency, and provides citizens with real-time updates and ML-driven wait time predictions.
 
-First, run the development server:
+## 🚀 Features
 
+- **For Citizens:**
+  - Find nearby government offices and services.
+  - Generate digital tokens remotely (No standing in lines).
+  - Real-time live queue tracking via WebSockets.
+  - **AI-Powered Wait Time Predictions** based on real-time data and historical trends.
+  - Feedback and history tracking.
+
+- **For Staff & Counters:**
+  - Dedicated Counter Dashboard.
+  - One-click token calling (triggers realtime updates to citizens).
+  - Mark services as Completed or No-Show.
+
+- **For Admins & Super Admins:**
+  - Analytics and Reporting (Peak hours, service times, performance).
+  - Manage Offices, Services, and Staff accounts.
+  - **AI Analytics Portal** for monitoring ML model confidence, trends, and accuracy.
+
+## 🏗 Architecture
+
+- **Frontend:** Next.js 16 (App Router), React, TailwindCSS, Lucide Icons, Recharts
+- **Backend:** Node.js (Next.js API Routes) + Socket.io for Real-time events
+- **Database:** MongoDB (Mongoose)
+- **AI Microservice:** Python 3, FastAPI, Scikit-Learn (Random Forest Regressor)
+
+## 🛠 Getting Started
+
+### 1. Web Application (Next.js)
+
+1. Clone the repository and install dependencies:
+   ```bash
+   npm install
+   ```
+2. Setup your `.env.local` with your `MONGODB_URI` and `JWT_SECRET`.
+3. Seed the database with initial Super Admin and test data:
+   ```bash
+   npm run seed
+   ```
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+### 2. AI Engine (Python FastAPI)
+
+1. Navigate to the `ai-engine` directory.
+2. Run the automated setup script for Windows:
+   ```bash
+   setup.bat
+   ```
+   *(Or manually create a venv, install `requirements.txt`, and run `uvicorn main:app --reload`)*
+3. The AI engine will start on `http://localhost:8000`.
+
+## 🧪 Testing
+
+To run the End-to-End integration test simulating a full Citizen -> AI -> Staff workflow:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx tsx scripts/test_e2e.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📜 Status
+- **Phase 1-3:** Citizen, Staff, Admin Portals (Stable)
+- **Phase 4-6:** AI Infrastructure & ML Prediction Models (Stable)
+- **Phase 7-8:** E2E Testing & Production Build (Passed)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Production Ready ✅**

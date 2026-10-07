@@ -2,32 +2,15 @@ import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { User } from '@/models/User';
+import { getUserFromCookie } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
     await dbConnect();
-    const authHeader = request.headers.get('Authorization');
-    let token = authHeader?.split(' ')[1];
+    const payload = await getUserFromCookie();
 
-    if (!token) {
-      // Because we're in app router, let's just use request headers or cookies safely
-      const cookieHeader = request.headers.get('cookie');
-      if (cookieHeader) {
-        const cookies = Object.fromEntries(cookieHeader.split('; ').map(v => {
-          const parts = v.split('=');
-          return [parts[0], decodeURIComponent(parts.slice(1).join('='))];
-        }));
-        token = cookies['token'];
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 });
-    }
-
-    const payload = verifyToken(token);
     if (!payload) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 });
     }
 
     const user = await User.findById(payload.userId);
@@ -42,6 +25,7 @@ export async function GET(request: Request) {
           id: user._id,
           fullName: user.fullName,
           email: user.email,
+          mobile: user.mobile,
           role: user.role,
           organizationId: user.organizationId,
           officeId: user.officeId,
@@ -50,7 +34,50 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    console.error('Me error:', error);
+    console.error('Me GET error:', error);
     return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    await dbConnect();
+    const payload = await getUserFromCookie();
+
+    if (!payload) {
+      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { fullName, email, mobile } = body;
+
+    const user = await User.findById(payload.userId);
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+    }
+
+    if (fullName) user.fullName = fullName;
+    if (email) user.email = email;
+    if (mobile) user.mobile = mobile;
+
+    await user.save();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        user: {
+          id: user._id,
+          fullName: user.fullName,
+          email: user.email,
+          mobile: user.mobile,
+          role: user.role,
+        }
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Me PUT error:', error);
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

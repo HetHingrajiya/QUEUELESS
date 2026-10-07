@@ -1,5 +1,6 @@
 "use client";
-
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { PageHeader } from '@/components/common/PageHeader';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ export interface QueueToken {
   tokenNumber: string;
   citizenName: string;
   serviceName: string;
-  priority: boolean;
+  priority: string;
   status: string;
   createdAt: string;
 }
@@ -59,9 +60,11 @@ export default function StaffQueuePage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">All Assigned Queue</h2>
-      </div>
+      
+      <PageHeader 
+        title="All Assigned Queue"
+      />
+
 
       <Card>
         <CardHeader>
@@ -136,14 +139,7 @@ export default function StaffQueuePage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                          item.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                          item.status === 'WAITING' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                          item.status === 'NO_SHOW' ? 'bg-red-100 text-red-700 border-red-200' :
-                          'bg-blue-100 text-blue-700 border-blue-200'
-                        }`}>
-                          {item.status.replace('_', ' ')}
-                        </span>
+                        <StatusBadge status={item.status} />
                       </td>
                       <td className="px-4 py-3">
                         {new Date(item.createdAt).toLocaleString()}

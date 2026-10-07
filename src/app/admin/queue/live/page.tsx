@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Search, Filter, Activity } from 'lucide-react';
@@ -36,12 +37,12 @@ export default async function AdminLiveQueuePage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Live Queue Monitor</h2>
-          <p className="text-sm text-slate-500">Real-time view of active tokens across all offices.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="Live Queue Monitor"
+        description="Real-time view of active tokens across all offices."
+      />
+
 
       <Card>
         <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">

@@ -16,6 +16,10 @@ export async function GET(req: NextRequest) {
 
     const orgId = user.organizationId;
     
+    // Fetch offices for this organization
+    const orgOffices = await Office.find({ organizationId: orgId }).select('_id').lean();
+    const orgOfficeIds = orgOffices.map(o => o._id);
+    
     // Time ranges
     const now = new Date();
     const sevenDaysAgo = new Date();
@@ -27,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch all tokens for the last 7 days for most stats
     const recentTokens = await Token.find({
-      organizationId: orgId,
+      officeId: { $in: orgOfficeIds },
       createdAt: { $gte: sevenDaysAgo }
     }).populate('serviceId', 'name').populate('officeId', 'name');
 

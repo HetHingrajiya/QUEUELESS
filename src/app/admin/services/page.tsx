@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -26,18 +27,13 @@ export default async function AdminServicesPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Services</h2>
-          <p className="text-sm text-slate-500">Manage services offered by your offices.</p>
-        </div>
-        <Link href="/admin/services/add">
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus size={18} className="mr-2" />
-            Add Service
-          </Button>
-        </Link>
-      </div>
+      
+      <PageHeader 
+        title="Services"
+        description="Manage services offered by your offices."
+        action={{ label: 'Add Service', href: '/admin/services/add', icon: <Plus size={18} /> }}
+      />
+
 
       <Card>
         <CardContent className="p-0">

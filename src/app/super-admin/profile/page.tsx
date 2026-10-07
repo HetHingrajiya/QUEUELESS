@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { User, Mail, Shield, Building, Building2, MapPin } from 'lucide-react';
 import dbConnect from '@/lib/db';
@@ -24,12 +25,12 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-6 p-6 max-w-3xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">My Profile</h2>
-          <p className="text-sm text-slate-500">Manage your account information and preferences.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="My Profile"
+        description="Manage your account information and preferences."
+      />
+
 
       <Card>
         <CardHeader>

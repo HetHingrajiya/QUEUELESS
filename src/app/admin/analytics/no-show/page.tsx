@@ -1,5 +1,5 @@
 "use client";
-
+import { PageHeader } from '@/components/common/PageHeader';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -40,12 +40,12 @@ export default function NoShowAnalyticsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">No Show Analytics</h2>
-          <p className="text-sm text-slate-500">Monitor missed appointments and queue drop-offs over the last 7 days.</p>
-        </div>
-      </div>
+      
+      <PageHeader 
+        title="No Show Analytics"
+        description="Monitor missed appointments and queue drop-offs over the last 7 days."
+      />
+
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

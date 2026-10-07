@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, use } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,7 @@ export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId
       socket.off('token:called');
       socket.off('token:completed');
     };
-  }, [params.tokenId]);
+  }, [tokenId]);
 
   if (loading) {
     return (
@@ -162,12 +161,12 @@ export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 z-10 flex space-x-3 max-w-md mx-auto">
-        <Link href={`/citizen/queue/${params.tokenId}/prediction`} className="flex-1">
+        <Link href={`/citizen/queue/${tokenId}/prediction`} className="flex-1">
           <Button variant="outline" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">
             View AI Insight
           </Button>
         </Link>
-        <Link href={`/citizen/queue/${params.tokenId}/leave-time`} className="flex-1">
+        <Link href={`/citizen/queue/${tokenId}/leave-time`} className="flex-1">
           <Button variant="outline" className="w-full text-slate-600">
             Leave Time
           </Button>

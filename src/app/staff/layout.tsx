@@ -12,18 +12,9 @@ import { ReactNode } from 'react';
 
 const sidebarItems = [
   { name: 'Dashboard', href: '/staff/dashboard', icon: <LayoutDashboard size={20} /> },
-  { 
-    name: 'Queue', 
-    href: '/staff/queue', 
-    icon: <ListTodo size={20} />,
-    subItems: [
-      { name: 'Queue', href: '/staff/queue' },
-      { name: 'Live Queue', href: '/staff/queue/live' }
-    ]
-  },
+  { name: 'Queue', href: '/staff/queue', icon: <ListTodo size={20} /> },
   { name: 'Current Token', href: '/staff/current-token', icon: <PlayCircle size={20} /> },
   { name: 'My Counter', href: '/staff/counter', icon: <Monitor size={20} /> },
-  { name: 'Queue History', href: '/staff/queue-history', icon: <History size={20} /> },
   { name: 'Token History', href: '/staff/token-history', icon: <History size={20} /> },
   { name: 'Notifications', href: '/staff/notifications', icon: <Bell size={20} /> },
   { name: 'Profile', href: '/staff/profile', icon: <UserCircle size={20} /> },
