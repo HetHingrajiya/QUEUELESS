@@ -4,10 +4,31 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, Loader2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+
+export interface NotificationRecord {
+  _id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+const timeAgo = (dateStr: string) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} days ago`;
+};
 
 export default function StaffNotificationsPage() {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [markLoading, setMarkLoading] = useState(false);
 
@@ -115,7 +136,7 @@ export default function StaffNotificationsPage() {
                       {notification.message}
                     </p>
                     <p className="text-xs text-slate-400 mt-2">
-                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                      {timeAgo(notification.createdAt)}
                     </p>
                   </div>
                   {!notification.isRead && (

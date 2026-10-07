@@ -21,7 +21,7 @@ export function StaffActions({ staffId }: { staffId: string }) {
       
       const result = await res.json();
       if (result.success) {
-        router.refresh();
+        window.location.reload();
       } else {
         alert(result.message || 'Failed to delete staff');
       }

@@ -6,8 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Search, Loader2, Eye } from 'lucide-react';
 import Link from 'next/link';
 
+export interface TokenHistoryRecord {
+  _id: string;
+  tokenNumber: string;
+  citizenName: string;
+  serviceName: string;
+  status: string;
+  createdAt: string;
+  callTime?: string;
+  endTime?: string;
+  processingTime?: number;
+}
+
 export default function StaffTokenHistoryPage() {
-  const [tokens, setTokens] = useState<any[]>([]);
+  const [tokens, setTokens] = useState<TokenHistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');

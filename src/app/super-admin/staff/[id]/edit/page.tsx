@@ -96,8 +96,7 @@ export default function EditStaff({ params }: { params: Promise<{ id: string }> 
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/staff');
-        router.refresh();
+        window.location.href = '/super-admin/staff';
       } else {
         setError(result.message || 'Failed to update staff');
       }

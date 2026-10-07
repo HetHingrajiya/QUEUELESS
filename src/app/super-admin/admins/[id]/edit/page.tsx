@@ -86,8 +86,7 @@ export default function EditAdmin({ params }: { params: Promise<{ id: string }> 
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/admins');
-        router.refresh();
+        window.location.href = '/super-admin/admins';
       } else {
         setError(result.message || 'Failed to update admin');
       }

@@ -122,8 +122,7 @@ export default function EditCounter({ params }: { params: Promise<{ id: string }
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/counters');
-        router.refresh();
+        window.location.href = '/super-admin/counters';
       } else {
         setError(result.message || 'Failed to update counter');
       }

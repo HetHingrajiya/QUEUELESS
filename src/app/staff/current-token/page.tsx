@@ -8,8 +8,31 @@ import { getSocket } from '@/lib/socketClient';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
+export interface DashboardData {
+  counter?: {
+    _id: string;
+    name: string;
+    number: string;
+    status: string;
+    serviceNames: string;
+  };
+  currentToken?: {
+    _id: string;
+    tokenNumber: string;
+    citizenName: string;
+    serviceName: string;
+    status: string;
+  };
+  nextTokens?: Array<{
+    _id: string;
+    tokenNumber: string;
+    citizenName: string;
+    serviceName: string;
+  }>;
+}
+
 export default function StaffCurrentTokenPage() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 

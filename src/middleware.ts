@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose';
 // Define the paths that require super admin role
 const SUPER_ADMIN_PATHS = ['/super-admin'];
 const ADMIN_PATHS = ['/admin'];
-const SUPER_ADMIN_API_PATHS = ['/api/super-admin', '/api/admins', '/api/organization-types', '/api/system-settings', '/api/notifications'];
+const SUPER_ADMIN_API_PATHS = ['/api/super-admin', '/api/admins', '/api/organization-types', '/api/system-settings'];
 const ADMIN_API_PATHS = ['/api/organizations', '/api/offices', '/api/services', '/api/counters', '/api/staff', '/api/roles', '/api/permissions', '/api/priority-rules', '/api/audit-logs', '/api/reports', '/api/admin'];
 
 // This should match the secret in lib/auth.ts
@@ -24,7 +24,15 @@ export async function middleware(request: NextRequest) {
   const isSuperAdminPath = SUPER_ADMIN_PATHS.some(path => pathname.startsWith(path));
   const isAdminPath = ADMIN_PATHS.some(path => pathname.startsWith(path));
   const isSuperAdminApi = SUPER_ADMIN_API_PATHS.some(path => pathname.startsWith(path));
-  const isAdminApi = ADMIN_API_PATHS.some(path => pathname.startsWith(path));
+  
+  // Exclude staff portal APIs from admin APIs matching
+  const isStaffPortalApi = pathname.startsWith('/api/staff/dashboard') || 
+                           pathname.startsWith('/api/staff/tokens') || 
+                           pathname.startsWith('/api/staff/token') || 
+                           pathname.startsWith('/api/staff/queue') || 
+                           pathname.startsWith('/api/staff/counter');
+                           
+  const isAdminApi = !isStaffPortalApi && ADMIN_API_PATHS.some(path => pathname.startsWith(path));
 
   const isProtectedApi = isSuperAdminApi || isAdminApi;
   const isProtectedPath = isSuperAdminPath || isAdminPath;

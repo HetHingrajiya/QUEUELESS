@@ -6,8 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Search, Loader2, Eye, Filter } from 'lucide-react';
 import Link from 'next/link';
 
+export interface QueueToken {
+  _id: string;
+  tokenNumber: string;
+  citizenName: string;
+  serviceName: string;
+  priority: boolean;
+  status: string;
+  createdAt: string;
+}
+
 export default function StaffQueuePage() {
-  const [tokens, setTokens] = useState<any[]>([]);
+  const [tokens, setTokens] = useState<QueueToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');

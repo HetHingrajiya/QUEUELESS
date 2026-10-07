@@ -71,8 +71,7 @@ export default function AddPriorityRule() {
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/priority-rules');
-        router.refresh();
+        window.location.href = '/super-admin/priority-rules';
       } else {
         setError(result.message || 'Failed to create rule');
       }

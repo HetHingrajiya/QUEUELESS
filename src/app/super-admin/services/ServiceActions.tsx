@@ -22,7 +22,7 @@ export function ServiceActions({ serviceId }: { serviceId: string }) {
       });
       const data = await res.json();
       if (data.success) {
-        router.refresh();
+        window.location.reload();
       } else {
         alert(data.message || 'Failed to delete service');
       }

@@ -85,8 +85,7 @@ export default function AdminEditStaff({ params }: { params: Promise<{ id: strin
       const result = await res.json();
       
       if (result.success) {
-        router.push('/admin/staff');
-        router.refresh();
+        window.location.href = '/admin/staff';
       } else {
         setError(result.message || 'Failed to update staff member');
       }
@@ -109,8 +108,7 @@ export default function AdminEditStaff({ params }: { params: Promise<{ id: strin
       const result = await res.json();
       
       if (result.success) {
-        router.push('/admin/staff');
-        router.refresh();
+        window.location.href = '/admin/staff';
       } else {
         setError(result.message || 'Failed to delete staff member');
         setIsDeleting(false);

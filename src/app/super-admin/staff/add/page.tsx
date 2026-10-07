@@ -65,8 +65,7 @@ export default function AddStaff() {
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/staff');
-        router.refresh();
+        window.location.href = '/super-admin/staff';
       } else {
         setError(result.message || 'Failed to create staff member');
       }

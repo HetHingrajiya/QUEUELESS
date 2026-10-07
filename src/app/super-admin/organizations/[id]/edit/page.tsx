@@ -93,8 +93,7 @@ export default function EditOrganization({ params }: { params: Promise<{ id: str
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/organizations');
-        router.refresh();
+        window.location.href = '/super-admin/organizations';
       } else {
         setError(result.message || 'Failed to update organization');
       }

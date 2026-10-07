@@ -85,8 +85,7 @@ export default function AdminAddCounter() {
       const result = await res.json();
       
       if (result.success) {
-        router.push('/admin/counters');
-        router.refresh();
+        window.location.href = '/admin/counters';
       } else {
         setError(result.message || 'Failed to create counter');
       }

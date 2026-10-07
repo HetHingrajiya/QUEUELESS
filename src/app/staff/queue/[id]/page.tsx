@@ -6,7 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, ArrowLeft, Clock, PlayCircle, CheckCircle2, UserX, SkipForward } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+
+const formatDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
 
 export default function StaffTokenDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -168,7 +178,7 @@ export default function StaffTokenDetailPage({ params }: { params: Promise<{ id:
                     <div className="pb-4">
                       <p className="font-medium text-slate-900">{event.type}</p>
                       <p className="text-sm text-slate-500">{event.note}</p>
-                      <p className="text-xs text-slate-400 mt-1">{format(new Date(event.time), 'PPp')}</p>
+                      <p className="text-xs text-slate-400 mt-1">{formatDate(event.time)}</p>
                     </div>
                   </div>
                 ))}

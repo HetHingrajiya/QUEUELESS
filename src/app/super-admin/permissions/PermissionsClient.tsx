@@ -52,7 +52,7 @@ export function PermissionsClient({ initialRoles }: { initialRoles: any[] }) {
       const data = await res.json();
       if (data.success) {
         alert('Permissions updated successfully!');
-        router.refresh();
+        window.location.reload();
       } else {
         alert(data.message || 'Failed to update permissions');
       }

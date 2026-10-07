@@ -85,8 +85,7 @@ export default function AdminEditService({ params }: { params: Promise<{ id: str
       const result = await res.json();
       
       if (result.success) {
-        router.push('/admin/services');
-        router.refresh();
+        window.location.href = '/admin/services';
       } else {
         setError(result.message || 'Failed to update service');
       }
@@ -109,8 +108,7 @@ export default function AdminEditService({ params }: { params: Promise<{ id: str
       const result = await res.json();
       
       if (result.success) {
-        router.push('/admin/services');
-        router.refresh();
+        window.location.href = '/admin/services';
       } else {
         setError(result.message || 'Failed to delete service');
         setIsDeleting(false);

@@ -74,8 +74,7 @@ export default function EditRole({ params }: { params: Promise<{ id: string }> }
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/roles');
-        router.refresh();
+        window.location.href = '/super-admin/roles';
       } else {
         setError(result.message || 'Failed to update role');
       }

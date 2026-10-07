@@ -62,8 +62,7 @@ export default function AddRole() {
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/roles');
-        router.refresh();
+        window.location.href = '/super-admin/roles';
       } else {
         setError(result.message || 'Failed to create role');
       }

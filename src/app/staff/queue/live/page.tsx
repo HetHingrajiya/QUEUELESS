@@ -7,9 +7,19 @@ import { ArrowLeft, Search, Filter, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getSocket } from '@/lib/socketClient';
 
+export interface QueueToken {
+  _id: string;
+  tokenNumber: string;
+  citizenName: string;
+  serviceName: string;
+  priority: boolean;
+  status: string;
+  createdAt: string;
+}
+
 export default function StaffQueuePage() {
   const router = useRouter();
-  const [tokens, setTokens] = useState<any[]>([]);
+  const [tokens, setTokens] = useState<QueueToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 

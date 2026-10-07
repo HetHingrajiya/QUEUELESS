@@ -5,9 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, User, Building, Monitor, Shield, Mail, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
+export interface StaffProfile {
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface StaffDashboardData {
+  office?: {
+    name: string;
+    organizationId?: {
+      name: string;
+    };
+  };
+  counter?: {
+    name: string;
+    number: string;
+    serviceNames: string;
+  };
+}
+
 export default function StaffProfilePage() {
-  const [profile, setProfile] = useState<any>(null);
-  const [dashboard, setDashboard] = useState<any>(null);
+  const [profile, setProfile] = useState<StaffProfile | null>(null);
+  const [dashboard, setDashboard] = useState<StaffDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

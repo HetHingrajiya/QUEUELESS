@@ -93,8 +93,7 @@ export default function EditOffice({ params }: { params: Promise<{ id: string }>
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/offices');
-        router.refresh();
+        window.location.href = '/super-admin/offices';
       } else {
         setError(result.message || 'Failed to update office');
       }

@@ -111,8 +111,7 @@ export default function EditPriorityRule({ params }: { params: Promise<{ id: str
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/priority-rules');
-        router.refresh();
+        window.location.href = '/super-admin/priority-rules';
       } else {
         setError(result.message || 'Failed to update rule');
       }

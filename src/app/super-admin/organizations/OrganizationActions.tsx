@@ -21,7 +21,7 @@ export function OrganizationActions({ organizationId }: { organizationId: string
       
       const result = await res.json();
       if (result.success) {
-        router.refresh();
+        window.location.reload();
       } else {
         alert(result.message || 'Failed to delete organization');
       }

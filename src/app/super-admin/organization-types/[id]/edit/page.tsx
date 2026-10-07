@@ -76,8 +76,7 @@ export default function EditOrganizationType({ params }: { params: Promise<{ id:
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/organization-types');
-        router.refresh();
+        window.location.href = '/super-admin/organization-types';
       } else {
         setError(result.message || 'Failed to update organization type');
       }

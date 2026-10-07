@@ -62,8 +62,7 @@ export default function AddOrganization() {
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/organizations');
-        router.refresh();
+        window.location.href = '/super-admin/organizations';
       } else {
         setError(result.message || 'Failed to create organization');
       }

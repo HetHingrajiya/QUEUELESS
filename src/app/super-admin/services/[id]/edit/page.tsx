@@ -98,8 +98,7 @@ export default function EditService({ params }: { params: Promise<{ id: string }
       const result = await res.json();
       
       if (result.success) {
-        router.push('/super-admin/services');
-        router.refresh();
+        window.location.href = '/super-admin/services';
       } else {
         setError(result.message || 'Failed to update service');
       }

@@ -25,7 +25,7 @@ export function RoleActions({ roleId, isSystem }: { roleId: string, isSystem: bo
       
       const result = await res.json();
       if (result.success) {
-        router.refresh();
+        window.location.reload();
       } else {
         alert(result.message || 'Failed to delete role');
       }

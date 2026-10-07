@@ -113,8 +113,7 @@ export default function AdminEditCounter({ params }: { params: Promise<{ id: str
       const result = await res.json();
       
       if (result.success) {
-        router.push('/admin/counters');
-        router.refresh();
+        window.location.href = '/admin/counters';
       } else {
         setError(result.message || 'Failed to update counter');
       }
@@ -137,8 +136,7 @@ export default function AdminEditCounter({ params }: { params: Promise<{ id: str
       const result = await res.json();
       
       if (result.success) {
-        router.push('/admin/counters');
-        router.refresh();
+        window.location.href = '/admin/counters';
       } else {
         setError(result.message || 'Failed to delete counter');
         setIsDeleting(false);
