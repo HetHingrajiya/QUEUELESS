@@ -2,13 +2,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Search, Ticket, Bell, User, LogOut, Menu, X } from 'lucide-react';
+import { Home, Search, Ticket, Bell, User, LogOut, Menu, X, Layers } from 'lucide-react';
 
 const navItems = [
   { name: 'Home', href: '/citizen/home', icon: <Home size={24} /> },
-  { name: 'Search', href: '/citizen/offices', icon: <Search size={24} /> },
+  { name: 'Offices', href: '/citizen/offices', icon: <Search size={24} /> },
   { name: 'History', href: '/citizen/token-history', icon: <Ticket size={24} /> },
+  { name: 'Notifications', href: '/citizen/notifications', icon: <Bell size={24} /> },
   { name: 'Profile', href: '/citizen/profile', icon: <User size={24} /> },
+  { name: '59 Screens', href: '/citizen/screens', icon: <Layers size={24} /> },
 ];
 
 export default function CitizenLayout({ children }: { children: React.ReactNode }) {
@@ -27,9 +29,17 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
       {/* Top Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/citizen/home" className="text-xl font-bold text-blue-600">
-            QueueLess
-          </Link>
+          <div className="flex items-center space-x-3">
+            <Link href="/citizen/home" className="text-xl font-bold text-blue-600">
+              QueueLess
+            </Link>
+            <Link 
+              href="/citizen/screens" 
+              className="hidden sm:inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+            >
+              <Layers size={13} className="mr-1.5" /> 59 Screens
+            </Link>
+          </div>
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">

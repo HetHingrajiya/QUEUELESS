@@ -129,9 +129,21 @@ export default function StaffDashboard() {
     );
   }
 
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4">
+        <h3 className="text-xl font-bold text-slate-800">Unable to load staff dashboard</h3>
+        <p className="text-slate-500 max-w-sm">No dashboard data available for this staff account. Please verify your counter assignment or contact an administrator.</p>
+        <Button onClick={() => fetchDashboardData()} variant="outline">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
-      {data.counter ? (
+      {data?.counter ? (
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">{data.counter.name}</h2>
@@ -225,7 +237,7 @@ export default function StaffDashboard() {
                     </Button>
                   </>
                 ) : (
-                  <Button onClick={() => handleAction('CALL_NEXT')} disabled={actionLoading || data.nextTokens.length === 0} className="w-full sm:w-48 bg-blue-600 hover:bg-blue-700" size="lg">
+                  <Button onClick={() => handleAction('CALL_NEXT')} disabled={actionLoading || (data?.nextTokens || []).length === 0} className="w-full sm:w-48 bg-blue-600 hover:bg-blue-700" size="lg">
                     {actionLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null} Call Next
                   </Button>
                 )}
@@ -248,14 +260,14 @@ export default function StaffDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">Waiting in Queue</p>
-                  <p className="text-3xl font-bold text-slate-900">{data.stats.waitingCount}</p>
+                  <p className="text-3xl font-bold text-slate-900">{data?.stats?.waitingCount || 0}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                   <Users size={24} />
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-sm text-slate-600">Next: <span className="font-bold text-slate-900">{data.nextTokens[0]?.tokenNumber || 'None'}</span></p>
+                <p className="text-sm text-slate-600">Next: <span className="font-bold text-slate-900">{data?.nextTokens?.[0]?.tokenNumber || 'None'}</span></p>
               </div>
             </CardContent>
           </Card>
@@ -265,14 +277,14 @@ export default function StaffDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">Completed Today</p>
-                  <p className="text-3xl font-bold text-slate-900">{data.stats.completedToday}</p>
+                  <p className="text-3xl font-bold text-slate-900">{data?.stats?.completedToday || 0}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                   <CheckCircle2 size={24} />
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-sm text-slate-600">Avg Time: <span className="font-bold text-slate-900">{data.stats.avgServiceTime}m</span></p>
+                <p className="text-sm text-slate-600">Avg Time: <span className="font-bold text-slate-900">{data?.stats?.avgServiceTime || '0.0'}m</span></p>
               </div>
             </CardContent>
           </Card>
@@ -295,7 +307,7 @@ export default function StaffDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {data.nextTokens && data.nextTokens.length > 0 ? (
+                {data?.nextTokens && data.nextTokens.length > 0 ? (
                   data.nextTokens.map((item: any, i: number) => (
                     <tr key={item._id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
                       <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
@@ -306,9 +318,9 @@ export default function StaffDashboard() {
                       <td className="px-6 py-4">
                         <Button 
                           onClick={() => {
-                            if (!data.currentToken) handleAction('CALL_NEXT');
+                            if (!data?.currentToken) handleAction('CALL_NEXT');
                           }}
-                          variant="outline" size="sm" disabled={i !== 0 || actionLoading || !!data.currentToken} className={i === 0 && !data.currentToken ? 'text-blue-600 border-blue-200 bg-blue-50' : ''}>
+                          variant="outline" size="sm" disabled={i !== 0 || actionLoading || !!data?.currentToken} className={i === 0 && !data?.currentToken ? 'text-blue-600 border-blue-200 bg-blue-50' : ''}>
                           Call Next
                         </Button>
                       </td>

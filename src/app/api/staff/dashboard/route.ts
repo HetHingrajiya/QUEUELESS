@@ -30,7 +30,51 @@ export async function GET(req: NextRequest) {
     // Get the counter assigned to this staff member (ignore officeId strict check, if they are assigned, they are assigned)
     const counter = await Counter.findOne({ staffId }).populate('serviceIds', 'name').lean();
     if (!counter) {
-      return NextResponse.json({ success: false, message: 'No counter assigned to this staff member' }, { status: 404 });
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const waitingTokens = await Token.find({
+        officeId,
+        status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
+        createdAt: { $gte: startOfDay, $lte: endOfDay }
+      })
+      .sort({ createdAt: 1 })
+      .populate('serviceId', 'name')
+      .limit(10)
+      .lean();
+
+      const totalWaitingCount = await Token.countDocuments({
+        officeId,
+        status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
+        createdAt: { $gte: startOfDay, $lte: endOfDay }
+      });
+
+      const completedCount = await Token.countDocuments({
+        officeId,
+        status: TokenStatus.COMPLETED,
+        createdAt: { $gte: startOfDay, $lte: endOfDay }
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          counter: null,
+          currentToken: null,
+          nextTokens: waitingTokens.map(t => ({
+            _id: t._id,
+            tokenNumber: t.tokenNumber,
+            serviceName: (t.serviceId as any)?.name,
+            waitTime: Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 60000)
+          })),
+          stats: {
+            waitingCount: totalWaitingCount,
+            completedToday: completedCount,
+            avgServiceTime: "0.0"
+          }
+        }
+      });
     }
     
     // Normalize serviceIds
