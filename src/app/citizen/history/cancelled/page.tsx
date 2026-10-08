@@ -1,35 +1,39 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  ArrowLeft, XCircle, Calendar, Clock, 
-  Building2, Ticket, RefreshCw, AlertTriangle, ArrowRight 
+  ArrowLeft, XCircle, Calendar, 
+  Building2, ArrowRight 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { EmptyState } from '@/components/common/EmptyState';
 
 export default function CancelledTokensHistoryPage() {
-  const [cancelledList] = useState([
-    {
-      id: 'cx-1',
-      tokenNumber: 'C-089',
-      serviceName: 'Property Tax Challan Submission',
-      officeName: 'Rajkot Municipal Corporation West Zone',
-      date: 'Aug 2, 2026',
-      reason: 'No-Show (Grace period expired after 5 mins)',
-      type: 'NO_SHOW'
-    },
-    {
-      id: 'cx-2',
-      tokenNumber: 'A-019',
-      serviceName: 'Driving Licence Renewal',
-      officeName: 'Regional Transport Office (RTO Rajkot)',
-      date: 'Jul 14, 2026',
-      reason: 'Citizen requested cancellation prior to arrival',
-      type: 'USER_CANCELLED'
-    }
-  ]);
+  const [cancelledList, setCancelledList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCancelled = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/citizen/token-history?status=CANCELLED');
+        const json = await res.json();
+        if (json.success) {
+          setCancelledList(json.data || []);
+        } else {
+          setError(json.message || 'Failed to load cancelled tokens');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Network error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCancelled();
+  }, []);
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -51,45 +55,61 @@ export default function CancelledTokensHistoryPage() {
         </span>
       </div>
 
-      {/* List */}
-      <div className="space-y-3">
-        {cancelledList.map((item) => (
-          <Card key={item.id} className="border-slate-200">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
-                    <XCircle size={20} />
+      {loading ? (
+        <SkeletonLoader type="history" count={3} />
+      ) : error ? (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
+          {error}
+        </div>
+      ) : cancelledList.length === 0 ? (
+        <EmptyState
+          icon={<XCircle size={32} className="text-slate-400" />}
+          title="No Cancelled Tokens"
+          description="You don't have any cancelled tokens on record."
+          actionText="Get a Token"
+          actionHref="/citizen/offices"
+        />
+      ) : (
+        <div className="space-y-3">
+          {cancelledList.map((item) => (
+            <Card key={item._id} className="border-slate-200 bg-white">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                      <XCircle size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">{item.serviceName}</h3>
+                      <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                        <Building2 size={12} className="mr-1 text-slate-400" />
+                        {item.officeName}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">{item.serviceName}</h3>
-                    <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                      <Building2 size={12} className="mr-1 text-slate-400" />
-                      {item.officeName}
-                    </p>
-                  </div>
+                  <span className="font-black text-slate-400 text-base line-through">{item.tokenNumber}</span>
                 </div>
-                <span className="font-black text-slate-400 text-base line-through">{item.tokenNumber}</span>
-              </div>
 
-              <div className="bg-slate-50 rounded-lg p-2.5 my-2 border border-slate-100 text-xs text-slate-600">
-                <span className="font-semibold text-slate-700">Reason:</span> {item.reason}
-              </div>
+                <div className="bg-slate-50 rounded-lg p-2.5 my-2 border border-slate-100 text-xs text-slate-600">
+                  <span className="font-semibold text-slate-700">Reason:</span> {item.notes || 'Cancelled by citizen'}
+                </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-slate-400 flex items-center">
-                  <Calendar size={13} className="mr-1 text-slate-400" /> {item.date}
-                </span>
-                <Link href="/citizen/token">
-                  <span className="text-blue-600 font-bold hover:underline flex items-center">
-                    Re-Book <ArrowRight size={13} className="ml-1" />
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-400 flex items-center">
+                    <Calendar size={13} className="mr-1 text-slate-400" />
+                    {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  <Link href="/citizen/offices">
+                    <span className="text-blue-600 font-bold hover:underline flex items-center">
+                      Re-Book <ArrowRight size={13} className="ml-1" />
+                    </span>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

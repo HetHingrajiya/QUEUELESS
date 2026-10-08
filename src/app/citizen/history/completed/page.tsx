@@ -1,50 +1,39 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, CheckCircle2, Calendar, Clock, 
-  Building2, Ticket, Download, Star, ArrowRight 
+  Building2, Ticket, Star, ArrowRight 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { EmptyState } from '@/components/common/EmptyState';
 
 export default function CompletedServicesPage() {
-  const [completedList] = useState([
-    {
-      id: 'c1',
-      tokenNumber: 'A-145',
-      serviceName: 'Driving Licence Renewal',
-      officeName: 'Regional Transport Office (RTO Rajkot)',
-      date: 'Oct 4, 2026',
-      duration: '7 mins',
-      counter: 'Counter 4',
-      officer: 'Rajesh Sharma',
-      rating: 5
-    },
-    {
-      id: 'c2',
-      tokenNumber: 'B-022',
-      serviceName: 'Birth Certificate Attestation',
-      officeName: 'Rajkot Municipal Corporation HQ',
-      date: 'Sep 15, 2026',
-      duration: '12 mins',
-      counter: 'Counter 2',
-      officer: 'Meena Patel',
-      rating: 4
-    },
-    {
-      id: 'c3',
-      tokenNumber: 'D-109',
-      serviceName: 'Property Tax Assessment Copy',
-      officeName: 'RMC West Zone Civil Center',
-      date: 'Aug 22, 2026',
-      duration: '5 mins',
-      counter: 'Counter 1',
-      officer: 'Kishore Dave',
-      rating: 5
-    }
-  ]);
+  const [completedList, setCompletedList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCompleted = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/citizen/token-history?status=COMPLETED');
+        const json = await res.json();
+        if (json.success) {
+          setCompletedList(json.data || []);
+        } else {
+          setError(json.message || 'Failed to load completed services');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Network error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCompleted();
+  }, []);
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -66,48 +55,64 @@ export default function CompletedServicesPage() {
         </span>
       </div>
 
-      {/* List */}
-      <div className="space-y-3">
-        {completedList.map((item) => (
-          <Link key={item.id} href={`/citizen/token-history/${item.id}`} className="block">
-            <Card className="border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <CheckCircle2 size={20} />
+      {loading ? (
+        <SkeletonLoader type="history" count={3} />
+      ) : error ? (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
+          {error}
+        </div>
+      ) : completedList.length === 0 ? (
+        <EmptyState
+          icon={<CheckCircle2 size={32} className="text-emerald-500" />}
+          title="No Completed Services"
+          description="You don't have any completed appointments or service visits yet."
+          actionText="Get a Token"
+          actionHref="/citizen/offices"
+        />
+      ) : (
+        <div className="space-y-3">
+          {completedList.map((item) => (
+            <Link key={item._id} href={`/citizen/token-history/${item._id}`} className="block">
+              <Card className="border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all bg-white">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">{item.serviceName}</h3>
+                        <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                          <Building2 size={12} className="mr-1 text-slate-400" />
+                          {item.officeName}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{item.serviceName}</h3>
-                      <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                        <Building2 size={12} className="mr-1 text-slate-400" />
-                        {item.officeName}
-                      </p>
-                    </div>
+                    <span className="font-black text-slate-900 text-base">{item.tokenNumber}</span>
                   </div>
-                  <span className="font-black text-slate-900 text-base">{item.tokenNumber}</span>
-                </div>
 
-                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center space-x-3">
-                    <span className="flex items-center">
-                      <Calendar size={13} className="mr-1 text-slate-400" /> {item.date}
-                    </span>
-                    <span className="flex items-center text-emerald-700 font-medium">
-                      <Clock size={13} className="mr-1" /> {item.duration}
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center space-x-3">
+                      <span className="flex items-center">
+                        <Calendar size={13} className="mr-1 text-slate-400" />
+                        {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                      {item.serviceDuration > 0 && (
+                        <span className="flex items-center text-emerald-700 font-medium">
+                          <Clock size={13} className="mr-1" /> {item.serviceDuration}m
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-blue-600 font-semibold flex items-center">
+                      Details <ArrowRight size={13} className="ml-1" />
                     </span>
                   </div>
-                  <div className="flex text-amber-400">
-                    {[...Array(item.rating)].map((_, i) => (
-                      <Star key={i} size={12} className="fill-amber-400" />
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

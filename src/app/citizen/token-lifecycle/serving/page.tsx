@@ -4,15 +4,25 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Activity, Clock, User, CheckCircle2, 
-  ArrowRight, ShieldCheck, FileCheck, RefreshCw 
+  ArrowRight, ShieldCheck, FileCheck 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export default function ServiceStartedPage() {
-  const [elapsedSec, setElapsedSec] = useState(195); // 3m 15s elapsed
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const [tokenData, setTokenData] = useState<any>(null);
 
   useEffect(() => {
+    fetch('/api/citizen/queue')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.data?.token) {
+          setTokenData(res.data.token);
+        }
+      })
+      .catch(() => {});
+
     const timer = setInterval(() => {
       setElapsedSec(prev => prev + 1);
     }, 1000);
@@ -25,11 +35,15 @@ export default function ServiceStartedPage() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const tokenNumber = tokenData?.tokenNumber || 'A-001';
+  const serviceName = tokenData?.serviceName || 'Government Service';
+  const officeName = tokenData?.officeName || 'Government Office';
+
   const steps = [
-    { name: "Identity & Aadhaar Verification", completed: true },
-    { name: "Original Documents Scanned", completed: true },
-    { name: "Biometric & Digital Signature", completed: true },
-    { name: "Final Approval & Certificate Printing", completed: false, inProgress: true }
+    { name: "Identity & Citizen Verification", completed: true },
+    { name: "Document Verification", completed: true },
+    { name: "Counter Processing", completed: true },
+    { name: "Final Approvals & Receipt", completed: false, inProgress: true }
   ];
 
   return (
@@ -47,53 +61,43 @@ export default function ServiceStartedPage() {
         </span>
         <h1 className="text-2xl font-black text-slate-900 mt-2">Service In Progress</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Your request is currently being processed at Counter 4.
+          Your request for {serviceName} is currently being processed.
         </p>
       </div>
 
-      {/* Live Session Details */}
+      {/* Active Session Card */}
       <Card className="border-blue-200 bg-white shadow-md text-left overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 w-full"></div>
-        <CardContent className="p-5">
-          <div className="flex justify-between items-start border-b border-slate-100 pb-3 mb-3">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex justify-between items-start border-b border-slate-100 pb-3">
             <div>
               <p className="text-[10px] uppercase font-bold text-slate-400">SESSION TOKEN</p>
-              <h3 className="text-3xl font-black text-slate-900">A-145</h3>
-              <p className="text-xs font-semibold text-blue-600 mt-0.5">Driving Licence Renewal</p>
+              <h2 className="text-2xl font-black text-slate-900">{tokenNumber}</h2>
+              <p className="text-xs text-slate-500">{officeName}</p>
             </div>
             <div className="text-right">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 uppercase">
-                Active Session
+              <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                ACTIVE
               </span>
-              <div className="mt-2 text-right">
-                <p className="text-[10px] text-slate-400">Duration Elapsed</p>
-                <p className="text-lg font-bold font-mono text-slate-900">{formatElapsed(elapsedSec)}</p>
-              </div>
+              <p className="text-xs font-mono font-bold text-slate-700 mt-1 flex items-center justify-end">
+                <Clock size={11} className="mr-1 text-blue-600" /> {formatElapsed(elapsedSec)}
+              </p>
             </div>
           </div>
 
-          <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
-              <User size={20} />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-900">Officer Rajesh Sharma</p>
-              <p className="text-[11px] text-slate-500">Counter 4 • Assistant RTO Licensing Officer</p>
-            </div>
-          </div>
-
-          {/* Workflow progress checklist */}
+          {/* Workflow Steps */}
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Processing Checklist</p>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              Workflow Status
+            </h4>
             <div className="space-y-2">
               {steps.map((st, i) => (
-                <div key={i} className="flex items-center text-xs">
+                <div key={i} className="flex items-center space-x-2 text-xs">
                   {st.completed ? (
-                    <CheckCircle2 size={16} className="text-emerald-500 mr-2 shrink-0" />
+                    <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
                   ) : (
-                    <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin mr-2 shrink-0" />
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin shrink-0" />
                   )}
-                  <span className={st.completed ? 'text-slate-600 line-through' : 'font-bold text-slate-900'}>
+                  <span className={st.completed ? "text-slate-700" : "font-bold text-blue-600"}>
                     {st.name}
                   </span>
                 </div>
@@ -103,16 +107,16 @@ export default function ServiceStartedPage() {
         </CardContent>
       </Card>
 
-      {/* Action Next Step */}
-      <div className="space-y-2 pt-2">
+      {/* CTA */}
+      <div className="space-y-2">
         <Link href="/citizen/token-lifecycle/completed" className="block w-full">
-          <Button className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold shadow-md">
-            Simulate Service Completion <ArrowRight size={16} className="ml-2" />
+          <Button className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md">
+            Simulate Service Completed <ArrowRight size={14} className="ml-1.5" />
           </Button>
         </Link>
         <Link href="/citizen/home" className="block w-full">
           <Button variant="ghost" className="w-full text-xs text-slate-500">
-            Keep Running in Background
+            Back to Dashboard
           </Button>
         </Link>
       </div>

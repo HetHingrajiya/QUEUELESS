@@ -1,25 +1,29 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  ArrowRightLeft, ArrowRight, MapPin, User, 
-  ShieldCheck, Clock, CheckCircle2, Building2 
+  ArrowRightLeft, ArrowRight 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export default function TokenTransferredPage() {
-  const transferData = {
-    tokenNumber: "A-145",
-    serviceName: "Driving Licence Renewal",
-    fromCounter: "Counter 4 (Initial Scan)",
-    toCounter: "Counter 7 (Senior Verification Desk)",
-    transferredBy: "Officer Rajesh Sharma",
-    reason: "Specialized Medical Fitness Certificate Verification Required",
-    priorityStatus: "PRIORITY RETAINED (1st in line)",
-    location: "2nd Floor, Room 208, West Wing",
-    timestamp: "Today, 10:42 AM"
-  };
+  const [tokenData, setTokenData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/citizen/queue')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.data?.token) {
+          setTokenData(res.data.token);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const tokenNumber = tokenData?.tokenNumber || 'A-001';
+  const serviceName = tokenData?.serviceName || 'Government Service';
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-4 text-center">
@@ -34,7 +38,7 @@ export default function TokenTransferredPage() {
         </span>
         <h1 className="text-2xl font-black text-slate-900 mt-2">Token Transferred</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-          Your file has been forwarded to a specialized counter for final verification.
+          Your file for {serviceName} has been routed to a specialized desk.
         </p>
       </div>
 
@@ -44,54 +48,39 @@ export default function TokenTransferredPage() {
           <p className="text-[10px] uppercase font-bold text-indigo-200 tracking-wider">TRANSFER ASSIGNMENT</p>
           <div className="my-3 flex items-center justify-between border-b border-white/10 pb-4">
             <div>
-              <p className="text-xs text-indigo-200">Originated From</p>
-              <p className="text-sm font-semibold">{transferData.fromCounter}</p>
+              <p className="text-xs text-indigo-200">Previous Station</p>
+              <p className="text-sm font-semibold">Counter 1 (Intake)</p>
             </div>
             <ArrowRight size={20} className="text-indigo-300" />
             <div className="text-right">
-              <p className="text-xs text-emerald-300 font-bold">New Destination</p>
-              <p className="text-lg font-black text-white">{transferData.toCounter}</p>
+              <p className="text-xs text-indigo-200">New Station</p>
+              <p className="text-base font-black text-emerald-300">Counter 2 (Specialist)</p>
             </div>
           </div>
 
-          <div className="space-y-2 text-xs text-indigo-100 pt-1">
+          <div className="space-y-2 text-xs text-indigo-100">
             <div className="flex justify-between">
-              <span className="text-indigo-300">Reason:</span>
-              <span className="font-medium text-white text-right max-w-[200px]">{transferData.reason}</span>
+              <span>Token:</span>
+              <span className="font-bold text-white font-mono">{tokenNumber}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-indigo-300">Queue Priority:</span>
-              <span className="font-bold text-amber-300">{transferData.priorityStatus}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-indigo-300">Transferred By:</span>
-              <span className="text-white">{transferData.transferredBy}</span>
+              <span>Queue Priority:</span>
+              <span className="font-bold text-emerald-300">Retained</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Directions to New Counter */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 text-left shadow-sm space-y-1.5">
-        <div className="flex items-center text-xs font-bold text-slate-800 uppercase tracking-wide">
-          <MapPin size={16} className="text-blue-600 mr-2" />
-          Where to Go Now
-        </div>
-        <p className="text-xs text-slate-600">
-          Please proceed to <strong>{transferData.location}</strong>. Your original token <strong>A-145</strong> will be called on the display screen immediately.
-        </p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="space-y-2 pt-2">
-        <Link href="/citizen/token-lifecycle/serving" className="block w-full">
-          <Button className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold shadow-md">
-            I Have Reached Counter 7 <ArrowRight size={16} className="ml-2" />
+      {/* CTA */}
+      <div className="space-y-2">
+        <Link href={`/citizen/queue/${tokenData?._id || ''}`} className="block w-full">
+          <Button className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md">
+            View Live Queue Pass <ArrowRight size={14} className="ml-1.5" />
           </Button>
         </Link>
-        <Link href="/citizen/queue" className="block w-full">
+        <Link href="/citizen/home" className="block w-full">
           <Button variant="ghost" className="w-full text-xs text-slate-500">
-            View Live Queue
+            Back to Dashboard
           </Button>
         </Link>
       </div>

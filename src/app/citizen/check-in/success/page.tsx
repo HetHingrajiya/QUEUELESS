@@ -1,24 +1,64 @@
 "use client";
 
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
-  CheckCircle2, Building2, MapPin, ArrowRight, 
-  Bell, Smartphone, Clock, ShieldCheck, Ticket, Users 
+  CheckCircle2, ArrowRight, Clock, ShieldCheck, Users 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
-export default function CheckInSuccessPage() {
-  const checkInData = {
-    tokenNumber: "A-145",
-    serviceName: "Driving Licence Renewal",
-    officeName: "Regional Transport Office (RTO)",
-    hallLocation: "Waiting Hall B • 1st Floor",
-    assignedCounter: "Counter 4",
-    checkInTime: "10:24 AM",
-    peopleAhead: 3,
-    approxWait: "9 minutes"
-  };
+function CheckInSuccessContent() {
+  const searchParams = useSearchParams();
+  const tokenIdParam = searchParams ? searchParams.get('tokenId') : null;
+
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchConfirmedToken = async () => {
+      try {
+        setLoading(true);
+        if (tokenIdParam) {
+          const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
+          const json = await res.json();
+          if (json.success && json.data) {
+            setData(json.data);
+            return;
+          }
+        }
+
+        const res = await fetch('/api/citizen/queue');
+        const json = await res.json();
+        if (json.success && json.data) {
+          setData(json.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConfirmedToken();
+  }, [tokenIdParam]);
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto pt-6">
+        <SkeletonLoader type="queue" />
+      </div>
+    );
+  }
+
+  const token = data?.token || {};
+  const tokenNumber = token.tokenNumber || 'A-001';
+  const serviceName = token.serviceName || 'Government Service';
+  const officeName = token.officeName || 'Government Office';
+  const peopleAhead = data?.peopleAhead ?? 0;
+  const estimatedWaitMin = data?.estimatedWaitMin ?? 10;
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-6 text-center">
@@ -44,55 +84,44 @@ export default function CheckInSuccessPage() {
 
       {/* Verified Token Card */}
       <Card className="border-emerald-200 bg-gradient-to-br from-white to-emerald-50/40 shadow-md text-left overflow-hidden">
-        <div className="bg-emerald-600 h-2 w-full"></div>
+        <div className="bg-emerald-600 h-2 w-full" />
         <CardContent className="p-6">
           <div className="flex justify-between items-start border-b border-slate-100 pb-4">
             <div>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">YOUR TOKEN</p>
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight">{checkInData.tokenNumber}</h2>
-              <p className="text-xs font-semibold text-emerald-700 mt-0.5">{checkInData.serviceName}</p>
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight">{tokenNumber}</h2>
+              <p className="text-xs font-semibold text-emerald-700 mt-0.5">{serviceName}</p>
             </div>
             <div className="text-right">
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase">
                 Checked In
               </span>
-              <p className="text-xs text-slate-400 mt-2">{checkInData.checkInTime}</p>
+              <p className="text-xs text-slate-400 mt-2">{officeName}</p>
             </div>
           </div>
 
-          <div className="space-y-3 pt-4 text-xs">
-            <div className="flex items-center text-slate-700">
-              <MapPin size={15} className="mr-2.5 text-blue-600 shrink-0" />
-              <span>Proceed to: <strong className="text-slate-900">{checkInData.hallLocation}</strong></span>
+          <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
+            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-2xs">
+              <span className="text-slate-400 flex items-center">
+                <Users size={12} className="mr-1 text-blue-500" /> People Ahead
+              </span>
+              <p className="text-lg font-bold text-slate-900 mt-0.5">{peopleAhead}</p>
             </div>
-            <div className="flex items-center text-slate-700">
-              <Users size={15} className="mr-2.5 text-indigo-600 shrink-0" />
-              <span>Only <strong className="text-slate-900">{checkInData.peopleAhead} people</strong> ahead of you now</span>
-            </div>
-            <div className="flex items-center text-slate-700">
-              <Clock size={15} className="mr-2.5 text-amber-600 shrink-0" />
-              <span>Estimated wait: <strong className="text-slate-900">{checkInData.approxWait}</strong></span>
+            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-2xs">
+              <span className="text-slate-400 flex items-center">
+                <Clock size={12} className="mr-1 text-amber-500" /> Est. Wait Time
+              </span>
+              <p className="text-lg font-bold text-amber-600 mt-0.5">~{estimatedWaitMin}m</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Chime & Alert Instruction */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-left flex items-start space-x-3">
-        <Bell size={20} className="text-blue-600 shrink-0 mt-0.5 animate-bounce" />
-        <div className="text-xs">
-          <p className="font-bold text-slate-900">Keep Your Phone Unmuted</p>
-          <p className="text-slate-600 mt-0.5">
-            You will receive a loud chime and push notification the moment your token is called to <strong>{checkInData.assignedCounter}</strong>.
-          </p>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
+      {/* Actions */}
       <div className="space-y-2 pt-2">
-        <Link href="/citizen/queue" className="block w-full">
-          <Button className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold shadow-md">
-            Watch Live Queue Display <ArrowRight size={16} className="ml-2" />
+        <Link href={`/citizen/queue/${token._id || ''}`} className="block w-full">
+          <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold text-xs shadow-md">
+            Monitor Live Turn <ArrowRight size={14} className="ml-1.5" />
           </Button>
         </Link>
         <Link href="/citizen/home" className="block w-full">
@@ -102,5 +131,13 @@ export default function CheckInSuccessPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function CheckInSuccessPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading check-in confirmation...</div>}>
+      <CheckInSuccessContent />
+    </Suspense>
   );
 }

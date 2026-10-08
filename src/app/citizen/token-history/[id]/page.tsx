@@ -5,36 +5,60 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Calendar, Clock, Building2, User, 
-  Download, CheckCircle2, Ticket, ShieldCheck, Star, FileText 
+  CheckCircle2, Ticket, Star, FileText, MapPin 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 export default function TokenHistoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const tokenDetail = {
-    id: id || "tok-1092",
-    tokenNumber: "A-145",
-    serviceName: "Driving Licence Renewal",
-    officeName: "Regional Transport Office (RTO Rajkot)",
-    officeAddress: "Ring Road, Sector 12, Civil Center",
-    date: "October 4, 2026",
-    status: "COMPLETED",
-    totalWaitTime: "18 minutes",
-    serviceDuration: "7 minutes",
-    officerName: "Rajesh Sharma",
-    counterNumber: "Counter 4",
-    transactionId: "QL-HIST-99214-REC",
-    ratingGiven: 5,
-    timeline: [
-      { event: "Virtual Token Generated", time: "10:15 AM", status: "Done" },
-      { event: "Arrival & Geofence Check-In", time: "10:28 AM", status: "Done" },
-      { event: "Token Called to Counter 4", time: "10:33 AM", status: "Done" },
-      { event: "Service Processing Completed", time: "10:41 AM", status: "Done" },
-    ]
-  };
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/citizen/token-history/${id}`);
+        const json = await res.json();
+        if (json.success) {
+          setData(json.data);
+        } else {
+          setError(json.message || 'Token record not found');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetail();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto pt-4">
+        <SkeletonLoader type="history" count={3} />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="max-w-md mx-auto pt-8 text-center space-y-3">
+        <p className="text-red-600 font-medium">{error || 'Token record not found'}</p>
+        <Link href="/citizen/token-history">
+          <Button variant="outline" size="sm">Back to History</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const { token, office, service, counter, timeline, feedback } = data;
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -57,16 +81,16 @@ export default function TokenHistoryDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Main Ticket Summary Card */}
-      <Card className="border-slate-200 overflow-hidden shadow-sm">
+      <Card className="border-slate-200 overflow-hidden shadow-sm bg-white">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 text-white">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200">HISTORICAL TOKEN</p>
-              <h2 className="text-4xl font-black mt-0.5">{tokenDetail.tokenNumber}</h2>
-              <p className="text-xs text-blue-100 mt-1 font-medium">{tokenDetail.serviceName}</p>
+              <h2 className="text-4xl font-black mt-0.5">{token.tokenNumber}</h2>
+              <p className="text-xs text-blue-100 mt-1 font-medium">{service?.name || 'Government Service'}</p>
             </div>
-            <span className="bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase">
-              {tokenDetail.status}
+            <span className="bg-white/20 text-white border border-white/30 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase">
+              {token.status}
             </span>
           </div>
         </div>
@@ -75,72 +99,89 @@ export default function TokenHistoryDetailPage({ params }: { params: Promise<{ i
           <div className="space-y-2 pb-3 border-b border-slate-100">
             <div className="flex justify-between">
               <span className="text-slate-400">Office Branch:</span>
-              <span className="font-bold text-slate-800 text-right">{tokenDetail.officeName}</span>
+              <span className="font-bold text-slate-800 text-right">{office?.name || 'Office'}</span>
             </div>
+            {office?.address && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Address:</span>
+                <span className="text-slate-600 text-right max-w-[200px] truncate">{office.address}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Date of Visit:</span>
-              <span className="font-medium text-slate-800">{tokenDetail.date}</span>
+              <span className="font-medium text-slate-800">
+                {new Date(token.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Counter Officer:</span>
-              <span className="font-medium text-slate-800">{tokenDetail.officerName} ({tokenDetail.counterNumber})</span>
-            </div>
+            {counter && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Assigned Counter:</span>
+                <span className="font-medium text-slate-800">{counter.name || `Counter ${counter.counterNumber}`}</span>
+              </div>
+            )}
           </div>
 
           {/* Time Metrics */}
           <div className="grid grid-cols-2 gap-3 py-1">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
               <p className="text-[10px] text-slate-400 uppercase font-semibold">Queue Wait</p>
-              <p className="text-base font-bold text-slate-900 mt-0.5">{tokenDetail.totalWaitTime}</p>
+              <p className="text-base font-bold text-slate-900 mt-0.5">{token.waitMinutes} mins</p>
             </div>
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase font-semibold">Service Time</p>
-              <p className="text-base font-bold text-emerald-600 mt-0.5">{tokenDetail.serviceDuration}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold">Service Duration</p>
+              <p className="text-base font-bold text-emerald-600 mt-0.5">{token.serviceDuration > 0 ? `${token.serviceDuration} mins` : 'Completed'}</p>
             </div>
           </div>
 
-          {/* Timeline Audit */}
-          <div className="pt-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-              Visit Milestone Timeline
-            </h4>
-            <div className="space-y-3 relative pl-4 border-l-2 border-blue-200 ml-2">
-              {tokenDetail.timeline.map((step, idx) => (
-                <div key={idx} className="relative">
-                  <div className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 rounded-full bg-blue-600 ring-4 ring-white" />
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-slate-800 text-xs">{step.event}</span>
-                    <span className="text-slate-400 text-[11px] font-mono">{step.time}</span>
+          {/* Timeline Events from MongoDB */}
+          {timeline && timeline.length > 0 && (
+            <div className="pt-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center">
+                <Clock size={13} className="mr-1.5 text-blue-600" /> Complete Audit Timeline
+              </h4>
+              <div className="space-y-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 pl-6">
+                {timeline.map((event: any, idx: number) => (
+                  <div key={idx} className="relative">
+                    <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white" />
+                    <p className="font-bold text-slate-800">{event.eventType.replace('_', ' ')}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {new Date(event.time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Citizen Rating Display */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-slate-500">Your Rating:</span>
-            <div className="flex text-amber-400">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={14} className="fill-amber-400" />
-              ))}
+          {/* Submitted Feedback */}
+          {feedback && (
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-amber-800 flex items-center gap-1">
+                  <Star size={13} className="fill-amber-500 text-amber-500" /> Rated {feedback.rating}/5
+                </span>
+                <span className="text-[10px] text-amber-600">Verified</span>
+              </div>
+              {feedback.comment && (
+                <p className="text-[11px] text-amber-900 italic">"{feedback.comment}"</p>
+              )}
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
+      {/* Action CTA */}
       <div className="space-y-2">
-        <Button 
-          variant="outline"
-          onClick={() => alert("Downloading official PDF visit transcript...")}
-          className="w-full h-12 border-slate-300 font-semibold text-slate-700 hover:bg-slate-50"
-        >
-          <Download size={16} className="mr-2" /> Download Visit Receipt (PDF)
-        </Button>
-        <Link href="/citizen/token" className="block w-full">
-          <Button className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold shadow-md">
-            Book Similar Service Again
+        {!feedback && token.status === 'COMPLETED' && (
+          <Link href={`/citizen/feedback/rating?tokenId=${token._id}&officeId=${office?._id}`} className="block w-full">
+            <Button className="w-full h-11 bg-amber-500 hover:bg-amber-600 font-bold text-xs text-white">
+              <Star size={14} className="mr-1.5" /> Rate This Service
+            </Button>
+          </Link>
+        )}
+        <Link href="/citizen/token-history" className="block w-full">
+          <Button variant="ghost" className="w-full text-xs text-slate-500">
+            Back to Token History
           </Button>
         </Link>
       </div>

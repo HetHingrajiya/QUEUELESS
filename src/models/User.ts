@@ -47,6 +47,9 @@ const UserSchema: Schema = new Schema(
     status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
     lastLogin: { type: Date },
     pushSubscription: { type: Schema.Types.Mixed }, // Stores Web Push Subscription object
+    address: { type: String },
+    dob: { type: String },
+    settings: { type: Schema.Types.Mixed, default: {} },
   },
   {
     timestamps: true,

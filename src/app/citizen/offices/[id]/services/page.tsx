@@ -30,22 +30,13 @@ export default function OfficeServicesPage({ params }: { params: Promise<{ id: s
           setOffice(json.data.office);
           setServices(json.data.services || []);
         } else {
-          // Fallback mock for offices
-          setOffice({
-            name: "Regional Transport Office (RTO)",
-            address: "Ring Road, Sector 12, Civil Center",
-            code: "RTO-01"
-          });
-          setServices([
-            { _id: 's1', name: 'Driving Licence Renewal', category: 'LICENCE', waitingCount: 6, estimatedTime: 18, activeCounters: 3 },
-            { _id: 's2', name: 'Learner Licence Test', category: 'TEST', waitingCount: 14, estimatedTime: 35, activeCounters: 2 },
-            { _id: 's3', name: 'Vehicle Registration Transfer', category: 'VEHICLE', waitingCount: 9, estimatedTime: 25, activeCounters: 2 },
-            { _id: 's4', name: 'International Driving Permit', category: 'LICENCE', waitingCount: 2, estimatedTime: 10, activeCounters: 1 },
-            { _id: 's5', name: 'Duplicate RC Issue', category: 'VEHICLE', waitingCount: 5, estimatedTime: 15, activeCounters: 2 },
-          ]);
+          setOffice(null);
+          setServices([]);
         }
       } catch (err) {
         console.error(err);
+        setOffice(null);
+        setServices([]);
       } finally {
         setLoading(false);
       }

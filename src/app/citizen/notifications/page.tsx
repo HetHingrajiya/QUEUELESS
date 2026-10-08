@@ -1,65 +1,91 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Bell, CheckCircle2, Clock, Volume2, 
   ArrowRight, Check, Trash2, ShieldCheck, Info 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { EmptyState } from '@/components/common/EmptyState';
+
+interface NotificationItem {
+  _id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+  officeId?: { _id: string; name: string };
+  tokenId?: { _id: string; tokenNumber: string; status: string };
+}
 
 export default function CitizenNotificationsPage() {
-  const [filter, setFilter] = useState<'all' | 'queue' | 'system'>('all');
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'notif-1',
-      title: "Your Token Has Been Called!",
-      body: "Token A-145 is now being called to Counter 4 (Officer Rajesh Sharma). Please proceed within 5 minutes.",
-      time: "2 mins ago",
-      type: "CALL",
-      category: "queue",
-      read: false,
-      link: "/citizen/token-lifecycle/called"
-    },
-    {
-      id: 'notif-2',
-      title: "Time to Leave for RTO Rajkot",
-      body: "Recommended departure window has started. Estimated travel time is 14 minutes in light traffic.",
-      time: "25 mins ago",
-      type: "TRAVEL",
-      category: "queue",
-      read: false,
-      link: "/citizen/queue/leave-time"
-    },
-    {
-      id: 'notif-3',
-      title: "Geofence Check-In Confirmed",
-      body: "Welcome to RTO Rajkot. You are successfully checked into Waiting Hall B.",
-      time: "1 hour ago",
-      type: "CHECKIN",
-      category: "queue",
-      read: true,
-      link: "/citizen/check-in/success"
-    },
-    {
-      id: 'notif-4',
-      title: "System Maintenance Notice",
-      body: "QueueLess server scheduled backup tonight at 2:00 AM. In-progress queues will remain uninterrupted.",
-      time: "Yesterday",
-      type: "SYSTEM",
-      category: "system",
-      read: true,
-      link: "/citizen/notifications/notif-4"
-    }
-  ]);
+  const [filter, setFilter] = useState<'ALL' | 'QUEUE' | 'SYSTEM'>('ALL');
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`/api/citizen/notifications?category=${filter}`);
+      const json = await res.json();
+      if (json.success) {
+        setNotifications(json.data.notifications || []);
+      } else {
+        setError(json.message || 'Failed to load notifications');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filtered = notifications.filter(n => filter === 'all' || n.category === filter);
-  const unreadCount = notifications.filter(n => !n.read).length;
+  useEffect(() => {
+    fetchNotifications();
+  }, [filter]);
+
+  const markAllRead = async () => {
+    try {
+      await fetch('/api/citizen/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllRead: true })
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markSingleRead = async (id: string) => {
+    try {
+      await fetch('/api/citizen/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId: id })
+      });
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await fetch(`/api/citizen/notifications?id=${id}`, { method: 'DELETE' });
+      setNotifications(prev => prev.filter(n => n._id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -74,7 +100,7 @@ export default function CitizenNotificationsPage() {
         {unreadCount > 0 && (
           <button
             onClick={markAllRead}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center"
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center transition-colors"
           >
             <Check size={14} className="mr-1" /> Mark all read
           </button>
@@ -83,97 +109,87 @@ export default function CitizenNotificationsPage() {
 
       {/* Filter Tabs */}
       <div className="flex space-x-2 border-b border-slate-200 pb-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-            filter === 'all'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          All ({notifications.length})
-        </button>
-        <button
-          onClick={() => setFilter('queue')}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-            filter === 'queue'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          Queue Alerts
-        </button>
-        <button
-          onClick={() => setFilter('system')}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-            filter === 'system'
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          System
-        </button>
+        {(['ALL', 'QUEUE', 'SYSTEM'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setFilter(tab)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+              filter === tab
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {tab === 'ALL' ? 'All' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+          </button>
+        ))}
       </div>
 
-      {/* Notifications List */}
-      <div className="space-y-3">
-        {filtered.length > 0 ? (
-          filtered.map((item) => (
-            <Link key={item.id} href={item.link} className="block group">
-              <Card
-                className={`border transition-all ${
-                  item.read
-                    ? 'border-slate-200 bg-white hover:border-slate-300'
-                    : 'border-blue-200 bg-blue-50/40 hover:border-blue-400 shadow-xs'
-                }`}
-              >
-                <CardContent className="p-4 flex items-start space-x-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      item.type === 'CALL'
+      {/* Content */}
+      {loading ? (
+        <SkeletonLoader type="notification" count={4} />
+      ) : error ? (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          {error}
+        </div>
+      ) : notifications.length === 0 ? (
+        <EmptyState
+          icon={<Bell size={32} />}
+          title="No Notifications"
+          description={filter === 'ALL' ? "You're all caught up! Live token and queue alerts will appear here." : `No ${filter.toLowerCase()} notifications found.`}
+          actionText="Explore Offices"
+          actionHref="/citizen/offices"
+        />
+      ) : (
+        <div className="space-y-3">
+          {notifications.map(item => (
+            <Card
+              key={item._id}
+              onClick={() => markSingleRead(item._id)}
+              className={`border-slate-200 transition-all cursor-pointer hover:border-blue-300 ${
+                !item.isRead ? 'bg-blue-50/50 border-blue-200' : 'bg-white'
+              }`}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      item.type === 'QUEUE' || item.type === 'TOKEN_CALLED'
                         ? 'bg-amber-100 text-amber-700'
-                        : item.type === 'TRAVEL'
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : item.type === 'CHECKIN'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    {item.type === 'CALL' ? (
-                      <Volume2 size={20} />
-                    ) : item.type === 'TRAVEL' ? (
-                      <Clock size={20} />
-                    ) : item.type === 'CHECKIN' ? (
-                      <CheckCircle2 size={20} />
-                    ) : (
-                      <Info size={20} />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors flex items-center">
-                        {!item.read && <span className="w-2 h-2 rounded-full bg-blue-600 mr-2 shrink-0"></span>}
-                        {item.title}
-                      </h4>
-                      <span className="text-[10px] text-slate-400 shrink-0 ml-2">{item.time}</span>
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {item.type === 'TOKEN_CALLED' ? <Volume2 size={18} /> : <Bell size={18} />}
                     </div>
-                    <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
-                      {item.body}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-900 truncate">{item.title}</h4>
+                        {!item.isRead && (
+                          <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
+                        {item.message}
+                      </p>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                        <span>{new Date(item.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        {item.officeId?.name && (
+                          <span className="font-medium text-slate-600 truncate max-w-[140px]">{item.officeId.name}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        ) : (
-          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
-            <Bell size={36} className="mx-auto text-slate-300 mb-2" />
-            <h3 className="font-bold text-slate-700">No Notifications</h3>
-            <p className="text-xs text-slate-400 mt-0.5">You're all caught up!</p>
-          </div>
-        )}
-      </div>
+                  <button
+                    onClick={(e) => deleteNotification(item._id, e)}
+                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 transition-colors shrink-0"
+                    title="Delete notification"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

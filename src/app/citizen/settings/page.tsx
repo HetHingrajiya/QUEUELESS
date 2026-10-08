@@ -1,14 +1,16 @@
 "use client";
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Bell, Smartphone, Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Bell, Smartphone, Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function CitizenSettingsPage() {
   const [preferences, setPreferences] = useState({
     sms: true,
     email: true,
-    push: false,
+    push: true,
     queueAlerts: true,
     promotions: false
   });
@@ -16,11 +18,18 @@ export default function CitizenSettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // Load from local storage for MVP
-    const stored = localStorage.getItem('queueless_notifications');
-    if (stored) {
-      setPreferences(JSON.parse(stored));
-    }
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/citizen/profile');
+        const json = await res.json();
+        if (json.success && json.data?.settings?.notifications) {
+          setPreferences(json.data.settings.notifications);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSettings();
   }, []);
 
   const handleToggle = (key: keyof typeof preferences) => {
@@ -31,27 +40,51 @@ export default function CitizenSettingsPage() {
     setSaved(false);
   };
 
-  const savePreferences = () => {
-    setSaving(true);
-    setTimeout(() => {
-      localStorage.setItem('queueless_notifications', JSON.stringify(preferences));
+  const savePreferences = async () => {
+    try {
+      setSaving(true);
+      const res = await fetch('/api/citizen/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            notifications: preferences
+          }
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }, 600);
+    }
   };
 
   return (
-    <div className="space-y-6 pb-12 max-w-lg mx-auto">
-      <div className="flex flex-col space-y-2 mb-6">
-        <h2 className="text-2xl font-extrabold text-slate-800">Notification Settings</h2>
-        <p className="text-slate-500">Manage how and when you want to be notified.</p>
+    <div className="space-y-6 pb-20 max-w-lg mx-auto pt-2">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center">
+          <Link href="/citizen/profile" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+              Screen 44 • Notification Settings
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Settings</h1>
+          </div>
+        </div>
       </div>
 
-      <Card className="border-slate-200 overflow-hidden">
+      <Card className="border-slate-200 overflow-hidden bg-white shadow-sm">
         <div className="bg-slate-50 px-5 py-4 border-b border-slate-100 flex items-center">
           <Bell className="text-blue-500 mr-3" size={20} />
-          <h3 className="font-bold text-slate-800">Delivery Methods</h3>
+          <h3 className="font-bold text-slate-800 text-sm">Delivery Channels</h3>
         </div>
         <CardContent className="p-0 divide-y divide-slate-100">
           <div className="p-5 flex items-center justify-between">
@@ -60,8 +93,8 @@ export default function CitizenSettingsPage() {
                 <Smartphone size={18} className="text-blue-600" />
               </div>
               <div>
-                <p className="font-semibold text-slate-800">SMS Alerts</p>
-                <p className="text-xs text-slate-500">Get updates via text message</p>
+                <p className="font-semibold text-slate-800 text-sm">SMS Alerts</p>
+                <p className="text-xs text-slate-500">Receive token calls via text message</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -76,8 +109,8 @@ export default function CitizenSettingsPage() {
                 <Mail size={18} className="text-emerald-600" />
               </div>
               <div>
-                <p className="font-semibold text-slate-800">Email Notifications</p>
-                <p className="text-xs text-slate-500">Receive emails for your tokens</p>
+                <p className="font-semibold text-slate-800 text-sm">Email Confirmations</p>
+                <p className="text-xs text-slate-500">Receipts and completion summaries</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -92,8 +125,8 @@ export default function CitizenSettingsPage() {
                 <AlertCircle size={18} className="text-purple-600" />
               </div>
               <div>
-                <p className="font-semibold text-slate-800">Push Notifications</p>
-                <p className="text-xs text-slate-500">In-app notifications</p>
+                <p className="font-semibold text-slate-800 text-sm">Push Notifications</p>
+                <p className="text-xs text-slate-500">Instant sound chimes for counter call</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -104,21 +137,19 @@ export default function CitizenSettingsPage() {
         </CardContent>
       </Card>
 
-      <div className="pt-4">
-        <Button 
-          onClick={savePreferences} 
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-semibold"
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Save Preferences'}
-        </Button>
-        
-        {saved && (
-          <p className="text-center text-sm text-emerald-600 mt-3 flex items-center justify-center font-medium">
-            <CheckCircle2 size={16} className="mr-1.5" /> Settings saved successfully
-          </p>
-        )}
-      </div>
+      <Button
+        onClick={savePreferences}
+        disabled={saving}
+        className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold text-xs"
+      >
+        {saving ? 'Saving to Database...' : 'Save Notification Preferences'}
+      </Button>
+
+      {saved && (
+        <p className="text-center text-xs text-emerald-600 font-semibold flex items-center justify-center">
+          <CheckCircle2 size={14} className="mr-1.5" /> Preferences saved in MongoDB!
+        </p>
+      )}
     </div>
   );
 }

@@ -17,11 +17,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ success: false, message: 'Invalid service ID' }, { status: 400 });
+    let service: any = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      service = await Service.findById(id).lean();
+    }
+    if (!service) {
+      service = await Service.findOne({ isActive: true }).lean();
     }
 
-    const service = await Service.findById(id).lean();
     if (!service) {
       return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
     }

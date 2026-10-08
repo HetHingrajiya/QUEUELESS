@@ -1,36 +1,34 @@
 "use client";
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, User, Mail, Phone, Edit3, Settings, Shield, LogOut, CheckCircle2 } from 'lucide-react';
+import { 
+  User, Mail, Phone, Edit3, Settings, Shield, 
+  LogOut, Heart, Clock, HelpCircle, MessageSquare, 
+  Bell, ChevronRight, Lock 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 export default function CitizenProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    mobile: ''
-  });
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/citizen/profile');
         const json = await res.json();
-        if (json.success && json.data?.user) {
-          setProfile(json.data.user);
-          setFormData({
-            fullName: json.data.user.fullName || '',
-            email: json.data.user.email || '',
-            mobile: json.data.user.mobile || ''
-          });
+        if (json.success && json.data) {
+          setProfile(json.data);
+        } else {
+          // fallback to auth/me if profile api not yet warmed
+          const meRes = await fetch('/api/auth/me');
+          const meJson = await meRes.json();
+          if (meJson.success && meJson.data?.user) {
+            setProfile(meJson.data.user);
+          }
         }
       } catch (error) {
         console.error('Failed to load profile', error);
@@ -41,28 +39,6 @@ export default function CitizenProfilePage() {
     
     fetchProfile();
   }, []);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/auth/me', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-      const json = await res.json();
-      if (json.success) {
-        setProfile(json.data.user);
-        setEditing(false);
-      } else {
-        alert(json.message || 'Failed to update profile');
-      }
-    } catch (error) {
-      alert('An error occurred. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -76,124 +52,101 @@ export default function CitizenProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      <div className="max-w-md mx-auto pt-4">
+        <SkeletonLoader type="profile" />
       </div>
     );
   }
 
-  if (!profile) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-        <User size={48} className="text-slate-300 mb-4" />
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Profile Not Found</h2>
-        <p className="text-slate-500 mb-6">We couldn't load your profile information. Please log in again.</p>
-        <Button onClick={() => window.location.href = '/login'}>Go to Login</Button>
-      </div>
-    );
-  }
+  const citizenName = profile?.name || profile?.fullName || 'Citizen User';
+  const citizenEmail = profile?.email || 'citizen@queueless.gov';
+  const citizenPhone = profile?.phone || profile?.mobile || 'Not registered';
+
+  const menuItems = [
+    { label: 'Edit Profile', href: '/citizen/profile/edit', icon: <Edit3 size={18} className="text-blue-600" /> },
+    { label: 'Change Password', href: '/citizen/profile/change-password', icon: <Lock size={18} className="text-indigo-600" /> },
+    { label: 'Account Settings', href: '/citizen/settings/account', icon: <Settings size={18} className="text-slate-600" /> },
+    { label: 'Notification Settings', href: '/citizen/settings', icon: <Bell size={18} className="text-amber-600" /> },
+    { label: 'Privacy Settings', href: '/citizen/settings/privacy', icon: <Shield size={18} className="text-emerald-600" /> },
+    { label: 'Favorites', href: '/citizen/favorites', icon: <Heart size={18} className="text-rose-600" /> },
+    { label: 'Token History', href: '/citizen/token-history', icon: <Clock size={18} className="text-cyan-600" /> },
+    { label: 'Give Feedback', href: '/citizen/feedback', icon: <MessageSquare size={18} className="text-violet-600" /> },
+    { label: 'Help & FAQ', href: '/citizen/help/faq', icon: <HelpCircle size={18} className="text-teal-600" /> },
+  ];
 
   return (
-    <div className="space-y-6 pb-12 max-w-md mx-auto">
-      <div className="flex flex-col space-y-2 mb-6">
-        <h2 className="text-2xl font-extrabold text-slate-800">My Profile</h2>
+    <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
+      {/* Header */}
+      <div className="flex flex-col space-y-1">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit">
+          Screen 40 • Profile
+        </span>
+        <h1 className="text-2xl font-extrabold text-slate-900">Citizen Profile</h1>
       </div>
 
-      <Card className="border-slate-200 overflow-hidden shadow-sm">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 h-24"></div>
-        <CardContent className="p-6 relative pt-0">
-          <div className="flex justify-between items-end mb-6">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg -mt-10 border-4 border-white">
-              <User size={32} className="text-slate-400" />
-            </div>
-            {!editing ? (
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="text-blue-600 border-blue-200 hover:bg-blue-50">
-                <Edit3 size={14} className="mr-1.5" /> Edit
-              </Button>
-            ) : (
-              <div className="flex space-x-2">
-                <Button variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={saving}>Cancel</Button>
-                <Button size="sm" onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
-                </Button>
+      {/* Profile Card */}
+      <Card className="border-slate-200 overflow-hidden shadow-sm bg-white">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 h-20" />
+        <CardContent className="p-5 pt-0 relative">
+          <div className="flex justify-between items-end mb-4">
+            <div className="w-18 h-18 rounded-2xl bg-white p-1 shadow-md -mt-9 border-2 border-white">
+              <div className="w-full h-full rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 font-extrabold text-2xl">
+                {citizenName.charAt(0)}
               </div>
-            )}
+            </div>
+            <Link href="/citizen/profile/edit">
+              <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs">
+                <Edit3 size={13} className="mr-1.5" /> Edit Profile
+              </Button>
+            </Link>
           </div>
 
-          {editing ? (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="fullName" className="text-slate-500 text-xs">Full Name</Label>
-                <Input 
-                  id="fullName" 
-                  value={formData.fullName} 
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})} 
-                  className="mt-1 bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email" className="text-slate-500 text-xs">Email</Label>
-                <Input 
-                  id="email" 
-                  value={formData.email} 
-                  onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                  className="mt-1 bg-slate-50 border-slate-200"
-                />
-              </div>
-              <div>
-                <Label htmlFor="mobile" className="text-slate-500 text-xs">Phone Number</Label>
-                <Input 
-                  id="mobile" 
-                  value={formData.mobile} 
-                  onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
-                  className="mt-1 bg-slate-50 border-slate-200"
-                />
-              </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900">{citizenName}</h2>
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                VERIFIED
+              </span>
             </div>
-          ) : (
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">{profile.fullName}</h3>
-                <p className="text-sm text-slate-500">Citizen</p>
-              </div>
-              
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center text-slate-700 text-sm">
-                  <Mail size={16} className="text-slate-400 mr-3 shrink-0" />
-                  {profile.email}
-                </div>
-                <div className="flex items-center text-slate-700 text-sm">
-                  <Phone size={16} className="text-slate-400 mr-3 shrink-0" />
-                  {profile.mobile || <span className="text-slate-400 italic">Not provided</span>}
-                </div>
-              </div>
-            </div>
-          )}
+            <p className="text-xs text-slate-500 flex items-center">
+              <Mail size={12} className="mr-1.5 text-slate-400" /> {citizenEmail}
+            </p>
+            <p className="text-xs text-slate-500 flex items-center">
+              <Phone size={12} className="mr-1.5 text-slate-400" /> {citizenPhone}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider px-2">Account</h3>
-        
-        <Link href="/citizen/settings" className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 hover:border-blue-300 transition-colors">
-          <div className="flex items-center text-slate-700 font-medium">
-            <Settings size={18} className="text-slate-400 mr-3" />
-            Notification Settings
-          </div>
-        </Link>
-        
-        <Link href="/citizen/help" className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 hover:border-blue-300 transition-colors">
-          <div className="flex items-center text-slate-700 font-medium">
-            <Shield size={18} className="text-slate-400 mr-3" />
-            Help & Support
-          </div>
-        </Link>
+      {/* Menu Options */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs divide-y divide-slate-100">
+        {menuItems.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            className="flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                {item.icon}
+              </div>
+              <span className="text-xs font-semibold text-slate-800">{item.label}</span>
+            </div>
+            <ChevronRight size={16} className="text-slate-400" />
+          </Link>
+        ))}
 
-        <button onClick={handleLogout} className="w-full flex items-center justify-between p-4 bg-white rounded-xl border border-red-100 hover:bg-red-50 transition-colors">
-          <div className="flex items-center text-red-600 font-medium">
-            <LogOut size={18} className="mr-3" />
-            Sign Out
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-between p-3.5 text-red-600 hover:bg-red-50 transition-colors text-left"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+              <LogOut size={18} className="text-red-600" />
+            </div>
+            <span className="text-xs font-semibold">Sign Out</span>
           </div>
+          <ChevronRight size={16} className="text-red-400" />
         </button>
       </div>
     </div>

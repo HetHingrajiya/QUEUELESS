@@ -1,41 +1,67 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Clock, Users, Building2, QrCode, 
-  ArrowRight, AlertCircle, RefreshCw, CheckCircle2, Ticket 
+  ArrowRight, AlertCircle, RefreshCw, XCircle 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { EmptyState } from '@/components/common/EmptyState';
 
 export default function MyQueuePage() {
-  const [activeQueues, setActiveQueues] = useState([
-    {
-      id: 'tok-1',
-      tokenNumber: 'A-145',
-      serviceName: 'Driving Licence Renewal',
-      officeName: 'Regional Transport Office (RTO)',
-      status: 'WAITING',
-      peopleAhead: 6,
-      estimatedWaitMin: 18,
-      nowServing: 'A-139',
-      counterNumber: 'Counter 4',
-      date: 'Today, 10:15 AM'
-    },
-    {
-      id: 'tok-2',
-      tokenNumber: 'B-042',
-      serviceName: 'Birth Certificate Verification',
-      officeName: 'Rajkot Municipal Corporation HQ',
-      status: 'CHECKED_IN',
-      peopleAhead: 2,
-      estimatedWaitMin: 7,
-      nowServing: 'B-040',
-      counterNumber: 'Counter 2',
-      date: 'Today, 11:30 AM'
+  const [activeQueues, setActiveQueues] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchActiveQueues = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch('/api/citizen/queue/my');
+      const json = await res.json();
+      if (json.success) {
+        setActiveQueues(json.data || []);
+      } else {
+        setError(json.message || 'Failed to fetch active queues');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchActiveQueues();
+  }, []);
+
+  const handleCancelToken = async (tokenId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!confirm('Are you sure you want to cancel this active queue token?')) return;
+
+    try {
+      setCancellingId(tokenId);
+      const res = await fetch('/api/citizen/token/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenId, reason: 'Cancelled by citizen from My Queue' })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setActiveQueues(prev => prev.filter(t => t.id !== tokenId && t._id !== tokenId));
+      } else {
+        alert(json.message || 'Failed to cancel token');
+      }
+    } catch (err) {
+      console.error('Cancel error:', err);
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -52,92 +78,119 @@ export default function MyQueuePage() {
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">My Active Queues</h1>
           </div>
         </div>
-        <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-xs">
-          {activeQueues.length} Active
-        </span>
+        <button
+          onClick={fetchActiveQueues}
+          className="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition-colors"
+          title="Refresh Queue"
+        >
+          <RefreshCw size={16} />
+        </button>
       </div>
 
-      <div className="space-y-4">
-        {activeQueues.map((item) => (
-          <Card key={item.id} className="border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className={`h-2 ${item.status === 'CHECKED_IN' ? 'bg-emerald-500' : 'bg-blue-600'}`}></div>
-            <CardContent className="p-5">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    item.status === 'CHECKED_IN'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-blue-50 text-blue-700 border-blue-200'
-                  }`}>
-                    {item.status === 'CHECKED_IN' ? 'CHECKED IN (AT VENUE)' : 'WAITING IN LINE'}
-                  </span>
-                  <h3 className="font-bold text-slate-900 text-base mt-1.5">{item.serviceName}</h3>
-                  <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                    <Building2 size={13} className="mr-1 text-slate-400" />
-                    {item.officeName}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-semibold text-slate-400 uppercase">Token</p>
-                  <p className="text-3xl font-black text-slate-900 tracking-tight">{item.tokenNumber}</p>
-                </div>
-              </div>
-
-              {/* Live Metric Badges */}
-              <div className="grid grid-cols-2 gap-3 my-4">
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                    <Users size={18} />
+      {loading ? (
+        <SkeletonLoader type="queue" count={2} />
+      ) : error ? (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
+          {error}
+        </div>
+      ) : activeQueues.length === 0 ? (
+        <EmptyState
+          icon={<Users size={32} />}
+          title="No Active Queues"
+          description="You don't currently have any active tokens waiting or being served."
+          actionText="Get a New Token"
+          actionHref="/citizen/offices"
+        />
+      ) : (
+        <div className="space-y-4">
+          {activeQueues.map((item) => {
+            const tokenId = item.id || item._id;
+            return (
+              <Card key={tokenId} className="border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
+                <div className={`h-2 ${item.status === 'CHECKED_IN' ? 'bg-emerald-500' : item.status === 'CALLED' ? 'bg-amber-500' : 'bg-blue-600'}`} />
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="min-w-0 pr-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        item.status === 'CHECKED_IN'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : item.status === 'CALLED'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                          : 'bg-blue-50 text-blue-700 border-blue-200'
+                      }`}>
+                        {item.status.replace('_', ' ')}
+                      </span>
+                      <h3 className="font-bold text-slate-900 text-base mt-1.5 truncate">{item.serviceName}</h3>
+                      <p className="text-xs text-slate-500 flex items-center mt-0.5 truncate">
+                        <Building2 size={13} className="mr-1 text-slate-400 shrink-0" />
+                        <span className="truncate">{item.officeName}</span>
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-semibold text-slate-400 uppercase">Token</p>
+                      <p className="text-3xl font-black text-slate-900 tracking-tight">{item.tokenNumber}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[11px] text-slate-500 font-medium">People Ahead</p>
-                    <p className="text-lg font-bold text-slate-900">{item.peopleAhead}</p>
+
+                  {/* Live Metric Badges */}
+                  <div className="grid grid-cols-2 gap-3 my-4">
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                        <Users size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-slate-500 font-medium">People Ahead</p>
+                        <p className="text-lg font-bold text-slate-900">{item.peopleAhead}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                        <Clock size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-slate-500 font-medium">Est. Wait</p>
+                        <p className="text-lg font-bold text-amber-600">~{item.estimatedWaitMin}m</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                    <Clock size={18} />
+                  {/* Currently Serving */}
+                  {item.nowServing && (
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs mb-4">
+                      <span className="text-slate-500">Currently Serving:</span>
+                      <span className="font-bold text-slate-800 font-mono">{item.nowServing}</span>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <Link href={`/citizen/queue/${tokenId}`} className="flex-1">
+                      <Button className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-xs font-bold">
+                        Live Monitor <ArrowRight size={13} className="ml-1" />
+                      </Button>
+                    </Link>
+                    <Link href={`/citizen/token/qr?tokenId=${tokenId}`}>
+                      <Button variant="outline" className="h-10 px-3 text-xs" title="Digital QR">
+                        <QrCode size={16} />
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      onClick={(e) => handleCancelToken(tokenId, e)}
+                      disabled={cancellingId === tokenId}
+                      className="h-10 px-3 text-xs text-red-600 border-red-200 hover:bg-red-50" 
+                      title="Cancel Token"
+                    >
+                      <XCircle size={16} />
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-[11px] text-slate-500 font-medium">Est. Wait</p>
-                    <p className="text-lg font-bold text-slate-900">{item.estimatedWaitMin}m</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status bar */}
-              <div className="flex items-center justify-between text-xs text-slate-500 py-2 border-t border-slate-100 mb-3">
-                <span>Currently Serving: <strong className="text-slate-800">{item.nowServing}</strong></span>
-                <span>{item.counterNumber}</span>
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="flex space-x-2">
-                <Link href={`/citizen/queue/qr`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full text-xs font-semibold border-slate-200">
-                    <QrCode size={14} className="mr-1.5" /> View QR
-                  </Button>
-                </Link>
-                <Link href={`/citizen/queue`} className="flex-1">
-                  <Button size="sm" className="w-full text-xs font-semibold bg-blue-600 hover:bg-blue-700">
-                    Track Live <ArrowRight size={14} className="ml-1.5" />
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Book New Token Action */}
-      <div className="pt-2">
-        <Link href="/citizen/token">
-          <Button variant="outline" className="w-full h-12 border-dashed border-2 border-slate-300 text-slate-700 font-semibold hover:border-blue-400 hover:text-blue-600">
-            + Take Another Virtual Token
-          </Button>
-        </Link>
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

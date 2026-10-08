@@ -41,7 +41,7 @@ export default function ServiceDetails({ params }: { params: Promise<{ id: strin
       const res = await fetch('/api/citizen/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serviceId: id, officeId: data?.office?._id })
+        body: JSON.stringify({ serviceId: data?.service?._id || id, officeId: data?.office?._id })
       });
       const json = await res.json();
       if (json.success) {

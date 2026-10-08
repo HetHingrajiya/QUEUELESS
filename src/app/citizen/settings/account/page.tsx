@@ -1,24 +1,90 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Globe, Moon, Fingerprint, 
-  Trash2, Download, Shield, CheckCircle2 
+  Trash2, Download, CheckCircle2, AlertCircle 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AccountSettingsPage() {
+  const router = useRouter();
   const [language, setLanguage] = useState('en');
   const [biometric, setBiometric] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/citizen/profile');
+        const json = await res.json();
+        if (json.success && json.data?.settings) {
+          const s = json.data.settings;
+          if (s.language) setLanguage(s.language);
+          if (s.biometric !== undefined) setBiometric(s.biometric);
+          if (s.darkMode !== undefined) setDarkMode(s.darkMode);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      const res = await fetch('/api/citizen/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            language,
+            biometric,
+            darkMode
+          }
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      } else {
+        setError(json.message || 'Failed to save settings');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm("Are you sure you want to deactivate your QueueLess Citizen account? This action will invalidate active queue passes.")) return;
+    try {
+      setDeleting(true);
+      const res = await fetch('/api/citizen/profile', { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        alert("Your account has been deactivated.");
+        window.location.href = '/login';
+      } else {
+        alert(json.message || "Failed to deactivate account.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while deactivating account.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -38,7 +104,13 @@ export default function AccountSettingsPage() {
         </div>
       </div>
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+          <AlertCircle size={14} className="shrink-0" /> {error}
+        </div>
+      )}
+
+      <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
         <CardContent className="p-0 divide-y divide-slate-100 text-xs">
           {/* Language Selection */}
           <div className="p-5 flex items-center justify-between">
@@ -109,10 +181,12 @@ export default function AccountSettingsPage() {
       </Card>
 
       {/* Account Data & Danger Zone */}
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
+      <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
         <CardContent className="p-0 divide-y divide-slate-100 text-xs">
           <button
-            onClick={() => alert("Your citizen queue records are being prepared for export.")}
+            onClick={() => {
+              window.open('/api/citizen/token-history', '_blank');
+            }}
             className="w-full p-4 flex items-center justify-between hover:bg-slate-50 text-left transition-colors"
           >
             <div className="flex items-center space-x-3">
@@ -122,16 +196,13 @@ export default function AccountSettingsPage() {
           </button>
 
           <button
-            onClick={() => {
-              if (confirm("Are you sure you want to deactivate your QueueLess Citizen account?")) {
-                alert("Account deactivation request sent.");
-              }
-            }}
+            onClick={handleDeleteAccount}
+            disabled={deleting}
             className="w-full p-4 flex items-center justify-between hover:bg-red-50 text-left text-red-600 transition-colors"
           >
             <div className="flex items-center space-x-3">
               <Trash2 size={16} />
-              <span className="font-medium">Delete / Deactivate Citizen Account</span>
+              <span className="font-medium">{deleting ? 'Deactivating...' : 'Delete / Deactivate Citizen Account'}</span>
             </div>
           </button>
         </CardContent>
@@ -139,14 +210,15 @@ export default function AccountSettingsPage() {
 
       <Button
         onClick={handleSave}
+        disabled={saving}
         className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold text-xs"
       >
-        Save Account Preferences
+        {saving ? 'Saving Preferences...' : 'Save Account Preferences'}
       </Button>
 
       {saved && (
         <p className="text-center text-xs text-emerald-600 font-semibold flex items-center justify-center">
-          <CheckCircle2 size={14} className="mr-1.5" /> Preferences saved successfully
+          <CheckCircle2 size={14} className="mr-1.5" /> Preferences saved in MongoDB!
         </p>
       )}
     </div>

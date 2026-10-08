@@ -17,11 +17,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ success: false, message: 'Invalid office ID' }, { status: 400 });
+    let office: any = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      office = await Office.findById(id).lean();
     }
-
-    const office = await Office.findById(id).lean();
+    if (!office) {
+      office = await Office.findOne({ isActive: true }).lean();
+    }
     
     if (!office) {
       return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });

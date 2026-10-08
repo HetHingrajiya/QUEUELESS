@@ -1,29 +1,52 @@
 "use client";
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, Bell, Calendar, Clock, 
-  ArrowRight, ShieldCheck, Volume2, Info, CheckCircle2 
+  ArrowLeft, Bell, Volume2, ArrowRight 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 export default function NotificationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
-  const details = {
-    id: id || "notif-1",
-    title: "Your Token Has Been Called to Counter 4",
-    body: "Your virtual token A-145 for Driving Licence Renewal has been called by Officer Rajesh Sharma at Counter 4. Please proceed immediately to the assigned counter room on the 1st floor.",
-    time: "Oct 8, 2026 at 10:33 AM",
-    sender: "Regional Transport Office (RTO Rajkot)",
-    priority: "HIGH PRIORITY",
-    actionUrl: "/citizen/token-lifecycle/called",
-    actionLabel: "View Live Token Called Screen"
-  };
+  const [notification, setNotification] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/citizen/notifications')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.data?.notifications) {
+          const match = res.data.notifications.find((n: any) => n._id === id);
+          if (match) {
+            setNotification(match);
+          } else if (res.data.notifications.length > 0) {
+            setNotification(res.data.notifications[0]);
+          }
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto pt-6">
+        <SkeletonLoader type="notification" />
+      </div>
+    );
+  }
+
+  const title = notification?.title || 'Notification Alert';
+  const body = notification?.message || 'Details for this system notification.';
+  const type = notification?.type || 'SYSTEM';
+  const date = notification?.createdAt ? new Date(notification.createdAt).toLocaleString() : new Date().toLocaleString();
+  const officeName = notification?.officeId?.name || 'QueueLess Smart System';
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -45,36 +68,36 @@ export default function NotificationDetailPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
+      <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 text-white flex items-center space-x-3">
           <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md shrink-0">
-            <Volume2 size={24} />
+            {type === 'TOKEN_CALLED' ? <Volume2 size={24} /> : <Bell size={24} />}
           </div>
-          <div>
+          <div className="min-w-0">
             <span className="text-[10px] font-extrabold uppercase tracking-widest bg-white/20 px-2.5 py-0.5 rounded-full">
-              {details.priority}
+              {type}
             </span>
-            <h3 className="font-bold text-base mt-1 line-clamp-1">{details.title}</h3>
+            <h3 className="font-bold text-base mt-1 truncate">{title}</h3>
           </div>
         </div>
 
         <CardContent className="p-6 space-y-4 text-xs">
           <div className="flex justify-between items-center text-slate-400 border-b border-slate-100 pb-3">
             <span>Received:</span>
-            <span className="font-medium text-slate-700">{details.time}</span>
+            <span className="font-medium text-slate-700">{date}</span>
           </div>
 
           <div className="flex justify-between items-center text-slate-400 border-b border-slate-100 pb-3">
             <span>Originating Authority:</span>
-            <span className="font-bold text-slate-800">{details.sender}</span>
+            <span className="font-bold text-slate-800">{officeName}</span>
           </div>
 
           <div className="py-2">
             <p className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider mb-1.5">
-              Notification Message
+              Message Content
             </p>
             <p className="text-slate-800 text-sm leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-              {details.body}
+              {body}
             </p>
           </div>
         </CardContent>
@@ -82,13 +105,8 @@ export default function NotificationDetailPage({ params }: { params: Promise<{ i
 
       {/* CTA Button */}
       <div className="space-y-2">
-        <Link href={details.actionUrl} className="block w-full">
-          <Button className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold shadow-md">
-            {details.actionLabel} <ArrowRight size={16} className="ml-2" />
-          </Button>
-        </Link>
         <Link href="/citizen/notifications" className="block w-full">
-          <Button variant="ghost" className="w-full text-xs text-slate-500">
+          <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs">
             Back to All Notifications
           </Button>
         </Link>

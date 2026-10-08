@@ -5,31 +5,77 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Heart, MapPin, Clock, Users, 
-  Building2, ArrowRight, Zap, CheckCircle2, ShieldCheck 
+  Building2, ArrowRight, Zap, ShieldCheck 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 
 export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const [office, setOffice] = useState<any>(null);
   const [isFavorite, setIsFavorite] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const office = {
-    id: id || "fav-1",
-    name: "Regional Transport Office (RTO Rajkot)",
-    address: "Civil Center, Ring Road, Sector 12",
-    distance: "2.4 km away",
-    status: "OPEN (LIGHT QUEUE)",
-    totalCounters: 8,
-    activeQueueLength: 14,
-    avgWaitTime: "12 mins",
-    popularServices: [
-      { id: "s1", name: "Driving Licence Renewal", wait: "10 mins" },
-      { id: "s2", name: "Learner Licence Test", wait: "18 mins" },
-      { id: "s3", name: "Vehicle Registration", wait: "15 mins" }
-    ]
+  useEffect(() => {
+    const fetchOffice = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/citizen/offices/${id}`);
+        const json = await res.json();
+        if (json.success) {
+          setOffice(json.data.office);
+        } else {
+          setError(json.message || 'Office not found');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch office');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOffice();
+  }, [id]);
+
+  const toggleFavorite = async () => {
+    try {
+      if (isFavorite) {
+        await fetch(`/api/citizen/favorites?officeId=${id}`, { method: 'DELETE' });
+        setIsFavorite(false);
+      } else {
+        await fetch('/api/citizen/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ officeId: id })
+        });
+        setIsFavorite(true);
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite', err);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto pt-4">
+        <SkeletonLoader type="office" count={1} />
+      </div>
+    );
+  }
+
+  if (error || !office) {
+    return (
+      <div className="max-w-md mx-auto pt-6 text-center">
+        <p className="text-red-600 font-medium">{error || 'Office not found'}</p>
+        <Link href="/citizen/favorites" className="text-blue-600 font-semibold text-sm mt-3 inline-block">
+          Return to Favorites
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -51,10 +97,11 @@ export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{
         </div>
 
         <button
-          onClick={() => setIsFavorite(!isFavorite)}
+          onClick={toggleFavorite}
           className={`p-2 rounded-full border transition-colors ${
             isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'bg-slate-100 border-slate-200 text-slate-400'
           }`}
+          title={isFavorite ? 'Remove Favorite' : 'Add to Favorites'}
         >
           <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
         </button>
@@ -77,15 +124,15 @@ export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
               <span className="text-slate-400 flex items-center">
-                <Users size={13} className="mr-1 text-blue-500" /> Current Queue
+                <Users size={13} className="mr-1 text-blue-500" /> Department
               </span>
-              <p className="text-lg font-black text-slate-900 mt-1">{office.activeQueueLength} Waiting</p>
+              <p className="text-sm font-black text-slate-900 mt-1 truncate">{office.department || 'General'}</p>
             </div>
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
               <span className="text-slate-400 flex items-center">
-                <Clock size={13} className="mr-1 text-emerald-500" /> Avg Wait
+                <Clock size={13} className="mr-1 text-emerald-500" /> Working Hours
               </span>
-              <p className="text-lg font-black text-emerald-600 mt-1">~{office.avgWaitTime}</p>
+              <p className="text-xs font-bold text-emerald-600 mt-1 truncate">{office.operatingHours || office.workingHours || '09:00 - 17:00'}</p>
             </div>
           </div>
 
@@ -93,36 +140,41 @@ export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center">
               <Zap size={14} className="text-amber-500 mr-1.5" />
-              1-Click Instant Virtual Token
+              Available Services
             </h4>
             <div className="space-y-2">
-              {office.popularServices.map((srv) => (
-                <Link key={srv.id} href={`/citizen/services/${srv.id}`}>
-                  <div className="p-3 bg-white rounded-xl border border-slate-200 hover:border-blue-400 flex items-center justify-between transition-colors group">
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600">{srv.name}</p>
-                      <p className="text-[11px] text-slate-400">Est. wait: {srv.wait}</p>
+              {office.services && office.services.length > 0 ? (
+                office.services.map((srv: any) => (
+                  <Link key={srv._id} href={`/citizen/services/${srv._id}`}>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 hover:border-red-300 transition-all text-xs">
+                      <div>
+                        <p className="font-bold text-slate-800">{srv.name}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Est. {srv.estimatedServiceTime || 15} mins • Fee: ₹{srv.fee || 0}</p>
+                      </div>
+                      <span className="text-[11px] font-semibold text-blue-600 flex items-center">
+                        Get Token <ArrowRight size={12} className="ml-1" />
+                      </span>
                     </div>
-                    <Button size="sm" className="h-8 text-xs bg-blue-600 hover:bg-blue-700">
-                      Book
-                    </Button>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 italic">No services registered for this office.</p>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Link href={`/citizen/offices/${id || 'default'}`} className="block">
-          <Button variant="outline" className="w-full text-xs font-semibold border-slate-300">
-            Full Office Profile
+      {/* Actions */}
+      <div className="space-y-2">
+        <Link href={`/citizen/offices/${office._id}`} className="block w-full">
+          <Button className="w-full h-11 bg-slate-900 hover:bg-slate-800 font-bold text-xs">
+            View Full Office Profile
           </Button>
         </Link>
-        <Link href="/citizen/favorites" className="block">
-          <Button variant="outline" className="w-full text-xs font-semibold border-slate-300">
-            View All Saved
+        <Link href="/citizen/favorites" className="block w-full">
+          <Button variant="ghost" className="w-full text-xs text-slate-500">
+            Back to Saved Offices
           </Button>
         </Link>
       </div>

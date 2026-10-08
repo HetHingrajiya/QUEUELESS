@@ -71,7 +71,7 @@ export default function CitizenTokenGeneration() {
       const json = await res.json();
       if (json.success) {
         // Navigate to confirmation page or live queue
-        router.push(`/citizen/queue/${json.data.tokenId}`);
+        router.push(`/citizen/token/confirmation?tokenId=${json.data.tokenId}`);
       } else {
         alert(json.message || 'Failed to generate token');
       }

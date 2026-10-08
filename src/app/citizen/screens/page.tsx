@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Layers, Search, CheckCircle2, ArrowRight, 
@@ -120,6 +120,35 @@ export default function CitizenScreensDirectoryPage() {
     'System / Error / Permission'
   ];
 
+  const [sampleIds, setSampleIds] = useState<{ officeId?: string; serviceId?: string; tokenId?: string }>({});
+
+  useEffect(() => {
+    fetch('/api/citizen/home')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.data.offices && res.data.offices.length > 0) {
+          setSampleIds(prev => ({ ...prev, officeId: res.data.offices[0]._id }));
+        }
+        if (res.success && res.data.activeToken) {
+          setSampleIds(prev => ({ ...prev, tokenId: res.data.activeToken.id }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const resolveRoute = (route: string) => {
+    if (route.includes('office_sample') && sampleIds.officeId) {
+      return route.replace('office_sample', sampleIds.officeId);
+    }
+    if (route.includes('fav_sample') && sampleIds.officeId) {
+      return route.replace('fav_sample', sampleIds.officeId);
+    }
+    if (route.includes('tok_sample') && sampleIds.tokenId) {
+      return route.replace('tok_sample', sampleIds.tokenId);
+    }
+    return route;
+  };
+
   const filteredScreens = CITIZEN_59_SCREENS.filter((s) => {
     const matchesSearch = 
       s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -190,7 +219,7 @@ export default function CitizenScreensDirectoryPage() {
         {filteredScreens.map((screen) => (
           <Link
             key={screen.id}
-            href={screen.route}
+            href={resolveRoute(screen.route)}
             className="block group h-full"
           >
             <Card className="h-full border-slate-200 hover:border-blue-400 hover:shadow-md transition-all flex flex-col justify-between">
