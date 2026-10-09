@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
 import { CitizenProfile, ApiResponse } from '@/types/citizen';
 
 export default function CitizenProfilePage() {
@@ -55,9 +55,7 @@ export default function CitizenProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto pt-4">
-        <SkeletonLoader type="profile" />
-      </div>
+      <div className="max-w-md mx-auto pt-4"><LoadingState label="Loading your profile..." /></div>
     );
   }
 
