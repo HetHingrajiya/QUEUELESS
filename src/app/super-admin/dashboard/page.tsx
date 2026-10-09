@@ -30,16 +30,33 @@ async function getDashboardStats() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const [
     todaysTokens,
     completedTokens,
     waitingTokens,
     noShowTokens,
+    hourlyCounts,
+    serviceCounts,
   ] = await Promise.all([
-    Token.countDocuments({ createdAt: { $gte: today } }),
-    Token.countDocuments({ createdAt: { $gte: today }, status: TokenStatus.COMPLETED }),
-    Token.countDocuments({ createdAt: { $gte: today }, status: TokenStatus.WAITING }),
-    Token.countDocuments({ createdAt: { $gte: today }, status: TokenStatus.NO_SHOW }),
+    Token.countDocuments({ createdAt: { $gte: today, $lt: tomorrow } }),
+    Token.countDocuments({ createdAt: { $gte: today, $lt: tomorrow }, status: TokenStatus.COMPLETED }),
+    Token.countDocuments({ createdAt: { $gte: today, $lt: tomorrow }, status: TokenStatus.WAITING }),
+    Token.countDocuments({ createdAt: { $gte: today, $lt: tomorrow }, status: TokenStatus.NO_SHOW }),
+    Token.aggregate([
+      { $match: { createdAt: { $gte: today, $lt: tomorrow } } },
+      { $group: { _id: { $hour: '$createdAt' }, queue: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]),
+    Token.aggregate([
+      { $match: { serviceId: { $exists: true, $ne: null } } },
+      { $lookup: { from: 'services', localField: 'serviceId', foreignField: '_id', as: 'service' } },
+      { $group: { _id: { $ifNull: [{ $arrayElemAt: ['$service.name', 0] }, 'Unassigned service'] }, value: { $sum: 1 } } },
+      { $sort: { value: -1 } },
+      { $limit: 8 },
+    ]),
   ]);
 
   // Calculate average waiting time for completed tokens today
@@ -75,7 +92,16 @@ async function getDashboardStats() {
     completedTokens,
     waitingTokens,
     avgWaitTimeMinutes,
-    noShowRate
+    noShowRate,
+    hourlyData: Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      time: hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`,
+      queue: hourlyCounts.find((item: { _id: number }) => item._id === hour)?.queue ?? 0,
+    })),
+    serviceData: serviceCounts.map((item: { _id: string; value: number }) => ({
+      name: item._id,
+      value: item.value,
+    })),
   };
 }
 
@@ -103,7 +129,7 @@ export default async function SuperAdminDashboard() {
       </div>
 
       {/* Charts Section */}
-      <DashboardCharts />
+      <DashboardCharts hourlyData={stats.hourlyData} serviceData={stats.serviceData} />
     </div>
   );
 }
