@@ -65,8 +65,7 @@ async def predict_wait_time(request: PredictionRequest):
     # 3. Active counters scoped to this office
     counter_count = await db.counters.count_documents({
         "officeId": office_oid,
-        "status": "ACTIVE",
-        "isActive": True
+        "status": "ACTIVE"
     })
     active_counters = max(1, counter_count)
 

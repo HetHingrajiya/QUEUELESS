@@ -63,7 +63,8 @@ def extract_real_training_data(db):
     services = {str(s["_id"]): s for s in db.services.find({})}
 
     # Active counters per office (DATA ISOLATION)
-    counters_cursor = db.counters.find({"status": "ACTIVE", "isActive": True})
+    # Active counters per office (DATA ISOLATION)
+    counters_cursor = db.counters.find({"status": "ACTIVE"})
     active_counters_per_office = {}
     for c in counters_cursor:
         off_id = str(c.get("officeId", ""))
@@ -109,7 +110,7 @@ def extract_real_training_data(db):
 
         # Timeline event resolution from both Token document and QueueEvents
         created_at = t.get("createdAt")
-        called_at = t.get("calledAt")
+        called_at = t.get("callTime") or t.get("calledAt")
         started_at = t.get("startTime")
         completed_at = t.get("completionTime") or t.get("endTime")
 
@@ -162,15 +163,22 @@ def extract_real_training_data(db):
         else:
             priority_val = int(priority_val) if priority_val else 0
 
-        queue_pos = t.get("position", 1) or 1
-        active_counters = active_counters_per_office.get(office_id, 1) or 1
+        queue_pos = t.get("queuePosition") or t.get("position") or 1
+        queue_pos = max(1, int(queue_pos))
+        people_ahead = max(0, queue_pos - 1)
+
+        active_counters = t.get("activeCounters") or active_counters_per_office.get(office_id, 1) or 1
+        active_counters = max(1, int(active_counters))
+
+        # Foundational queue ratio: (people_ahead * service_duration) / active_counters
+        queue_ratio = (people_ahead * float(avg_service_duration)) / active_counters
 
         rows.append({
             "token_id": t_id,
             "office_id": office_id,
             "service_id": service_id,
             "queue_length": int(queue_pos),
-            "people_ahead": max(0, int(queue_pos) - 1),
+            "people_ahead": int(people_ahead),
             "hour": int(hour_of_day),
             "day_of_week": int(day_of_week),
             "is_weekend": int(is_weekend),
@@ -178,6 +186,7 @@ def extract_real_training_data(db):
             "priority": int(priority_val),
             "active_counters": int(active_counters),
             "service_duration": float(avg_service_duration),
+            "queue_ratio": float(queue_ratio),
             "actual_service_time": float(actual_service_time) if actual_service_time is not None else float(avg_service_duration),
             "actual_wait_time": float(actual_wait_minutes)
         })
@@ -199,7 +208,8 @@ def train_and_evaluate_model(db=None):
 
     feature_cols = [
         "queue_length", "people_ahead", "hour", "day_of_week",
-        "is_weekend", "is_working_hour", "priority", "active_counters", "service_duration"
+        "is_weekend", "is_working_hour", "priority", "active_counters", "service_duration",
+        "queue_ratio"
     ]
 
     if len(df) < MIN_SAMPLES_THRESHOLD:
@@ -230,9 +240,9 @@ def train_and_evaluate_model(db=None):
 
     # 2. Machine Learning Model: Random Forest Regressor
     model = RandomForestRegressor(
-        n_estimators=50,
-        max_depth=6,
-        min_samples_split=3,
+        n_estimators=100,
+        max_depth=10,
+        min_samples_split=2,
         random_state=42
     )
     model.fit(X_train, y_train)
@@ -274,17 +284,30 @@ def train_and_evaluate_model(db=None):
     with open(EVAL_PATH, "w") as f:
         json.dump(evaluation, f, indent=2)
 
+    # Invalidate in-memory cached model so next prediction reloads
+    global _CACHED_MODEL, _CACHED_MTIME
+    _CACHED_MODEL = None
+    _CACHED_MTIME = 0
+
     print(f"Model saved to {MODEL_PATH}")
     print(f"Evaluation report saved to {EVAL_PATH}")
     print(f"Baseline MAE: {baseline_mae:.2f} | ML MAE: {ml_mae:.2f}")
 
     return evaluation
 
+_CACHED_MODEL = None
+_CACHED_MTIME = 0
+
 def load_model():
-    """Loads model if exists, otherwise returns None."""
+    """Loads model from disk or cache if exists, otherwise returns None."""
+    global _CACHED_MODEL, _CACHED_MTIME
     if os.path.exists(MODEL_PATH):
         try:
-            return joblib.load(MODEL_PATH)
+            mtime = os.path.getmtime(MODEL_PATH)
+            if _CACHED_MODEL is None or mtime != _CACHED_MTIME:
+                _CACHED_MODEL = joblib.load(MODEL_PATH)
+                _CACHED_MTIME = mtime
+            return _CACHED_MODEL
         except Exception as e:
             print(f"Error loading model: {e}")
             return None
@@ -306,12 +329,14 @@ def predict_wait_time_ml(
     model = load_model()
     is_weekend = 1 if day_of_week >= 5 else 0
     priority_encoded = 1 if str(priority).upper() in ["HIGH", "VIP"] else 0
-    counters_safe = max(1, active_counters)
+    counters_safe = max(1, int(active_counters))
     service_safe = max(1.0, float(service_duration))
+    people_ahead_safe = max(0, int(people_ahead))
+    queue_ratio = (people_ahead_safe * service_safe) / counters_safe
 
     # If model is unavailable or in cold-start, use transparent statistical fallback
     if model is None:
-        stat_wait = max(1, int(round((people_ahead * service_safe) / counters_safe)))
+        stat_wait = max(1, int(round(queue_ratio)))
         return {
             "estimated_wait_time_mins": stat_wait,
             "confidence_score": None, # Genuine: No fake confidence
@@ -323,15 +348,16 @@ def predict_wait_time_ml(
     is_working_hour = 1 if 9 <= hour <= 17 else 0
 
     features = [
-        queue_length,
-        people_ahead,
-        hour,
-        day_of_week,
-        is_weekend,
-        is_working_hour,
-        priority_encoded,
-        counters_safe,
-        service_safe
+        int(queue_length),
+        int(people_ahead_safe),
+        int(hour),
+        int(day_of_week),
+        int(is_weekend),
+        int(is_working_hour),
+        int(priority_encoded),
+        int(counters_safe),
+        float(service_safe),
+        float(queue_ratio)
     ]
 
     # Predict with all trees to genuinely compute prediction variance / confidence

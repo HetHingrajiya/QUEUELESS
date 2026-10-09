@@ -46,8 +46,7 @@ def get_queue_analytics(
     # Real Active Counters for this office
     active_counters_count = db.counters.count_documents({
         "officeId": office_oid,
-        "status": "ACTIVE",
-        "isActive": True
+        "status": "ACTIVE"
     })
     active_counters = max(1, active_counters_count)
 
