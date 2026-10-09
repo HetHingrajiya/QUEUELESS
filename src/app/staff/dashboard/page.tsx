@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Ticket, Users, CheckCircle2, PlayCircle } from 'lucide-react';
+import { Ticket, Users, CheckCircle2, PlayCircle, Loader2 } from 'lucide-react';
 import { getSocket } from '@/lib/socketClient';
 import { LoadingState } from '@/components/common/LoadingState';
 import { ErrorState } from '@/components/common/ErrorState';
