@@ -1,3 +1,6 @@
+// Queue stats depend on live MongoDB data and must be evaluated per request.
+export const dynamic = 'force-dynamic';
+
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, PlayCircle, CheckCircle2, XCircle, AlertTriangle, MonitorPlay } from 'lucide-react';
