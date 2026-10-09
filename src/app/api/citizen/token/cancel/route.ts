@@ -98,6 +98,43 @@ export async function POST(req: NextRequest) {
       request: req
     });
 
+    // Persist a citizen-visible notification; delivery failures must not undo cancellation.
+    try {
+      const { Notification } = await import('@/models/Notification');
+      await Notification.create({
+        userId: user.userId,
+        officeId: token.officeId,
+        tokenId: token._id,
+        type: 'TOKEN',
+        title: 'Token Cancelled',
+        message: `Your token ${token.tokenNumber} has been cancelled successfully.`,
+        channel: 'IN_APP',
+        isRead: false
+      });
+      try {
+        const { sendWebPush } = await import('@/lib/push');
+        await sendWebPush(user.userId, 'Token Cancelled', `Your token ${token.tokenNumber} has been cancelled successfully.`, '/citizen/notifications');
+      } catch (pushErr) {
+        console.error('Failed to send cancellation push notification', pushErr);
+      }
+      try {
+        const { getSocket } = await import('@/lib/socketClient');
+        getSocket().emit('notification:new', {
+          userId: user.userId,
+          officeId: token.officeId?.toString(),
+          tokenId: token._id.toString(),
+          type: 'TOKEN',
+          title: 'Token Cancelled',
+          message: `Your token ${token.tokenNumber} has been cancelled successfully.`,
+          createdAt: new Date().toISOString()
+        });
+      } catch (socketErr) {
+        console.error('Failed to broadcast cancellation notification', socketErr);
+      }
+    } catch (notificationErr) {
+      console.error('Failed to persist cancellation notification', notificationErr);
+    }
+
     try {
       const { getSocket } = await import('@/lib/socketClient');
       const socket = getSocket();
