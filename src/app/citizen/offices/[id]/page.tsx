@@ -140,9 +140,9 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
           <div className="flex items-center text-emerald-600 mb-2">
             <CheckCircle2 size={18} className="mr-2" />
-            <span className="font-semibold text-sm">Open Now</span>
+            <span className="font-semibold text-sm">Office Status</span>
           </div>
-          <p className="text-xs text-slate-600">Standard operating hours</p>
+          <p className="text-xs text-slate-600">{office.status === 'ACTIVE' ? 'Active and accepting bookings' : 'Currently unavailable'}</p>
         </div>
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
           <div className="flex items-center text-blue-600 mb-2">
