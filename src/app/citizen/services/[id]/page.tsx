@@ -1,10 +1,12 @@
 "use client";
 import Link from 'next/link';
-import { ArrowLeft, Clock, Users, Briefcase, Loader2, Info } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CitizenService, CitizenOffice, QueueMetrics, ApiResponse } from '@/types/citizen';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 
 export default function ServiceDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -13,12 +15,14 @@ export default function ServiceDetails({ params }: { params: Promise<{ id: strin
   const [data, setData] = useState<{ service: CitizenService, office: CitizenOffice, stats: QueueMetrics } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     const fetchServiceDetails = async () => {
       try {
         const res = await fetch(`/api/citizen/services/${id}`);
+        if (!res.ok) throw new Error(`Unable to load service details (${res.status})`);
         const json: ApiResponse<{ service: CitizenService, office: CitizenOffice, stats: QueueMetrics }> = await res.json();
         
         if (json.success && json.data) {
@@ -34,7 +38,7 @@ export default function ServiceDetails({ params }: { params: Promise<{ id: strin
     };
     
     fetchServiceDetails();
-  }, [id]);
+  }, [id, retryCount]);
 
   const handleTakeToken = async () => {
     setGenerating(true);
@@ -58,25 +62,14 @@ export default function ServiceDetails({ params }: { params: Promise<{ id: strin
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
+    return <LoadingState label="Loading service details..." className="py-16" />;
   }
 
   if (error || !data) {
     return (
-      <div className="py-12 text-center">
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl inline-block mb-4">
-          <Info size={32} className="mx-auto mb-2" />
-          <p>{error || 'Service not found'}</p>
-        </div>
-        <div>
-          <Button variant="ghost" onClick={() => router.back()} className="text-blue-600">
-            ← Go Back
-          </Button>
-        </div>
+      <div className="py-8 space-y-4">
+        <ErrorState description={error || 'Service not found'} onRetry={() => setRetryCount((count) => count + 1)} />
+        <div className="text-center"><Button variant="ghost" onClick={() => router.back()} className="text-blue-600">← Go Back</Button></div>
       </div>
     );
   }
