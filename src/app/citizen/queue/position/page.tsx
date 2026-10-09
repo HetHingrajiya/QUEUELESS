@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { ArrowLeft, Users, ArrowRight, Activity } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { getSocket } from '@/lib/socketClient';
 import { CitizenQueueSummary, ApiResponse } from '@/types/citizen';
@@ -14,14 +15,16 @@ export default function QueuePositionPage() {
   const [queueData, setQueueData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const fetchPosition = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
       const res = await fetch('/api/citizen/queue');
+      if (!res.ok) throw new Error(`Unable to load queue position (${res.status})`);
       const json: ApiResponse<CitizenQueueSummary> = await res.json();
-      if (json.success && json.data) {
-        setQueueData(json.data);
+      if (json.success) {
+        setQueueData(json.data ?? null);
         setError(null);
       } else {
         setError(json.message || 'No active queue token found');
@@ -69,7 +72,7 @@ export default function QueuePositionPage() {
       events.forEach(ev => socket.off(ev, handleUpdate));
       clearInterval(fallbackPoll);
     };
-  }, [fetchPosition]);
+  }, [fetchPosition, retryCount]);
 
   // Join token-specific and office-specific rooms when active token is loaded
   useEffect(() => {
@@ -97,12 +100,16 @@ export default function QueuePositionPage() {
   if (loading) {
     return (
       <div className="max-w-md mx-auto pt-4">
-        <SkeletonLoader type="queue" />
+        <LoadingState label="Loading queue position..." />
       </div>
     );
   }
 
-  if (error || !queueData?.token) {
+  if (error) {
+    return <div className="max-w-md mx-auto pt-8"><ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} /></div>;
+  }
+
+  if (!queueData?.token) {
     return (
       <div className="max-w-md mx-auto pt-8">
         <EmptyState
