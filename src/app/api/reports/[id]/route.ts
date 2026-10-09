@@ -12,7 +12,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbConnect();
     const user = await getUserFromCookie();
     if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ success: false, message: 'Forbidden: report access is restricted to administrators' }, { status: 403 });
+    }
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      if (!(await hasPermission(user.userId, 'VIEW_ANALYTICS'))) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing VIEW_ANALYTICS permission' }, { status: 403 });
+      }
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid report ID' }, { status: 400 });
@@ -27,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     // Org isolation for admins
-    if (user.role === 'ADMIN' && report.organizationId?.toString() !== user.organizationId) {
+    if (user.role === 'ADMIN' && report.organizationId?.toString() !== user.organizationId?.toString()) {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
@@ -80,8 +86,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     await dbConnect();
     const user = await getUserFromCookie();
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+      return NextResponse.json({ success: false, message: 'Forbidden: only administrators can delete reports' }, { status: 403 });
+    }
+    if (user.role === 'ADMIN') {
+      const { hasPermission } = await import('@/lib/permissions');
+      if (!(await hasPermission(user.userId, 'VIEW_ANALYTICS'))) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Missing VIEW_ANALYTICS permission' }, { status: 403 });
+      }
     }
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ success: false, message: 'Invalid report ID' }, { status: 400 });
