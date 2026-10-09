@@ -1,4 +1,6 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,9 +62,7 @@ export default async function CountersPage() {
                       {counter.serviceIds && counter.serviceIds.length > 0 ? counter.serviceIds.map((s: any) => s.name).join(', ') : 'All Services'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${counter.status === 'ACTIVE' || counter.status === 'SERVING' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                        {counter.status || 'OFFLINE'}
-                      </span>
+                      <StatusBadge status={counter.status || 'OFFLINE'} />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <CounterActions counterId={counter._id.toString()} />
@@ -71,11 +71,7 @@ export default async function CountersPage() {
                 ))}
                 
                 {counters.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      No counters found.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={6} title="No counters found" description="Counters across your offices will appear here." />
                 )}
               </tbody>
             </table>
