@@ -1,16 +1,19 @@
 "use client";
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
-import { MapPin, Clock, Users, ArrowLeft, ArrowRight, CheckCircle2, Loader2, Info, Heart } from 'lucide-react';
+import { MapPin, Clock, Users, ArrowLeft, ArrowRight, CheckCircle2, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
 import { CitizenOffice, CitizenService, ApiResponse } from '@/types/citizen';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 
 export default function OfficeDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [data, setData] = useState<{ office: CitizenOffice, services: CitizenService[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [togglingFav, setTogglingFav] = useState(false);
@@ -19,6 +22,7 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
     const fetchOfficeDetails = async () => {
       try {
         const res = await fetch(`/api/citizen/offices/${id}`);
+        if (!res.ok) throw new Error(`Unable to load office details (${res.status})`);
         const json: ApiResponse<{ office: CitizenOffice; services: CitizenService[] }> = await res.json();
         
         if (json.success && json.data) {
@@ -60,28 +64,17 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
       }
     };
     checkFavoriteStatus();
-  }, [id]);
+  }, [id, retryCount]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
+    return <LoadingState label="Loading office details..." className="py-16" />;
   }
 
   if (error || !data) {
     return (
-      <div className="py-12 text-center">
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl inline-block mb-4">
-          <Info size={32} className="mx-auto mb-2" />
-          <p>{error || 'Office not found'}</p>
-        </div>
-        <div>
-          <Link href="/citizen/offices" className="text-blue-600 font-medium hover:underline">
-            ← Back to Offices
-          </Link>
-        </div>
+      <div className="py-8 space-y-4">
+        <ErrorState description={error || 'Office not found'} onRetry={() => setRetryCount((count) => count + 1)} />
+        <div className="text-center"><Link href="/citizen/offices" className="text-blue-600 font-medium hover:underline">← Back to Offices</Link></div>
       </div>
     );
   }
