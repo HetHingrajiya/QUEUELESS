@@ -105,8 +105,8 @@ export default function CitizenProfilePage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-bold text-slate-900">{citizenName}</h2>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                VERIFIED
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${profile?.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                {profile?.status === 'ACTIVE' ? 'ACTIVE' : profile?.status === 'INACTIVE' ? 'INACTIVE' : 'STATUS UNKNOWN'}
               </span>
             </div>
             <p className="text-xs text-slate-500 flex items-center">
