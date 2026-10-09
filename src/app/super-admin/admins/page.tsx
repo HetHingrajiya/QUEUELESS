@@ -1,4 +1,6 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,9 +55,7 @@ export default async function AdminsPage() {
                       {admin.organizationId ? (admin.organizationId as any).name : '-'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
-                        ACTIVE
-                      </span>
+                      <StatusBadge status={admin.status || 'UNKNOWN'} />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <AdminActions adminId={admin._id.toString()} />
@@ -64,11 +64,7 @@ export default async function AdminsPage() {
                 ))}
                 
                 {admins.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No administrators found.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={5} title="No administrators found" description="Organization administrators will appear here." />
                 )}
               </tbody>
             </table>
