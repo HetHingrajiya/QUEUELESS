@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Plus, Edit, Eye } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
