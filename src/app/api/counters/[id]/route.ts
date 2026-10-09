@@ -88,6 +88,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
        updateData.organizationId = body.organizationId;
     }
 
+    // A counter can only be moved to an office in the same authorized organization.
+    if (updateData.officeId !== undefined) {
+      const targetOffice = await Office.findById(updateData.officeId).lean();
+      if (!targetOffice) {
+        return NextResponse.json({ success: false, message: 'Target office not found' }, { status: 404 });
+      }
+      if (currentUser.role === 'ADMIN' &&
+          targetOffice.organizationId?.toString() !== currentUser.organizationId?.toString()) {
+        return NextResponse.json({ success: false, message: 'Cannot move a counter outside your organization' }, { status: 403 });
+      }
+    }
+
     const { User } = await import('@/models/User');
 
     if (updateData.staffId !== undefined) {
