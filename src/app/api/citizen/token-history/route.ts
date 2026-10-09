@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
-import { Token } from '@/models/Token';
+import { Token, TokenStatus } from '@/models/Token';
 import { getUserFromCookie } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
@@ -37,8 +37,13 @@ export async function GET(req: NextRequest) {
     }
 
     const filter: Record<string, unknown> = { citizenId: user.userId };
-    if (statusParam && statusParam !== 'ALL') {
-      filter.status = statusParam.toUpperCase();
+    if (statusParam && statusParam.toUpperCase() !== 'ALL') {
+      const normalizedStatus = statusParam.toUpperCase();
+      // Queue operations may persist a missed turn as either NO_SHOW or SKIPPED.
+      // Keep both visible in the citizen's "No Show" history filter.
+      filter.status = normalizedStatus === 'NO_SHOW'
+        ? { $in: [TokenStatus.NO_SHOW, TokenStatus.SKIPPED] }
+        : normalizedStatus;
     }
 
     // Fetch all tokens for this citizen, sorted by newest first
