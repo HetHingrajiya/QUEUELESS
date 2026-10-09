@@ -43,12 +43,34 @@ export async function GET(req: NextRequest) {
        return NextResponse.json({ success: false, message: 'Admin has no organization assigned' }, { status: 404 });
     }
 
-    // Get all tokens
-    const tokens = await Token.find(officeQuery)
+    const { searchParams } = new URL(req.url);
+    const hasPagination = searchParams.has('page');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, parseInt(searchParams.get('limit') || '10', 10));
+    const search = searchParams.get('search')?.trim();
+    const status = searchParams.get('status')?.trim();
+
+    const query: any = { ...officeQuery };
+    if (status && status !== 'ALL') {
+      query.status = status;
+    }
+    if (search) {
+      query.$or = [
+        { tokenNumber: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const total = await Token.countDocuments(query);
+    let tokenQuery = Token.find(query)
       .sort({ createdAt: -1 })
       .populate('serviceId', 'name')
-      .populate('officeId', 'name')
-      .lean();
+      .populate('officeId', 'name');
+
+    if (hasPagination) {
+      tokenQuery = tokenQuery.skip((page - 1) * limit).limit(limit);
+    }
+
+    const tokens = await tokenQuery.lean();
 
     return NextResponse.json({
       success: true,
@@ -59,7 +81,13 @@ export async function GET(req: NextRequest) {
         office: t.officeId?.name || 'Unknown',
         status: t.status,
         createdAt: t.createdAt
-      }))
+      })),
+      pagination: {
+        total,
+        page: hasPagination ? page : 1,
+        limit: hasPagination ? limit : total,
+        totalPages: hasPagination ? Math.max(1, Math.ceil(total / limit)) : 1
+      }
     });
 
   } catch (error: any) {
