@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const citizen = await User.findById(user.userId);
-    if (!citizen || !citizen.isActive) {
+    if (!citizen || citizen.status === 'INACTIVE') {
       return NextResponse.json({ success: false, message: 'Citizen account not found or inactive.' }, { status: 401 });
     }
 
