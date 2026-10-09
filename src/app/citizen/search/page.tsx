@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { CitizenOffice, CitizenService, ApiResponse } from '@/types/citizen';
 
 function CitizenSearchContent() {
@@ -24,6 +25,8 @@ function CitizenSearchContent() {
   const [services, setServices] = useState<CitizenService[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'prompt' | 'granted' | 'denied' | 'unavailable'>('prompt');
 
@@ -81,28 +84,31 @@ function CitizenSearchContent() {
         setOffices([]);
         setServices([]);
         setSearched(false);
+        setSearchError(null);
         return;
       }
 
       setLoading(true);
+      setSearchError(null);
       try {
         let url = `/api/citizen/search?q=${encodeURIComponent(query.trim())}`;
         if (userLocation) {
           url += `&lat=${userLocation.lat}&lng=${userLocation.lng}`;
         }
         const res = await fetch(url);
+        if (!res.ok) throw new Error(`Search failed (${res.status}). Please try again.`);
         const json: ApiResponse<{ offices: CitizenOffice[]; services: CitizenService[] }> = await res.json();
         if (json.success && json.data) {
           setOffices(json.data.offices || []);
           setServices(json.data.services || []);
         } else {
-          setOffices([]);
-          setServices([]);
+          throw new Error(json.message || 'Search could not be completed. Please try again.');
         }
       } catch (err: unknown) {
         console.error('Search error:', err);
         setOffices([]);
         setServices([]);
+        setSearchError(err instanceof Error ? err.message : 'Search could not be completed. Please try again.');
       } finally {
         setLoading(false);
         setSearched(true);
@@ -110,7 +116,7 @@ function CitizenSearchContent() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, userLocation]);
+  }, [query, userLocation, retryCount]);
 
   const showOffices = filterType === 'all' || filterType === 'offices';
   const showServices = filterType === 'all' || filterType === 'services';
@@ -236,6 +242,8 @@ function CitizenSearchContent() {
           <SkeletonLoader type="office" count={2} />
           <SkeletonLoader type="service" count={3} />
         </div>
+      ) : searchError ? (
+        <ErrorState description={searchError} onRetry={() => setRetryCount((count) => count + 1)} />
       ) : query && searched && totalResults === 0 ? (
         <EmptyState
           icon={<Search size={32} />}
