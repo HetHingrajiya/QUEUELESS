@@ -1,193 +1,133 @@
-"use client";
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PageHeader } from '@/components/common/PageHeader';
-import { Loader2, Brain, Activity, Target, Clock, AlertTriangle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Activity, Brain, Clock, Database, Timer, AlertTriangle } from 'lucide-react';
+import dbConnect from '@/lib/db';
+import { Token, TokenStatus } from '@/models/Token';
 
-export default function AIAnalyticsPage() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    // Simulate fetching ML analytics data
-    const fetchAIData = async () => {
-      setLoading(true);
-      try {
-        // Here we'd call an API that queries our Python FastAPI /analytics endpoint
-        // For Phase 6 MVP, we mock the real-time visualization of the AI model performance
-        setTimeout(() => {
-          setData({
-            modelStatus: "Online",
-            lastTrained: "2 hours ago",
-            avgConfidence: 91.4,
-            totalPredictions: 1450,
-            predictionAccuracyData: [
-              { time: '09:00', actual: 12, predicted: 14 },
-              { time: '10:00', actual: 25, predicted: 23 },
-              { time: '11:00', actual: 45, predicted: 42 },
-              { time: '12:00', actual: 30, predicted: 32 },
-              { time: '13:00', actual: 20, predicted: 19 },
-              { time: '14:00', actual: 35, predicted: 37 },
-              { time: '15:00', actual: 55, predicted: 50 },
-            ],
-            confidenceTrend: [
-              { day: 'Mon', score: 88 },
-              { day: 'Tue', score: 89 },
-              { day: 'Wed', score: 90 },
-              { day: 'Thu', score: 89.5 },
-              { day: 'Fri', score: 91.4 },
-            ]
-          });
-          setLoading(false);
-        }, 800);
-      } catch (err) {
-        console.error(err);
-        setLoading(false);
-      }
-    };
-    fetchAIData();
-  }, []);
+async function getAiAnalytics() {
+  await dbConnect();
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfSevenDays = new Date(startOfToday);
+  startOfSevenDays.setDate(startOfSevenDays.getDate() - 6);
+  const tomorrow = new Date(startOfToday);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-  if (loading || !data) {
-    return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
-    );
+  const [todayTotal, todayCompleted, completedWithTimes, hourlyCounts, serviceCounts] = await Promise.all([
+    Token.countDocuments({ createdAt: { $gte: startOfToday, $lt: tomorrow } }),
+    Token.countDocuments({ createdAt: { $gte: startOfToday, $lt: tomorrow }, status: TokenStatus.COMPLETED }),
+    Token.find({
+      createdAt: { $gte: startOfSevenDays, $lt: tomorrow },
+      status: TokenStatus.COMPLETED,
+    }).select('createdAt checkInTime callTime startTime completionTime processingTime').lean(),
+    Token.aggregate([
+      { $match: { createdAt: { $gte: startOfToday, $lt: tomorrow } } },
+      { $group: { _id: { $hour: '$createdAt' }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]),
+    Token.aggregate([
+      { $match: { createdAt: { $gte: startOfSevenDays, $lt: tomorrow } } },
+      { $group: { _id: { $hour: '$createdAt' }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]),
+  ]);
+
+  let totalWaitMs = 0;
+  let waitCount = 0;
+  let totalServiceMs = 0;
+  let serviceCount = 0;
+  for (const token of completedWithTimes) {
+    const queuedAt = token.checkInTime ? new Date(token.checkInTime).getTime() : new Date(token.createdAt).getTime();
+    const calledAt = token.callTime ? new Date(token.callTime).getTime() : token.startTime ? new Date(token.startTime).getTime() : NaN;
+    const startedAt = token.startTime ? new Date(token.startTime).getTime() : calledAt;
+    const completedAt = token.completionTime ? new Date(token.completionTime).getTime() : NaN;
+    if (Number.isFinite(queuedAt) && Number.isFinite(calledAt) && calledAt >= queuedAt) {
+      totalWaitMs += calledAt - queuedAt;
+      waitCount++;
+    }
+    if (Number.isFinite(startedAt) && Number.isFinite(completedAt) && completedAt >= startedAt) {
+      totalServiceMs += completedAt - startedAt;
+      serviceCount++;
+    }
   }
 
+  const hours = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    label: hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`,
+    count: hourlyCounts.find((item: { _id: number }) => item._id === hour)?.count ?? 0,
+  }));
+  const maxHourlyCount = Math.max(1, ...hours.map((item) => item.count));
+  const busiestHour = serviceCounts[0]?._id;
+  return {
+    todayTotal,
+    todayCompleted,
+    avgWaitMinutes: waitCount ? Math.round(totalWaitMs / waitCount / 60000) : null,
+    avgServiceMinutes: serviceCount ? Math.round(totalServiceMs / serviceCount / 60000) : null,
+    hours,
+    maxHourlyCount,
+    busiestHour: typeof busiestHour === 'number' ? (busiestHour === 0 ? '12 AM' : busiestHour < 12 ? `${busiestHour} AM` : busiestHour === 12 ? '12 PM' : `${busiestHour - 12} PM`) : 'No data',
+  };
+}
+
+export default async function AIAnalyticsPage() {
+  const data = await getAiAnalytics();
+
   return (
-    <div className="space-y-6 p-6 pb-20">
-      <PageHeader 
-        title="AI / ML Portal Analytics" 
-        description="Monitor the real-time performance and accuracy of the Wait Time Prediction Model."
-      />
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
-              <Activity size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Model Status</p>
-              <h3 className="text-2xl font-bold text-slate-800 flex items-center">
-                {data.modelStatus}
-                <span className="relative flex h-3 w-3 ml-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                </span>
-              </h3>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-full">
-              <Target size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Avg. Confidence</p>
-              <h3 className="text-2xl font-bold text-slate-800">{data.avgConfidence}%</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-purple-500">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
-              <Brain size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Total Predictions (Today)</p>
-              <h3 className="text-2xl font-bold text-slate-800">{data.totalPredictions.toLocaleString()}</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-amber-100 text-amber-600 rounded-full">
-              <Clock size={24} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500">Last Trained</p>
-              <h3 className="text-2xl font-bold text-slate-800 text-lg">{data.lastTrained}</h3>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">AI / ML Analytics</h1>
+        <p className="mt-1 text-sm text-slate-500">Operational metrics below are calculated from stored QueueLess token records. Prediction-accuracy charts are hidden until actual prediction outcomes are persisted.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Prediction Accuracy Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Wait Time Accuracy (Actual vs Predicted)</CardTitle>
-            <CardDescription>Comparison of real wait times against AI predictions across the day.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.predictionAccuracyData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Line type="monotone" dataKey="actual" name="Actual Wait (mins)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="predicted" name="AI Predicted (mins)" stroke="#10b981" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Confidence Score Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Confidence Score Trend</CardTitle>
-            <CardDescription>Model confidence progression over the last 5 days.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.confidenceTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <defs>
-                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                  <YAxis domain={['dataMin - 5', 100]} axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Area type="monotone" dataKey="score" name="Confidence (%)" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric title="Tokens Today" value={data.todayTotal.toLocaleString()} icon={<Database size={20} />} />
+        <Metric title="Completed Today" value={data.todayCompleted.toLocaleString()} icon={<Activity size={20} />} />
+        <Metric title="Average Wait" value={data.avgWaitMinutes === null ? '—' : `${data.avgWaitMinutes} min`} icon={<Clock size={20} />} />
+        <Metric title="Average Service Time" value={data.avgServiceMinutes === null ? '—' : `${data.avgServiceMinutes} min`} icon={<Timer size={20} />} />
       </div>
-      
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="p-4 flex items-start space-x-3">
-          <AlertTriangle className="text-blue-500 mt-0.5" size={20} />
-          <div>
-            <h4 className="text-sm font-semibold text-blue-800">Model Insights</h4>
-            <p className="text-sm text-blue-700 mt-1">
-              The AI model shows a slight under-prediction bias during peak hours (14:00 - 15:00). 
-              The system will automatically retrain on the new dataset at midnight to adjust the Random Forest weights.
-            </p>
-          </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Today’s Queue Activity by Hour</CardTitle>
+          <p className="text-sm text-slate-500">Real token creation counts from the database; no sample points are inserted.</p>
+        </CardHeader>
+        <CardContent>
+          {data.todayTotal === 0 ? (
+            <div className="flex h-56 items-center justify-center text-sm text-slate-500">No token records for today.</div>
+          ) : (
+            <div className="flex h-64 items-end gap-1 overflow-x-auto border-b border-slate-200 px-1 pt-4">
+              {data.hours.map((point) => (
+                <div key={point.hour} title={`${point.label}: ${point.count} tokens`} className="flex h-full min-w-4 flex-1 flex-col items-center justify-end gap-2">
+                  <span className="text-[10px] text-slate-500">{point.count || ''}</span>
+                  <div className="w-full rounded-t bg-blue-600" style={{ height: point.count ? `${Math.max(4, (point.count / data.maxHourlyCount) * 80)}%` : '0%' }} />
+                  <span className="text-[10px] text-slate-500">{point.hour % 3 === 0 ? point.label : ''}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-amber-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><AlertTriangle size={18} className="text-amber-600" /> Prediction Accuracy & Confidence</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-slate-600">
+          <p>No historical prediction-vs-actual outcome log is currently stored for this dashboard to calculate genuine accuracy, confidence trends, or total prediction counts.</p>
+          <p>Those charts are intentionally not fabricated. To enable them, persist each prediction with its model version, predicted wait, timestamp, and the eventual actual wait, then calculate accuracy from matched records.</p>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function Metric({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
+  return (
+    <Card><CardContent className="flex items-center gap-4 p-5">
+      <div className="rounded-xl bg-blue-50 p-3 text-blue-600">{icon}</div>
+      <div><p className="text-sm text-slate-500">{title}</p><p className="text-2xl font-bold text-slate-900">{value}</p></div>
+    </CardContent></Card>
   );
 }
