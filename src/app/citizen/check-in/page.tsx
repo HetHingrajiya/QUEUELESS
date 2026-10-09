@@ -16,21 +16,34 @@ export default function CheckIn() {
   const router = useRouter();
   const [tokenInput, setTokenInput] = useState('');
   const [activeToken, setActiveToken] = useState<CitizenToken | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user already has an active token to prefill
-    fetch('/api/citizen/queue')
-      .then(r => r.json() as Promise<ApiResponse<CitizenQueueSummary>>)
-      .then(res => {
-        if (res.success && res.data?.token) {
-          setActiveToken(res.data.token);
-          setTokenInput(res.data.token.tokenNumber || '');
-        }
-      })
-      .catch(() => {});
+    let cancelled = false;
+
+    const loadToken = async () => {
+      try {
+        // Respect the token selected on the Live Queue page. Fall back to the latest active token only when no ID is supplied.
+        const requestedTokenId = new URLSearchParams(window.location.search).get('tokenId');
+        const url = requestedTokenId
+          ? `/api/citizen/queue/${encodeURIComponent(requestedTokenId)}`
+          : '/api/citizen/queue';
+        const response = await fetch(url, { cache: 'no-store' });
+        const result: ApiResponse<CitizenQueueSummary> = await response.json();
+        if (cancelled) return;
+
+        const token = result.success ? (result.data?.token || null) : null;
+        setActiveToken(token);
+        if (token?.tokenNumber) setTokenInput(token.tokenNumber);
+        else if (requestedTokenId) setError(result.message || 'The selected token could not be loaded.');
+      } catch {
+        if (!cancelled) setError('Unable to load your token. Please refresh and try again.');
+      }
+    };
+
+    void loadToken();
+    return () => { cancelled = true; };
   }, []);
 
   const handleCheckIn = async (tokenIdToUse?: string) => {
@@ -81,7 +94,6 @@ export default function CheckIn() {
       setError(err instanceof Error ? err.message : 'Network error during check-in');
     } finally {
       setSubmitting(false);
-      setIsScanning(false);
     }
   };
 
@@ -130,54 +142,18 @@ export default function CheckIn() {
         </Card>
       )}
 
-      {/* QR Scanner Simulation */}
-      {isScanning ? (
-        <Card className="border-slate-200 overflow-hidden bg-slate-900 shadow-md">
-          <CardContent className="p-0 h-64 flex flex-col items-center justify-center relative">
-            <ScanLine size={64} className="text-blue-400 animate-pulse mb-3" />
-            <p className="text-white text-xs font-semibold">Simulating QR Scan at Office Kiosk...</p>
-            <p className="text-slate-400 text-[10px] mt-1">Verifying venue geofence & terminal signature</p>
-            
-            <div className="flex gap-2 mt-4">
-              <Button 
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
-                onClick={() => handleCheckIn()}
-                disabled={submitting}
-              >
-                Simulate Kiosk Scanned
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs"
-                onClick={() => setIsScanning(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="border-slate-200 shadow-sm bg-white">
-          <CardContent className="p-6 text-center flex flex-col items-center">
-            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-3">
-              <QrCode size={28} />
-            </div>
-            <h2 className="text-base font-bold text-slate-900 mb-1">Scan Office Reception QR</h2>
-            <p className="text-xs text-slate-500 mb-5 max-w-xs">
-              Point your camera at the kiosk or counter QR code displayed in the waiting lobby.
+      {/* Honest status: this page currently supports token verification, not camera-based kiosk QR scanning. */}
+      <Card className="border-slate-200 shadow-sm bg-white">
+        <CardContent className="p-4 flex items-start gap-3">
+          <QrCode size={20} className="text-blue-600 shrink-0 mt-0.5" />
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Check in with your token</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Use the active-token button or enter your token number below. Camera-based reception QR scanning is not enabled here, so this page will not simulate a scan.
             </p>
-            <Button 
-              onClick={() => setIsScanning(true)}
-              className="bg-blue-600 hover:bg-blue-700 w-full max-w-[220px] text-xs font-bold h-11"
-            >
-              <ScanLine size={16} className="mr-2" />
-              Open Camera Scanner
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Manual Check-In Option */}
       <Card className="border-slate-200 shadow-sm bg-white">
