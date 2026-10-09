@@ -26,7 +26,7 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
     <div className="min-h-screen bg-slate-50 flex flex-col pb-20 md:pb-6">
       {/* Top Header */}
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 transition-all">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Link href="/citizen/home" className="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               QueueLess
@@ -132,7 +132,7 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
       )}
 
       {/* Main Content */}
-      <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:py-6">
+      <main className="flex-1 max-w-5xl mx-auto w-full p-4 md:py-6">
         {children}
       </main>
 
