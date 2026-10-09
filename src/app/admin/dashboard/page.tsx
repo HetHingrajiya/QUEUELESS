@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Ticket, CheckCircle2, Clock, MapPin, Briefcase, Loader2, Activity } from 'lucide-react';
 import { getSocket } from '@/lib/socketClient';
+import { StatCard } from '@/components/common/StatCard';
 
 export default function AdminDashboard() {
   const [data, setData] = useState<any>(null);
@@ -163,20 +164,3 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-slate-600">
-          {title}
-        </CardTitle>
-        <div className="p-2 bg-slate-50 rounded-lg">
-          {icon}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
