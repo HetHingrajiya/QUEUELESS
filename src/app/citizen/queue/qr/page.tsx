@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
-  ArrowLeft, QrCode, Download, Share2, 
+  ArrowLeft, Ticket, Printer, Share2, Copy, 
   MapPin, Calendar, Building2 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,7 +20,7 @@ function DigitalTokenQRContent() {
 
   const [tokenData, setTokenData] = useState<CitizenToken | null>(null);
   const [loading, setLoading] = useState(true);
-  const [downloaded, setDownloaded] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const fetchToken = useCallback(async (isInitial = false) => {
@@ -108,9 +108,36 @@ function DigitalTokenQRContent() {
     };
   }, [tokenData?._id]);
 
-  const handleDownload = () => {
-    setDownloaded(true);
-    setTimeout(() => setDownloaded(false), 3000);
+  const handlePrint = () => {
+    if (typeof window !== 'undefined') window.print();
+  };
+
+  const handleShare = async () => {
+    const passText = `QueueLess Token ${tokenNumber}\nService: ${serviceName}\nOffice: ${officeName}\nToken reference: ${tokenData?._id || ''}\n${window.location.href}`;
+    setShareMessage('');
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `QueueLess Token ${tokenNumber}`, text: passText, url: window.location.href });
+        setShareMessage('Pass shared.');
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(passText);
+        setShareMessage('Token details copied to clipboard.');
+      } else {
+        setShareMessage('Sharing is not supported in this browser.');
+      }
+    } catch (shareError) {
+      if (shareError instanceof Error && shareError.name === 'AbortError') return;
+      setShareMessage('Unable to share the pass from this browser.');
+    }
+  };
+
+  const handleCopyReference = async () => {
+    try {
+      await navigator.clipboard.writeText(tokenData?._id || '');
+      setShareMessage('Token reference copied.');
+    } catch {
+      setShareMessage('Clipboard access is unavailable in this browser.');
+    }
   };
 
   if (loading) {
@@ -125,7 +152,7 @@ function DigitalTokenQRContent() {
     return (
       <div className="max-w-md mx-auto pt-8 text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-          <QrCode size={32} />
+          <Ticket size={32} />
         </div>
         <p className="text-slate-600 text-sm font-medium">{error || 'No active token pass available'}</p>
         <Link href="/citizen/token">
@@ -155,7 +182,7 @@ function DigitalTokenQRContent() {
             <ArrowLeft size={20} />
           </button>
           <div>
-<h1 className="text-xl font-bold text-slate-900 mt-0.5">Digital QR Pass</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Digital Token Pass</h1>
           </div>
         </div>
       </div>
@@ -175,16 +202,18 @@ function DigitalTokenQRContent() {
         </div>
 
         <CardContent className="p-6 space-y-5 text-center">
-          {/* QR Code Container */}
-          <div className="bg-slate-50 p-6 rounded-2xl border-2 border-dashed border-slate-200 inline-block shadow-inner">
-            <div className="w-48 h-48 bg-white p-3 rounded-xl shadow-xs border border-slate-100 flex flex-col items-center justify-center">
-              <QrCode size={140} className="text-slate-800" />
-              <p className="font-mono text-[9px] text-slate-400 mt-2 font-bold tracking-widest">
-                PASS: {tokenData._id || 'QL-TOKEN'}
-              </p>
+          {/* Digital reference only: this is not a scannable QR code. */}
+          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center">
+            <div className="w-16 h-16 bg-blue-100 text-blue-700 rounded-2xl flex items-center justify-center mx-auto">
+              <Ticket size={30} />
             </div>
-            <p className="text-[11px] text-slate-400 mt-3 font-medium">
-              Scan at office entrance kiosk for instant check-in
+            <p className="text-xs font-semibold text-slate-700 mt-3">Digital token reference</p>
+            <p className="font-mono text-[11px] text-slate-600 mt-2 break-all">{tokenData._id}</p>
+            <Button type="button" variant="outline" className="mt-3 h-9 text-xs" onClick={handleCopyReference}>
+              <Copy size={14} className="mr-1.5" /> Copy reference
+            </Button>
+            <p className="text-[11px] text-slate-500 mt-3">
+              This screen does not currently generate a scannable QR. Show your token number at reception or use Venue Check-In.
             </p>
           </div>
 
@@ -212,29 +241,16 @@ function DigitalTokenQRContent() {
             </div>
           </div>
 
-          {/* Download & Share Actions */}
+          {/* Real browser print and share actions */}
           <div className="grid grid-cols-2 gap-3 pt-1">
-            <Button
-              onClick={handleDownload}
-              variant="outline"
-              className="h-11 text-xs font-bold border-slate-200 hover:bg-slate-50"
-            >
-              <Download size={14} className="mr-1.5" /> {downloaded ? 'Pass Saved!' : 'Save Image'}
+            <Button onClick={handlePrint} variant="outline" className="h-11 text-xs font-bold border-slate-200 hover:bg-slate-50">
+              <Printer size={14} className="mr-1.5" /> Print / Save PDF
             </Button>
-            <Button
-              onClick={() => {
-                if (navigator.share) {
-                  navigator.share({ title: `QueueLess Token ${tokenNumber}`, text: `My virtual token ${tokenNumber} for ${serviceName}`, url: window.location.href });
-                } else {
-                  alert('Token pass link copied to clipboard!');
-                }
-              }}
-              variant="outline"
-              className="h-11 text-xs font-bold border-slate-200 hover:bg-slate-50"
-            >
+            <Button onClick={handleShare} variant="outline" className="h-11 text-xs font-bold border-slate-200 hover:bg-slate-50">
               <Share2 size={14} className="mr-1.5" /> Share Pass
             </Button>
           </div>
+          {shareMessage && <p role="status" className="text-xs text-blue-700 text-center">{shareMessage}</p>}
 
           <Link href={`/citizen/queue/${tokenData._id || tokenData.id || ''}`} className="block">
             <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-md">
