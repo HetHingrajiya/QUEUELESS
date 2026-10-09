@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, ArrowRight, Clock, Users, AlertCircle, Ticket } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { CitizenQueueSummary, ApiResponse } from '@/types/citizen';
 
 function TokenConfirmationContent() {
@@ -16,6 +17,7 @@ function TokenConfirmationContent() {
   const [data, setData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,14 +54,10 @@ function TokenConfirmationContent() {
 
     void fetchToken();
     return () => { cancelled = true; };
-  }, [tokenIdParam]);
+  }, [tokenIdParam, retryCount]);
 
   if (loading) {
-    return (
-      <div className="max-w-md mx-auto pt-8">
-        <SkeletonLoader type="queue" />
-      </div>
-    );
+    return <div className="max-w-md mx-auto pt-8"><LoadingState label="Loading token confirmation..." /></div>;
   }
 
   if (!data?.token) {
@@ -69,7 +67,7 @@ function TokenConfirmationContent() {
           <AlertCircle size={28} />
         </div>
         <h1 className="text-xl font-bold text-slate-900">Token confirmation unavailable</h1>
-        <p className="text-sm text-slate-600">{error || 'Token details could not be loaded.'}</p>
+        {error && <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} />}
         <div className="flex gap-2 justify-center">
           <Link href="/citizen/token"><Button className="bg-blue-600 hover:bg-blue-700">Get a token</Button></Link>
           <Link href="/citizen/queue/my"><Button variant="outline">My Queue</Button></Link>
