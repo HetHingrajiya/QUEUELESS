@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
-import { Token, TokenStatus } from '@/models/Token';
+import { Token, TokenStatus, IToken } from '@/models/Token';
 import { Counter, CounterStatus } from '@/models/Counter';
 import { User, UserRole } from '@/models/User';
 import { QueueEvent } from '@/models/QueueEvent';
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    let token = null;
+    let token: IToken | null = null;
 
     if (action === 'CALL_NEXT' || action === 'CALL' || action === 'CALL_SPECIFIC') {
       const settings = await SystemSettings.findOne();
