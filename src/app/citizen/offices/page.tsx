@@ -2,10 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, MapPin, Building2, Loader2, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Building2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 
 interface OfficeItem {
   _id: string;
@@ -26,6 +30,7 @@ export default function CitizenOfficesPage() {
   const [search, setSearch] = useState('');
   const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -54,11 +59,14 @@ export default function CitizenOfficesPage() {
         const url = search ? `/api/citizen/offices?search=${encodeURIComponent(search)}` : '/api/citizen/offices';
         const res = await fetch(url);
         const json = await res.json();
-        if (json.success) {
-          setOffices(json.data);
+        if (!res.ok || !json.success || !Array.isArray(json.data)) {
+          throw new Error(json.message || 'Unable to load offices. Please try again.');
         }
+        setOffices(json.data);
+        setLoadError(null);
       } catch (error) {
         console.error('Failed to fetch offices:', error);
+        setLoadError(error instanceof Error ? error.message : 'Unable to load offices. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -112,10 +120,12 @@ export default function CitizenOfficesPage() {
         />
       </div>
 
+      {locationError && <p role="status" className="text-xs text-amber-700">{locationError}</p>}
+
       {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-        </div>
+        <LoadingState label="Loading government offices…" className="py-12" />
+      ) : loadError ? (
+        <ErrorState title="Could not load offices" description={loadError} onRetry={() => setSearch((current) => current)} />
       ) : offices.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {processedOffices.map((office) => (
@@ -140,9 +150,7 @@ export default function CitizenOfficesPage() {
                   </div>
                   
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${office.statusColor}`}>
-                      {office.status}
-                    </span>
+                    <StatusBadge status={office.status || 'UNKNOWN'} />
                     <span className="text-sm font-medium text-blue-600 flex items-center">
                       View Services <ArrowRight size={16} className="ml-1" />
                     </span>
@@ -153,15 +161,11 @@ export default function CitizenOfficesPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
-          <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-            <Search className="h-8 w-8 text-slate-400" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-800 mb-2">No offices found</h3>
-          <p className="text-slate-500 max-w-sm mx-auto">
-            We couldn&apos;t find any offices matching your search. Try different keywords.
-          </p>
-        </div>
+        <EmptyState
+          title="No offices found"
+          description="We couldn't find any offices matching your search. Try different keywords."
+          icon={<Search className="h-8 w-8" />}
+        />
       )}
     </div>
   );
