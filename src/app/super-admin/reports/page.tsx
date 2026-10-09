@@ -134,7 +134,7 @@ export default function ReportsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
+        <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value ?? 'all')}>
           <SelectTrigger className="w-[220px] bg-white"><SelectValue placeholder="Report Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Report Types</SelectItem>
