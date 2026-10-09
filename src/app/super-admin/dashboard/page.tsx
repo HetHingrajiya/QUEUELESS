@@ -1,3 +1,6 @@
+// The dashboard reads live MongoDB counts; never prerender it at build time.
+export const dynamic = 'force-dynamic';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, MapPin, Users, UserCog, User, Ticket, CheckCircle2, Clock, XCircle, Timer } from 'lucide-react';
 import dbConnect from '@/lib/db';
