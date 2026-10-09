@@ -115,7 +115,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const token = await Token.findByIdAndUpdate(
       id,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     await createAuditLog({

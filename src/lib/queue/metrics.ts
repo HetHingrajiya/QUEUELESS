@@ -87,9 +87,10 @@ export class QueueMetricsService {
    */
   static async getWaitingCount(scope: QueueMetricsScope): Promise<number> {
     const { startOfDay, endOfDay } = getTodayDateRange();
+    const queueWindowStart = new Date(Math.min(startOfDay.getTime(), Date.now() - 24 * 60 * 60 * 1000));
     const query: any = {
       status: { $in: WAITING_TOKEN_STATUSES },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay }
     };
 
     if (scope.officeId) query.officeId = scope.officeId;
@@ -104,9 +105,10 @@ export class QueueMetricsService {
    */
   static async getCurrentlyServingCount(scope: QueueMetricsScope): Promise<number> {
     const { startOfDay, endOfDay } = getTodayDateRange();
+    const queueWindowStart = new Date(Math.min(startOfDay.getTime(), Date.now() - 24 * 60 * 60 * 1000));
     const query: any = {
       status: { $in: SERVING_TOKEN_STATUSES },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay }
     };
 
     if (scope.officeId) query.officeId = scope.officeId;
@@ -330,13 +332,14 @@ export class QueueMetricsService {
     const officeId = (token.officeId as any)?._id || token.officeId;
     const serviceId = (token.serviceId as any)?._id || token.serviceId;
     const { startOfDay, endOfDay } = getTodayDateRange();
+    const queueWindowStart = new Date(Math.min(startOfDay.getTime(), Date.now() - 24 * 60 * 60 * 1000));
 
-    // Now serving tokens in this service/office today
+    // Now serving tokens in this service/office
     const servingTokensDocs = await Token.find({
       officeId,
       serviceId,
       status: { $in: SERVING_TOKEN_STATUSES },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay }
     }).sort({ callTime: -1 }).select('tokenNumber').lean();
 
     const servingTokens = servingTokensDocs.map((t: any) => t.tokenNumber);
@@ -351,7 +354,7 @@ export class QueueMetricsService {
         officeId,
         serviceId,
         status: { $in: WAITING_TOKEN_STATUSES },
-        createdAt: { $gte: startOfDay, $lte: endOfDay },
+        createdAt: { $gte: queueWindowStart, $lte: endOfDay },
         $or: [
           { createdAt: { $lt: token.createdAt } },
           { createdAt: token.createdAt, _id: { $lt: token._id } }
@@ -365,7 +368,7 @@ export class QueueMetricsService {
       officeId,
       serviceId,
       status: { $in: WAITING_TOKEN_STATUSES },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay }
     }).sort({ createdAt: 1, _id: 1 }).limit(5).select('tokenNumber').lean();
 
     const nextTokens = nextTokensDocs.map((t: any) => t.tokenNumber);

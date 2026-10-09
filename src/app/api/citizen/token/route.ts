@@ -15,7 +15,8 @@ import {
   ACTIVE_TOKEN_STATUSES, 
   WAITING_TOKEN_STATUSES, 
   QueueEventTypes, 
-  QueueMetricsService
+  QueueMetricsService,
+  ServiceCapacityService
 } from '@/lib/queue';
 
 export async function POST(req: NextRequest) {
@@ -130,19 +131,19 @@ export async function POST(req: NextRequest) {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Verify Daily Token Limit for this service
-    if (typeof service.dailyTokenLimit === 'number' && service.dailyTokenLimit > 0) {
-      const totalCreatedToday = await Token.countDocuments({
-        serviceId: service._id,
-        createdAt: { $gte: startOfDay, $lte: endOfDay }
-      });
-      if (totalCreatedToday >= service.dailyTokenLimit) {
-        return NextResponse.json({
-          success: false,
-          message: `Daily booking limit (${service.dailyTokenLimit} tokens) has been reached for ${service.name}. Please book tomorrow.`,
-          errorCode: 'DAILY_LIMIT_REACHED'
-        }, { status: 400 });
-      }
+    // Verify Dynamic Time-Weighted Daily Capacity for this service & counter setup (Model B)
+    const capacityInfo = await ServiceCapacityService.getServiceCapacity(office._id, service._id);
+    if (capacityInfo.isQuotaFull || capacityInfo.remainingTokensToday <= 0) {
+      return NextResponse.json({
+        success: false,
+        message: `Today's maximum token quota (${capacityInfo.totalDailyCapacity} tokens) for ${service.name} has been reached based on counter operating capacity. Please check back tomorrow during office hours (${capacityInfo.workingHoursText}).`,
+        errorCode: 'DAILY_CAPACITY_EXHAUSTED',
+        data: {
+          totalCapacity: capacityInfo.totalDailyCapacity,
+          tokensIssuedToday: capacityInfo.tokensIssuedToday,
+          remainingTokensToday: 0
+        }
+      }, { status: 400 });
     }
 
     const dateKey = startOfDay.toISOString().split('T')[0];
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
     const sequenceDoc = await TokenSequence.findOneAndUpdate(
       { officeId: office._id, date: dateKey },
       { $inc: { seq: 1 } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
 
     const prefix = service.code ? service.code.substring(0, 1).toUpperCase() : 'A';

@@ -34,12 +34,13 @@ export async function GET(req: NextRequest) {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
+    const queueWindowStart = new Date(Math.min(startOfDay.getTime(), Date.now() - 24 * 60 * 60 * 1000));
 
     // Get waiting tokens (for services this counter handles or office queue)
     const tokens = await Token.find({
       officeId: counter?.officeId || staffUser.officeId,
       status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay },
       ...serviceFilter
     })
     .sort({ priority: -1, createdAt: 1 })

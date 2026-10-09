@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     const sequenceDoc = await TokenSequence.findOneAndUpdate(
       { officeId, date: dateKey },
       { $inc: { seq: 1 } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
 
     const prefix = service.code ? service.code.substring(0, 1).toUpperCase() : 'A';

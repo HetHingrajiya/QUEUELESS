@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
+    const queueWindowStart = new Date(Math.min(startOfDay.getTime(), Date.now() - 24 * 60 * 60 * 1000));
 
     let token: IToken | null = null;
 
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
         const noShowToken = await Token.findOneAndUpdate(
           { _id: timedOut._id, counterId: counter._id, status: TokenStatus.CALLED, callTime: { $lt: timeoutThreshold } },
           { $set: { status: TokenStatus.NO_SHOW, endTime: noShowAt } },
-          { new: true }
+          { returnDocument: 'after' }
         );
         if (!noShowToken) continue;
 
@@ -163,13 +164,13 @@ export async function POST(req: NextRequest) {
               callTime: new Date()
             }
           },
-          { new: true }
+          { returnDocument: 'after' }
         );
       } else {
         const filter: any = {
           officeId,
           status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-          createdAt: { $gte: startOfDay, $lte: endOfDay }
+          createdAt: { $gte: queueWindowStart, $lte: endOfDay }
         };
         if (counter.serviceIds && counter.serviceIds.length > 0) {
           filter.serviceId = { $in: counter.serviceIds };
@@ -186,7 +187,7 @@ export async function POST(req: NextRequest) {
               callTime: new Date()
             }
           },
-          { sort: { priority: -1, createdAt: 1 }, new: true }
+          { sort: { priority: -1, createdAt: 1 }, returnDocument: 'after' }
         );
       }
 

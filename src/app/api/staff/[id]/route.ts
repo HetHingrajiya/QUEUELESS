@@ -143,7 +143,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const updatedStaff = await User.findOneAndUpdate(
       query,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!updatedStaff) {

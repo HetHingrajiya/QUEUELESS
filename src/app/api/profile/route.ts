@@ -47,7 +47,7 @@ export async function PUT(request: Request) {
     const updated = await User.findByIdAndUpdate(
       authUser.userId,
       { $set: allowedFields },
-      { new: true, runValidators: true, select: '-password' }
+      { returnDocument: 'after', runValidators: true, select: '-password' }
     )
       .populate('organizationId', 'name code')
       .populate('officeId', 'name')

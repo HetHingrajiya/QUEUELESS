@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, Loader2, MapPin, Briefcase, AlertCircle, 
-  ArrowRight, Ticket, CheckCircle2, Clock, Users, Building2, ShieldCheck, Sparkles 
+  ArrowRight, Ticket, CheckCircle2, Clock, Users, Building2, ShieldCheck, Sparkles,
+  Layers, Hourglass, BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -26,6 +27,14 @@ interface ServiceOption {
   averageServiceTime?: number;
   waitingCount?: number;
   activeCounters?: number;
+  totalDailyCapacity?: number;
+  tokensIssuedToday?: number;
+  remainingTokensToday?: number;
+  isQuotaFull?: boolean;
+  bookedPercentage?: number;
+  operatingMinutesAllocated?: number;
+  counterDistributionInfo?: string;
+  workingHoursText?: string;
 }
 
 export default function CitizenTokenGeneration() {
@@ -300,21 +309,95 @@ export default function CitizenTokenGeneration() {
               </Select>
             )}
 
-            {/* Service Live Metrics Preview */}
+            {/* Dynamic Token Quota & Time-Weighted Capacity Preview */}
             {activeServiceObj && (
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 grid grid-cols-2 gap-2 text-xs animate-in fade-in-50 duration-200">
-                <div className="flex items-center gap-2">
-                  <Clock size={14} className="text-blue-600 shrink-0" />
-                  <span className="text-slate-600">
-                    Est. Duration: <strong className="text-slate-900">~{activeServiceObj.averageServiceTime || 10} min</strong>
-                  </span>
+              <div className="space-y-3 animate-in fade-in-50 duration-200">
+                {/* Main Quota & Availability Card */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  activeServiceObj.isQuotaFull 
+                    ? 'bg-rose-50/80 border-rose-200 text-rose-900' 
+                    : 'bg-gradient-to-br from-blue-50/90 to-indigo-50/50 border-blue-200/80'
+                }`}>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-xs font-bold flex items-center gap-1.5 text-slate-800">
+                      <BarChart3 size={15} className="text-blue-600" /> Today's Token Availability
+                    </span>
+                    {activeServiceObj.isQuotaFull ? (
+                      <Badge className="bg-rose-600 text-white text-[10px] font-bold py-0.5 px-2">
+                        Quota Exhausted
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-0.5 px-2 shadow-2xs">
+                        {activeServiceObj.remainingTokensToday ?? 0} Left Today
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Quota Progress Bar */}
+                  <div className="space-y-1.5 pt-1 pb-2">
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                      <span>
+                        Booked: <strong className="text-slate-900">{activeServiceObj.tokensIssuedToday ?? 0}</strong> / {activeServiceObj.totalDailyCapacity ?? 50}
+                      </span>
+                      <span className={activeServiceObj.isQuotaFull ? 'text-rose-600 font-bold' : 'text-emerald-700 font-bold'}>
+                        {activeServiceObj.remainingTokensToday ?? 0} Remaining
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200/80 rounded-full h-2.5 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          activeServiceObj.isQuotaFull 
+                            ? 'bg-rose-500' 
+                            : (activeServiceObj.bookedPercentage ?? 0) > 75 
+                              ? 'bg-amber-500' 
+                              : 'bg-blue-600'
+                        }`}
+                        style={{ width: `${Math.min(100, activeServiceObj.bookedPercentage ?? 0)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Multi-Service & Time-Weighted Details Grid */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[11px] text-slate-600">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Clock size={13} className="text-blue-600 shrink-0" />
+                      <span className="truncate">
+                        Per Person: <strong className="text-slate-800">~{activeServiceObj.averageServiceTime || 10} min</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Hourglass size={13} className="text-indigo-600 shrink-0" />
+                      <span className="truncate">
+                        Counter Time: <strong className="text-slate-800">~{activeServiceObj.operatingMinutesAllocated || 210}m</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Layers size={13} className="text-purple-600 shrink-0" />
+                      <span className="truncate">
+                        Counter: <strong className="text-slate-800">{activeServiceObj.counterDistributionInfo || '1 Counter'}</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Users size={13} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">
+                        In Queue: <strong className="text-slate-800">{activeServiceObj.waitingCount ?? 0} waiting</strong>
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Users size={14} className="text-blue-600 shrink-0" />
-                  <span className="text-slate-600">
-                    In Queue: <strong className="text-slate-900">{activeServiceObj.waitingCount ?? 0} waiting</strong>
-                  </span>
-                </div>
+
+                {/* Quota Exhaustion Warning Notice */}
+                {activeServiceObj.isQuotaFull && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-rose-800 text-xs">
+                    <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Daily Booking Limit Reached</p>
+                      <p className="text-[11px] text-rose-700 mt-0.5">
+                        All {activeServiceObj.totalDailyCapacity} tokens for {activeServiceObj.name} have been allocated based on counter operating capacity. Bookings will reopen tomorrow during office hours ({activeServiceObj.workingHoursText || '09:00 AM - 05:00 PM'}).
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -323,14 +406,20 @@ export default function CitizenTokenGeneration() {
           <div className="pt-2">
             <Button 
               onClick={handleGenerateToken} 
-              disabled={!selectedOffice || !selectedService || loading}
-              className="w-full h-12 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all disabled:opacity-40"
+              disabled={!selectedOffice || !selectedService || loading || Boolean(activeServiceObj?.isQuotaFull)}
+              className={`w-full h-12 text-sm font-bold text-white rounded-xl shadow-md transition-all ${
+                activeServiceObj?.isQuotaFull 
+                  ? 'bg-slate-400 cursor-not-allowed opacity-70' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
               {loading ? (
                 <>
                   <Loader2 className="animate-spin h-4 w-4 mr-2" /> 
                   Generating Virtual Token...
                 </>
+              ) : activeServiceObj?.isQuotaFull ? (
+                <>Daily Token Quota Exhausted</>
               ) : (
                 <>
                   Confirm & Get Token

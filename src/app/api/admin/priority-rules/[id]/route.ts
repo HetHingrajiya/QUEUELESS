@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         priorityMultiplier: Number(priorityMultiplier),
         status
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!rule) {

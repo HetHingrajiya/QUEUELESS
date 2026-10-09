@@ -96,7 +96,11 @@ export async function POST(request: Request) {
       department: body.department,
       organizationId: targetOrgId,
       officeId: body.officeId,
-      estimatedTime: body.estimatedTime,
+      averageServiceTime: body.averageServiceTime !== undefined 
+        ? Number(body.averageServiceTime) 
+        : (body.estimatedTime !== undefined ? Number(body.estimatedTime) : 5),
+      dailyTokenLimit: body.dailyTokenLimit !== undefined ? Number(body.dailyTokenLimit) : undefined,
+      priorityEnabled: body.priorityEnabled !== undefined ? Boolean(body.priorityEnabled) : false,
       documentsRequired: body.documentsRequired || [],
       status: body.status || 'ACTIVE',
       prefix: body.prefix

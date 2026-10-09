@@ -39,7 +39,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (body.description !== undefined) updateData.description = body.description;
     if (body.isActive !== undefined) updateData.isActive = body.isActive;
 
-    const type = await OrganizationType.findByIdAndUpdate(resolvedParams.id, { $set: updateData }, { new: true, runValidators: true });
+    const type = await OrganizationType.findByIdAndUpdate(resolvedParams.id, { $set: updateData }, { returnDocument: 'after', runValidators: true });
     
     await createAuditLog({
       action: 'UPDATE',

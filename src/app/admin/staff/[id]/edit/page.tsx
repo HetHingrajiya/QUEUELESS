@@ -60,7 +60,7 @@ export default function AdminEditStaff({ params }: { params: Promise<{ id: strin
           reset({
             fullName: data.data.fullName,
             email: data.data.email,
-            officeId: data.data.officeId,
+            officeId: typeof data.data.officeId === 'object' && data.data.officeId !== null ? data.data.officeId._id : data.data.officeId,
           });
         } else {
           setError('Failed to fetch staff details');

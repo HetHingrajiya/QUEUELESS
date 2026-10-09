@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           endTime: cancellationTimestamp
         }
       },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!cancelledToken) {

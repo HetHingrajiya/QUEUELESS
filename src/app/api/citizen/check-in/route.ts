@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
           checkInTime
         }
       },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).populate('officeId').populate('serviceId');
 
     if (!checkedInToken) {

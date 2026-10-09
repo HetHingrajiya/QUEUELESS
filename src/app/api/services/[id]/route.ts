@@ -77,7 +77,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.description !== undefined) updateData.description = body.description;
     if (body.department !== undefined) updateData.department = body.department;
     if (body.officeId !== undefined) updateData.officeId = body.officeId;
-    if (body.estimatedTime !== undefined) updateData.estimatedTime = body.estimatedTime;
+    if (body.averageServiceTime !== undefined) updateData.averageServiceTime = Number(body.averageServiceTime);
+    else if (body.estimatedTime !== undefined) updateData.averageServiceTime = Number(body.estimatedTime);
+    if (body.dailyTokenLimit !== undefined) updateData.dailyTokenLimit = Number(body.dailyTokenLimit);
+    if (body.priorityEnabled !== undefined) updateData.priorityEnabled = Boolean(body.priorityEnabled);
     if (body.documentsRequired !== undefined) updateData.documentsRequired = body.documentsRequired;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.prefix !== undefined) updateData.prefix = body.prefix;
@@ -105,7 +108,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const updatedService = await Service.findOneAndUpdate(
       query,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!updatedService) {

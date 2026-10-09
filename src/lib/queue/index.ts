@@ -128,4 +128,5 @@ export function calculateRecommendedArrivalTime(
 }
 
 export * from './metrics';
+export * from './capacity';
 

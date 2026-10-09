@@ -63,11 +63,12 @@ export async function GET(req: NextRequest) {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
+      const queueWindowStart = new Date(Math.min(startOfDay.getTime(), Date.now() - 24 * 60 * 60 * 1000));
 
       const waitingTokens = await Token.find({
         officeId,
         status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-        createdAt: { $gte: startOfDay, $lte: endOfDay }
+        createdAt: { $gte: queueWindowStart, $lte: endOfDay }
       })
       .sort({ createdAt: 1 })
       .populate('serviceId', 'name')
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
       const totalWaitingCount = await Token.countDocuments({
         officeId,
         status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-        createdAt: { $gte: startOfDay, $lte: endOfDay }
+        createdAt: { $gte: queueWindowStart, $lte: endOfDay }
       });
 
       const completedCount = await Token.countDocuments({
@@ -113,16 +114,17 @@ export async function GET(req: NextRequest) {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
+    const queueWindowStart = new Date(Math.min(startOfDay.getTime(), Date.now() - 24 * 60 * 60 * 1000));
 
     // Get current token (CALLED or SERVING at this counter)
     const currentToken = await Token.findOne({
       counterId: counter._id,
       status: { $in: [TokenStatus.CALLED, TokenStatus.SERVING] },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay }
     }).populate('citizenId', 'fullName').populate('serviceId', 'name').lean();
 
     const serviceFilter = serviceIdsArray.length > 0 
-      ? { serviceId: { $in: serviceIdsArray.map((s: any) => s._id) } }
+      ? { serviceId: { $in: serviceIdsArray.map((s: any) => s._id || s) } }
       : {};
 
     // Get waiting tokens (for services this counter handles or all office services)
@@ -130,7 +132,7 @@ export async function GET(req: NextRequest) {
       officeId: counter.officeId,
       ...serviceFilter,
       status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay }
     })
     .sort({ priority: -1, createdAt: 1 })
     .populate('serviceId', 'name')
@@ -156,7 +158,7 @@ export async function GET(req: NextRequest) {
       officeId: counter.officeId,
       ...serviceFilter,
       status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: queueWindowStart, $lte: endOfDay }
     });
 
     const officeData = await Office.findById(officeId).populate('organizationId', 'name').lean();

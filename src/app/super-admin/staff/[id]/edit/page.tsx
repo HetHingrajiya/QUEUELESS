@@ -60,13 +60,20 @@ export default function EditStaff({ params }: { params: Promise<{ id: string }> 
         if (staffData.success) {
           const staff = staffData.data;
           if (staff.organizationId) {
-            await fetchOffices(staff.organizationId);
+            const orgId = typeof staff.organizationId === 'object' && staff.organizationId !== null ? staff.organizationId._id : staff.organizationId;
+            const staffOfficeObj = typeof staff.officeId === 'object' && staff.officeId !== null ? staff.officeId : null;
+            if (staffOfficeObj && staffOfficeObj._id) {
+              setOffices(prev => prev.some(o => o._id === staffOfficeObj._id) ? prev : [...prev, staffOfficeObj]);
+            }
+            if (orgId) {
+              await fetchOffices(orgId);
+            }
           }
           reset({
             fullName: staff.fullName,
             email: staff.email,
-            organizationId: staff.organizationId,
-            officeId: staff.officeId,
+            organizationId: typeof staff.organizationId === 'object' && staff.organizationId !== null ? staff.organizationId._id : staff.organizationId,
+            officeId: typeof staff.officeId === 'object' && staff.officeId !== null ? staff.officeId._id : staff.officeId,
           });
         } else {
           setError('Failed to fetch staff data');
@@ -173,10 +180,10 @@ export default function EditStaff({ params }: { params: Promise<{ id: string }> 
               </div>
               <div className="space-y-2">
                 <Label htmlFor="office">Office *</Label>
-                <Select value={watch('officeId') || ""} onValueChange={(val: any) => { if (val) setValue('officeId', val as string); }} disabled={offices.length === 0}>
+                <Select value={(typeof watch('officeId') === 'object' && watch('officeId') !== null ? (watch('officeId') as any)?._id : watch('officeId')) || ""} onValueChange={(val: any) => { if (val) setValue('officeId', val as string); }} disabled={offices.length === 0}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select office">
-                      {offices.find(office => office._id === watch('officeId'))?.name}
+                      {offices.find(office => office._id === (typeof watch('officeId') === 'object' ? (watch('officeId') as any)?._id : watch('officeId')))?.name}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>

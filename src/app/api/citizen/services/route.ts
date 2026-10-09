@@ -4,7 +4,7 @@ import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
 import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
-import { QueueMetricsService } from '@/lib/queue';
+import { QueueMetricsService, ServiceCapacityService } from '@/lib/queue';
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,7 +43,11 @@ export async function GET(req: NextRequest) {
 
     const mapped = await Promise.all(
       services.map(async (s) => {
-        const metrics = await QueueMetricsService.getServiceMetrics(s.officeId, s._id);
+        const [metrics, capacity] = await Promise.all([
+          QueueMetricsService.getServiceMetrics(s.officeId, s._id),
+          ServiceCapacityService.getServiceCapacity(s.officeId, s._id)
+        ]);
+
         return {
           _id: s._id,
           name: s.name,
@@ -54,7 +58,15 @@ export async function GET(req: NextRequest) {
           waitingCount: metrics.waitingCount,
           estimatedWaitMinutes: metrics.estimatedWaitMinutes,
           activeCounters: metrics.activeCountersCount,
-          queueLoad: metrics.queueLoad.level
+          queueLoad: metrics.queueLoad.level,
+          totalDailyCapacity: capacity.totalDailyCapacity,
+          tokensIssuedToday: capacity.tokensIssuedToday,
+          remainingTokensToday: capacity.remainingTokensToday,
+          isQuotaFull: capacity.isQuotaFull,
+          bookedPercentage: capacity.bookedPercentage,
+          operatingMinutesAllocated: capacity.operatingMinutesAllocated,
+          counterDistributionInfo: capacity.counterDistributionInfo,
+          workingHoursText: capacity.workingHoursText
         };
       })
     );

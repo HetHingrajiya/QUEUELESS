@@ -75,7 +75,7 @@ export async function PATCH(
     const updated = await Notification.findOneAndUpdate(
       { _id: id, userId: user.userId },
       { $set: { isRead: true } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updated) {

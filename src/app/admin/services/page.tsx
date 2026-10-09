@@ -10,6 +10,8 @@ import { DeleteButton } from '@/components/DeleteButton';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 async function getServices(orgId: string) {
   await dbConnect();
   const services = await Service.find({ organizationId: orgId }).populate('officeId').sort({ createdAt: -1 });

@@ -125,7 +125,7 @@ export async function PUT(req: NextRequest) {
     const updatedUser = await User.findByIdAndUpdate(
       session.userId,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select('-password -passwordHash -salt');
 
     if (!updatedUser) {

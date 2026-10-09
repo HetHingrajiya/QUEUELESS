@@ -58,7 +58,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const updatedAdmin = await User.findOneAndUpdate(
       { _id: id, role: UserRole.ADMIN },
       { $set: updateData },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedAdmin) {

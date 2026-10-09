@@ -94,7 +94,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const org = await Organization.findByIdAndUpdate(id, updateQuery, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

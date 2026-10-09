@@ -71,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const updated = await Holiday.findOneAndUpdate(
       query,
       { $set: updateData },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     await createAuditLog({

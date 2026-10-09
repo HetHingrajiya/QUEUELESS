@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     const fav = await Favorite.findOneAndUpdate(
       { userId: user.userId, officeId },
       { $setOnInsert: { userId: user.userId, officeId } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     await createAuditLog({
