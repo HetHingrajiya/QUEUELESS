@@ -50,10 +50,13 @@ export async function GET(req: NextRequest) {
     let globalMaxWaitMs = 0;
 
     recentTokens.forEach(t => {
-      if (t.status === 'COMPLETED' && t.servedAt) {
-        const waitMs = new Date(t.servedAt).getTime() - new Date(t.createdAt).getTime();
+      const calledAt = t.callTime || t.startTime;
+      const queuedAt = t.checkInTime || t.createdAt;
+      if (t.status === 'COMPLETED' && calledAt && queuedAt) {
+        const waitMs = new Date(calledAt).getTime() - new Date(queuedAt).getTime();
+        if (!Number.isFinite(waitMs) || waitMs < 0) return;
         const dayStr = days[new Date(t.createdAt).getDay()];
-        
+
         if (waitMap.has(dayStr)) {
           const d = waitMap.get(dayStr)!;
           d.totalWait += waitMs;
@@ -76,22 +79,22 @@ export async function GET(req: NextRequest) {
     const avgWaitWeek = globalServedCount > 0 ? Math.round(globalTotalWaitMs / globalServedCount / 60000) : 0;
     const maxWaitWeek = Math.round(globalMaxWaitMs / 60000);
 
-    // 2. Service Time Data (All time or 7 days)
+    // 2. Service Time Data: use recorded service duration only; never infer it from updatedAt.
     const serviceTimeMap = new Map<string, { totalTime: number, count: number }>();
     recentTokens.forEach(t => {
-      // Assuming 'completedAt' doesn't exist, we use a proxy or just make up service time if we don't have it.
-      // Wait, token model has 'completedAt' in some designs, or we just measure time from servedAt to updated?
-      // Actually, we don't have a 'completedAt' field natively tracked reliably. Let's use a proxy: (updatedAt - servedAt) if status is COMPLETED.
-      if (t.status === 'COMPLETED' && t.servedAt && t.updatedAt && t.serviceId) {
-        const serviceName = (t.serviceId as any).name;
-        const serviceMs = new Date(t.updatedAt).getTime() - new Date(t.servedAt).getTime();
-        // filter out anomalies
-        if (serviceMs > 0 && serviceMs < 3600000) {
-          if (!serviceTimeMap.has(serviceName)) serviceTimeMap.set(serviceName, { totalTime: 0, count: 0 });
-          const d = serviceTimeMap.get(serviceName)!;
-          d.totalTime += serviceMs;
-          d.count += 1;
-        }
+      if (t.status !== 'COMPLETED' || !t.serviceId) return;
+      const serviceName = (t.serviceId as any).name;
+      let serviceMs = 0;
+      if (t.startTime && t.completionTime) {
+        serviceMs = new Date(t.completionTime).getTime() - new Date(t.startTime).getTime();
+      } else if (typeof t.processingTime === 'number' && t.processingTime > 0) {
+        serviceMs = t.processingTime * 1000;
+      }
+      if (Number.isFinite(serviceMs) && serviceMs > 0 && serviceMs < 3600000) {
+        if (!serviceTimeMap.has(serviceName)) serviceTimeMap.set(serviceName, { totalTime: 0, count: 0 });
+        const d = serviceTimeMap.get(serviceName)!;
+        d.totalTime += serviceMs;
+        d.count += 1;
       }
     });
 
