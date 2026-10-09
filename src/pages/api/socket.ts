@@ -239,6 +239,15 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponse 
     registerAuthoritativeEventPair('token:transferred', 'TOKEN_TRANSFERRED');
     registerAuthoritativeEventPair('counter:updated', 'COUNTER_UPDATED');
 
+    socket.on('join-my-notifications', () => {
+      const userId = socket.data.user?.userId?.toString();
+      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+        socket.emit('error', { message: 'Authentication required for notifications' });
+        return;
+      }
+      socket.join(`user:${userId}`);
+    });
+
     // Private notification room: authenticated users may only subscribe to their own room.
     socket.on('join-user', (requestedUserId: string) => {
       if (!requestedUserId || !mongoose.Types.ObjectId.isValid(requestedUserId)) {
