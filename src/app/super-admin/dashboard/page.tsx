@@ -1,7 +1,7 @@
 // The dashboard reads live MongoDB counts; never prerender it at build time.
 export const dynamic = 'force-dynamic';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatCard } from '@/components/common/StatCard';
 import { Building2, MapPin, Users, UserCog, User, Ticket, CheckCircle2, Clock, XCircle, Timer } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Organization } from '@/models/Organization';
@@ -134,18 +134,3 @@ export default async function SuperAdminDashboard() {
   );
 }
 
-function StatCard({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-slate-600">
-          {title}
-        </CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
