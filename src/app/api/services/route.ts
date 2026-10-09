@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
+import { Office } from '@/models/Office';
 import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(request: Request) {
@@ -19,10 +20,27 @@ export async function GET(request: Request) {
        return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    if (user.role === 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+
     if (user.role === 'ADMIN' || user.role === 'STAFF') {
-      query.organizationId = user.organizationId;
-    } else if (orgId) {
-      query.organizationId = orgId;
+      if (!user.organizationId) {
+        return NextResponse.json({ success: false, message: 'Organization assignment required' }, { status: 403 });
+      }
+      const offices = await Office.find({ organizationId: user.organizationId }).select('_id').lean();
+      const officeIds = offices.map((office) => office._id);
+      query.officeId = officeId
+        ? { $in: officeIds.filter((id) => id.toString() === officeId) }
+        : { $in: officeIds };
+    } else if (user.role === 'SUPER_ADMIN' && orgId) {
+      const offices = await Office.find({ organizationId: orgId }).select('_id').lean();
+      const officeIds = offices.map((office) => office._id);
+      query.officeId = officeId
+        ? { $in: officeIds.filter((id) => id.toString() === officeId) }
+        : { $in: officeIds };
+    } else if (user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
     
     if (user.role === 'ADMIN') { const { hasPermission } = await import('@/lib/permissions'); if (!(await hasPermission(user.userId, 'MANAGE_SERVICES'))) return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_SERVICES permission' }, { status: 403 }); }
@@ -60,7 +78,12 @@ export async function POST(request: Request) {
        return NextResponse.json({ success: false, message: 'Organization ID is required' }, { status: 400 });
     }
     
-    const existingService = await Service.findOne({ code: body.code, organizationId: targetOrgId });
+    const office = await Office.findById(body.officeId).lean();
+    if (!office || office.organizationId?.toString() !== targetOrgId.toString()) {
+      return NextResponse.json({ success: false, message: 'Office does not belong to the selected organization' }, { status: 403 });
+    }
+
+    const existingService = await Service.findOne({ code: body.code, officeId: body.officeId });
     if (existingService) {
       return NextResponse.json({ success: false, message: 'Service code already exists in this organization' }, { status: 400 });
     }
