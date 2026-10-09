@@ -1,4 +1,6 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -53,9 +55,7 @@ export default async function AdminOfficesPage() {
                     <td className="px-6 py-4 font-semibold text-slate-900">{office.name}</td>
                     <td className="px-6 py-4">{office.city || '-'}</td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
-                        {office.status || 'ACTIVE'}
-                      </span>
+                      <StatusBadge status={office.status || 'ACTIVE'} />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
@@ -76,11 +76,7 @@ export default async function AdminOfficesPage() {
                 ))}
                 
                 {offices.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
-                      No offices found in your organization.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={4} title="No offices found" description="Add an office to start managing your organization's branches." />
                 )}
               </tbody>
             </table>
