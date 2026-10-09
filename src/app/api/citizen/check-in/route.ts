@@ -171,6 +171,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'Check-in confirmed successfully!',
       data: {
+        tokenId: token._id.toString(),
         tokenNumber: token.tokenNumber,
         checkInTime: token.checkInTime,
         officeName: token.officeId?.name || 'Office',
