@@ -89,10 +89,14 @@ export default function MyQueuePage() {
         body: JSON.stringify({ tokenId, reason: 'Cancelled by citizen from My Queue' })
       });
       const json = await res.json();
-      if (json.success) {
+      if (res.ok && json.success) {
         setActiveQueues(prev => prev.filter(t => t.id !== tokenId && t._id !== tokenId));
       } else {
-        setError(json.message || 'Failed to cancel token');
+        const message = json.message || 'Failed to cancel token';
+        // A 409 can mean staff started serving while the cancellation was in
+        // flight. Refresh the server state so the card reflects the real status.
+        await fetchActiveQueues(false);
+        setError(message);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to cancel token');
