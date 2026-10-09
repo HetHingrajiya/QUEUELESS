@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Clock, Building2, Ticket, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { CitizenToken, ApiResponse } from '@/types/citizen';
 
 export default function CitizenTokenHistoryPage() {
@@ -13,6 +15,7 @@ export default function CitizenTokenHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ALL' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'>('ALL');
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -21,6 +24,7 @@ export default function CitizenTokenHistoryPage() {
         setError(null);
         const query = activeTab === 'ALL' ? '' : `?status=${activeTab}`;
         const res = await fetch(`/api/citizen/token-history${query}`);
+        if (!res.ok) throw new Error(`Unable to load token history (${res.status})`);
         const json: ApiResponse<CitizenToken[]> = await res.json();
         if (json.success) {
           setHistory(json.data || []);
@@ -35,7 +39,7 @@ export default function CitizenTokenHistoryPage() {
     };
     
     fetchHistory();
-  }, [activeTab]);
+  }, [activeTab, retryCount]);
 
   const getStatusIcon = (status: string) => {
     switch(status) {
@@ -102,11 +106,9 @@ export default function CitizenTokenHistoryPage() {
       </div>
 
       {loading ? (
-        <SkeletonLoader type="history" count={4} />
+        <LoadingState label="Loading token history..." />
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
-          {error}
-        </div>
+        <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} />
       ) : history.length === 0 ? (
         <EmptyState
           icon={<Ticket size={32} />}
@@ -145,9 +147,9 @@ export default function CitizenTokenHistoryPage() {
                       {new Date(token.date || token.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center ${getStatusColor(token.status)}`}>
+                      <span className="inline-flex items-center gap-1">
                         {getStatusIcon(token.status)}
-                        {token.status}
+                        <StatusBadge status={token.status} />
                       </span>
                       <ArrowRight size={13} className="text-slate-400" />
                     </div>
