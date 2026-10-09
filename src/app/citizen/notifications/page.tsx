@@ -7,7 +7,8 @@ import {
   ArrowRight, Check, Trash2, ShieldCheck, Info 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 
 interface NotificationItem {
@@ -26,12 +27,14 @@ export default function CitizenNotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await fetch(`/api/citizen/notifications?category=${filter}`);
+      if (!res.ok) throw new Error(`Unable to load notifications (${res.status})`);
       const json = await res.json();
       if (json.success) {
         setNotifications(json.data.notifications || []);
@@ -50,7 +53,7 @@ export default function CitizenNotificationsPage() {
       fetchNotifications();
     }, 0);
     return () => clearTimeout(timer);
-  }, [filter]);
+  }, [filter, retryCount]);
 
   const markAllRead = async () => {
     try {
@@ -126,11 +129,9 @@ export default function CitizenNotificationsPage() {
 
       {/* Content */}
       {loading ? (
-        <SkeletonLoader type="notification" count={4} />
+        <LoadingState label="Loading notifications..." />
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-          {error}
-        </div>
+        <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} />
       ) : notifications.length === 0 ? (
         <EmptyState
           icon={<Bell size={32} />}
