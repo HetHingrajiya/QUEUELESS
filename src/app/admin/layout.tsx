@@ -49,20 +49,7 @@ const sidebarItems: SidebarItem[] = [
   { name: 'Priority Rules', href: '/admin/priority-rules', icon: <ShieldAlert size={20} /> },
   { name: 'Working Hours', href: '/admin/working-hours', icon: <Clock size={20} /> },
   { name: 'Holidays', href: '/admin/holidays', icon: <Calendar size={20} /> },
-  { 
-    name: 'Analytics', 
-    href: '/admin/analytics', 
-    icon: <BarChart3 size={20} />,
-    subItems: [
-      { name: 'Queue Analytics', href: '/admin/analytics/queue' },
-      { name: 'Waiting Time', href: '/admin/analytics/waiting-time' },
-      { name: 'Service Time', href: '/admin/analytics/service-time' },
-      { name: 'Peak Hours', href: '/admin/analytics/peak-hours' },
-      { name: 'No Show Rate', href: '/admin/analytics/no-show' },
-      { name: 'Staff Performance', href: '/admin/analytics/staff-performance' },
-      { name: 'Office Performance', href: '/admin/analytics/office-performance' }
-    ]
-  },
+  { name: 'Analytics', href: '/admin/analytics', icon: <BarChart3 size={20} /> },
   { 
     name: 'Reports', 
     href: '/admin/reports', 
