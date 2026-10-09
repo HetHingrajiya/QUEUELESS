@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
+import { Office } from '@/models/Office';
 import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(request: Request) {
@@ -11,16 +12,33 @@ export async function GET(request: Request) {
     const officeId = url.searchParams.get('officeId');
     const orgId = url.searchParams.get('organizationId');
     let query: any = officeId ? { officeId } : {};
-    
+
     const user = await getUserFromCookie();
     if (!user) {
        return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    if (user.role === 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+
     if (user.role === 'ADMIN' || user.role === 'STAFF') {
-      query.organizationId = user.organizationId;
-    } else if (orgId) {
-      query.organizationId = orgId;
+      if (!user.organizationId) {
+        return NextResponse.json({ success: false, message: 'Organization assignment required' }, { status: 403 });
+      }
+      const offices = await Office.find({ organizationId: user.organizationId }).select('_id').lean();
+      const officeIds = offices.map((office) => office._id);
+      query.officeId = officeId
+        ? { $in: officeIds.filter((id) => id.toString() === officeId) }
+        : { $in: officeIds };
+    } else if (user.role === 'SUPER_ADMIN' && orgId) {
+      const offices = await Office.find({ organizationId: orgId }).select('_id').lean();
+      const officeIds = offices.map((office) => office._id);
+      query.officeId = officeId
+        ? { $in: officeIds.filter((id) => id.toString() === officeId) }
+        : { $in: officeIds };
+    } else if (user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
     
     if (user.role === 'ADMIN') { const { hasPermission } = await import('@/lib/permissions'); if (!(await hasPermission(user.userId, 'MANAGE_OFFICES'))) return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_OFFICES permission' }, { status: 403 }); }
@@ -63,6 +81,21 @@ export async function POST(request: Request) {
     }
 
     // Check for duplicate counter number in the same office
+    const office = await Office.findById(body.officeId).lean();
+    if (!office || office.organizationId?.toString() !== targetOrgId.toString()) {
+      return NextResponse.json({ success: false, message: 'Office does not belong to the selected organization' }, { status: 403 });
+    }
+
+    if (body.staffId) {
+      const { User, UserRole } = await import('@/models/User');
+      const staff = await User.findById(body.staffId).lean();
+      if (!staff || staff.role !== UserRole.STAFF || staff.status !== 'ACTIVE' ||
+          staff.officeId?.toString() !== body.officeId.toString() ||
+          staff.organizationId?.toString() !== targetOrgId.toString()) {
+        return NextResponse.json({ success: false, message: 'Assigned user must be active staff in this office and organization' }, { status: 400 });
+      }
+    }
+
     const existingCounter = await Counter.findOne({ number: body.number, officeId: body.officeId });
     if (existingCounter) {
       return NextResponse.json({ 
