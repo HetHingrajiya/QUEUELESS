@@ -166,6 +166,46 @@ export async function POST(req: NextRequest) {
       request: req
     });
 
+    // Save an in-app notification after the state transition; push/socket are best-effort.
+    try {
+      const { Notification } = await import('@/models/Notification');
+      const officeName = token.officeId?.name || 'your office';
+      const serviceName = token.serviceId?.name || 'your service';
+      const notificationMessage = `Check-in confirmed for token ${token.tokenNumber} at ${officeName} (${serviceName}).`;
+      await Notification.create({
+        userId: user.userId,
+        officeId: token.officeId?._id,
+        tokenId: token._id,
+        type: 'TOKEN',
+        title: 'Check-in Confirmed',
+        message: notificationMessage,
+        channel: 'IN_APP',
+        isRead: false
+      });
+      try {
+        const { sendWebPush } = await import('@/lib/push');
+        await sendWebPush(user.userId, 'Check-in Confirmed', notificationMessage, '/citizen/notifications');
+      } catch (pushErr) {
+        console.error('Failed to send check-in push notification', pushErr);
+      }
+      try {
+        const { getSocket } = await import('@/lib/socketClient');
+        getSocket().emit('notification:new', {
+          userId: user.userId,
+          officeId: token.officeId?._id?.toString(),
+          tokenId: token._id.toString(),
+          type: 'TOKEN',
+          title: 'Check-in Confirmed',
+          message: notificationMessage,
+          createdAt: new Date().toISOString()
+        });
+      } catch (socketErr) {
+        console.error('Failed to broadcast check-in notification', socketErr);
+      }
+    } catch (notificationErr) {
+      console.error('Failed to persist check-in notification', notificationErr);
+    }
+
     try {
       const { getSocket } = await import('@/lib/socketClient');
       const socket = getSocket();
