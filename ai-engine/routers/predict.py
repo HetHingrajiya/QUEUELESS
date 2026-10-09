@@ -48,11 +48,16 @@ async def predict_wait_time(request: PredictionRequest):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid office_id or service_id format")
 
-    # 1. Strictly scoped queue length (DATA ISOLATION)
+    # 1. Strictly scoped queue length (office + service + current local day).
+    # Historical tokens must not inflate the live queue-length model feature.
+    now = datetime.now()
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
     queue_filter = {
         "officeId": office_oid,
         "serviceId": service_oid,
-        "status": {"$in": ["WAITING", "CHECKED_IN"]}
+        "status": {"$in": ["WAITING", "CHECKED_IN"]},
+        "createdAt": {"$gte": start_of_day, "$lte": end_of_day}
     }
     queue_count = await db.tokens.count_documents(queue_filter)
 
@@ -79,7 +84,6 @@ async def predict_wait_time(request: PredictionRequest):
     service_duration = float(service_doc.get("averageServiceTime", 10)) if service_doc else 10.0
 
     # 5. Temporal context
-    now = datetime.now()
     hour = now.hour
     day_of_week = now.weekday()
 
