@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { CitizenQueueSummary, ApiResponse } from '@/types/citizen';
 
 function CheckInSuccessContent() {
@@ -17,44 +18,44 @@ function CheckInSuccessContent() {
 
   const [data, setData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const fetchConfirmedToken = async () => {
       try {
         setLoading(true);
-        if (tokenIdParam) {
-          const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
-          const json: ApiResponse<CitizenQueueSummary> = await res.json();
-          if (json.success && json.data) {
-            setData(json.data);
-            return;
-          }
-        }
-
-        const res = await fetch('/api/citizen/queue');
+        setError(null);
+        const endpoint = tokenIdParam
+          ? `/api/citizen/queue/${encodeURIComponent(tokenIdParam)}`
+          : '/api/citizen/queue';
+        const res = await fetch(endpoint, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Unable to verify check-in (${res.status})`);
         const json: ApiResponse<CitizenQueueSummary> = await res.json();
-        if (json.success && json.data) {
-          setData(json.data);
+        if (!json.success || !json.data?.token) {
+          throw new Error(json.message || 'The checked-in token could not be found for this account.');
         }
+        setData(json.data);
       } catch (err: unknown) {
-        console.error(err);
+        setData(null);
+        setError(err instanceof Error ? err.message : 'Unable to verify your check-in.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchConfirmedToken();
-  }, [tokenIdParam]);
+  }, [tokenIdParam, retryCount]);
 
   if (loading) {
-    return (
-      <div className="max-w-md mx-auto pt-6">
-        <SkeletonLoader type="queue" />
-      </div>
-    );
+    return <div className="max-w-md mx-auto pt-6"><LoadingState label="Verifying check-in..." /></div>;
   }
 
-  const token = data?.token;
+  if (error || !data?.token) {
+    return <div className="max-w-md mx-auto pt-8 px-4 space-y-4"><ErrorState title="Check-in could not be verified" description={error || 'Token details are unavailable.'} onRetry={() => setRetryCount((count) => count + 1)} /><div className="text-center"><Link href="/citizen/queue/my" className="text-blue-600 font-semibold text-sm">View My Queue</Link></div></div>;
+  }
+
+  const token = data.token;
   const tokenNumber = token?.tokenNumber || 'Data unavailable';
   const serviceName = token?.serviceName || 'Data unavailable';
   const officeName = token?.officeName || 'Data unavailable';
