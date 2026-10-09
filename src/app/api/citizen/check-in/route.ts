@@ -119,9 +119,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    token.status = TokenStatus.CHECKED_IN;
-    token.checkInTime = new Date();
-    await token.save();
+    // Use a conditional atomic transition so a concurrent staff action cannot
+    // be overwritten by a stale citizen token document.
+    const checkInTime = new Date();
+    const checkedInToken = await Token.findOneAndUpdate(
+      {
+        _id: token._id,
+        citizenId: user.userId,
+        status: { $in: [TokenStatus.WAITING, TokenStatus.CALLED] }
+      },
+      {
+        $set: {
+          status: TokenStatus.CHECKED_IN,
+          checkInTime
+        }
+      },
+      { new: true, runValidators: true }
+    ).populate('officeId').populate('serviceId');
+
+    if (!checkedInToken) {
+      return NextResponse.json({
+        success: false,
+        message: 'Token status changed while checking in. Refresh the queue and try again.',
+        errorCode: 'TOKEN_STATE_CHANGED'
+      }, { status: 409 });
+    }
+
+    token = checkedInToken;
 
     await QueueEvent.create({
       tokenId: token._id,
