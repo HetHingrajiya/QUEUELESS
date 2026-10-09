@@ -1,7 +1,9 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
-import { Token } from '@/models/Token';
+import { Token, TokenStatus } from '@/models/Token';
+import { Counter } from '@/models/Counter';
+import { User, UserRole } from '@/models/User';
 import { Office } from '@/models/Office';
 import { createAuditLog } from '@/lib/auditLogger';
 
@@ -75,9 +77,40 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const updateData: any = {};
-    if (status !== undefined) updateData.status = status;
-    if (counterId !== undefined) updateData.counterId = counterId;
-    if (staffId !== undefined) updateData.staffId = staffId;
+    if (status !== undefined) {
+      if (!Object.values(TokenStatus).includes(status as TokenStatus)) {
+        return NextResponse.json({ success: false, message: 'Invalid token status' }, { status: 400 });
+      }
+      updateData.status = status;
+    }
+
+    if (counterId !== undefined && counterId !== null && counterId !== '') {
+      const targetCounter = await Counter.findById(counterId).lean();
+      if (!targetCounter || targetCounter.officeId.toString() !== oldToken.officeId.toString()) {
+        return NextResponse.json({ success: false, message: 'Counter must belong to the token office' }, { status: 400 });
+      }
+      if (targetCounter.serviceIds?.length &&
+          !targetCounter.serviceIds.some((id: any) => id.toString() === oldToken.serviceId.toString())) {
+        return NextResponse.json({ success: false, message: 'Counter is not configured for the token service' }, { status: 400 });
+      }
+      updateData.counterId = counterId;
+    } else if (counterId !== undefined) {
+      updateData.counterId = null;
+    }
+
+    if (staffId !== undefined && staffId !== null && staffId !== '') {
+      const assignedStaff = await User.findById(staffId).lean();
+      const tokenOffice = await Office.findById(oldToken.officeId).lean();
+      if (!assignedStaff || assignedStaff.role !== UserRole.STAFF ||
+          assignedStaff.status !== 'ACTIVE' ||
+          assignedStaff.officeId?.toString() !== oldToken.officeId.toString() ||
+          assignedStaff.organizationId?.toString() !== tokenOffice?.organizationId?.toString()) {
+        return NextResponse.json({ success: false, message: 'Assigned staff must be active and belong to the token office and organization' }, { status: 400 });
+      }
+      updateData.staffId = staffId;
+    } else if (staffId !== undefined) {
+      updateData.staffId = null;
+    }
 
     const token = await Token.findByIdAndUpdate(
       id,
