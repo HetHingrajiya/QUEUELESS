@@ -53,7 +53,7 @@ export default async function OfficesPage() {
                       {office.city || '-'}
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status="ACTIVE" />
+                      <StatusBadge status={office.status || 'UNKNOWN'} />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <OfficeActions officeId={office._id.toString()} />
