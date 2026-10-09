@@ -173,6 +173,8 @@ export async function POST(req: NextRequest) {
         };
         if (counter.serviceIds && counter.serviceIds.length > 0) {
           filter.serviceId = { $in: counter.serviceIds };
+        } else if (staffUser.serviceId) {
+          filter.serviceId = staffUser.serviceId;
         }
         token = await Token.findOneAndUpdate(
           filter,
