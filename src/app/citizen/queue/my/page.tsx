@@ -8,7 +8,9 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { EmptyState } from '@/components/common/EmptyState';
 import { getSocket } from '@/lib/socketClient';
 import { CitizenToken, ApiResponse } from '@/types/citizen';
@@ -121,11 +123,9 @@ export default function MyQueuePage() {
       </div>
 
       {loading ? (
-        <SkeletonLoader type="queue" count={2} />
+        <LoadingState label="Loading your active queues…" />
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
-          {error}
-        </div>
+        <ErrorState title="Could not load your queues" description={error} onRetry={() => fetchActiveQueues(true)} />
       ) : activeQueues.length === 0 ? (
         <EmptyState
           icon={<Users size={32} />}
@@ -144,15 +144,7 @@ export default function MyQueuePage() {
                 <CardContent className="p-5">
                   <div className="flex justify-between items-start mb-3">
                     <div className="min-w-0 pr-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                        item.status === 'CHECKED_IN'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : item.status === 'CALLED'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
-                          : 'bg-blue-50 text-blue-700 border-blue-200'
-                      }`}>
-                        {item.status.replace('_', ' ')}
-                      </span>
+                      <StatusBadge status={item.status || 'UNKNOWN'} />
                       <h3 className="font-bold text-slate-900 text-base mt-1.5 truncate">{item.serviceName}</h3>
                       <p className="text-xs text-slate-500 flex items-center mt-0.5 truncate">
                         <Building2 size={13} className="mr-1 text-slate-400 shrink-0" />
