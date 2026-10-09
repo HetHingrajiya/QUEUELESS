@@ -140,11 +140,21 @@ export async function POST(req: NextRequest) {
       }
 
       if (tokenId) {
+        const callableStatuses = action === 'RECALL'
+          ? [TokenStatus.CALLED]
+          : [TokenStatus.WAITING, TokenStatus.CHECKED_IN];
+        const callFilter: Record<string, unknown> = {
+          _id: tokenId,
+          officeId,
+          status: { $in: callableStatuses }
+        };
+        if (counter.serviceIds?.length) {
+          callFilter.serviceId = { $in: counter.serviceIds };
+        } else if (staffUser.serviceId) {
+          callFilter.serviceId = staffUser.serviceId;
+        }
         token = await Token.findOneAndUpdate(
-          {
-            _id: tokenId,
-            officeId
-          },
+          callFilter,
           {
             $set: {
               status: TokenStatus.CALLED,
