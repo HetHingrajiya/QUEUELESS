@@ -28,15 +28,19 @@ function DigitalTokenQRContent() {
       if (isInitial) setLoading(true);
       // If specific tokenId given, fetch that
       if (tokenIdParam) {
-        const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
+        const res = await fetch(`/api/citizen/queue/${encodeURIComponent(tokenIdParam)}`, { cache: 'no-store' });
         const json: ApiResponse<CitizenQueueSummary> = await res.json();
-        if (json.success && json.data?.token) {
+        if (res.ok && json.success && json.data?.token) {
           setTokenData(json.data.token);
-          return;
+          setError(null);
+        } else {
+          setTokenData(null);
+          setError(json.message || 'The requested token could not be found or is not available to this account.');
         }
+        return;
       }
 
-      // Otherwise fetch current active queue token
+      // No token ID was supplied: find a current active token.
       const qRes = await fetch('/api/citizen/queue');
       const qJson: ApiResponse<CitizenQueueSummary> = await qRes.json();
       if (qJson.success && qJson.data?.token) {
