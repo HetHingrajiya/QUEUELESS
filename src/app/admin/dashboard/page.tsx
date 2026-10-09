@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Ticket, CheckCircle2, Clock, MapPin, Briefcase, Loader2, Activity } from 'lucide-react';
+import { Users, Ticket, CheckCircle2, Clock, MapPin, Briefcase, Activity } from 'lucide-react';
 import { getSocket } from '@/lib/socketClient';
+import { LoadingState } from '@/components/common/LoadingState';
 import { StatCard } from '@/components/common/StatCard';
 
 export default function AdminDashboard() {
@@ -64,9 +65,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
+      <LoadingState label="Loading admin dashboard…" className="h-[50vh]" />
     );
   }
 
