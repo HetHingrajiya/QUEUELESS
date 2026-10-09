@@ -62,14 +62,6 @@ function TokenConfirmationContent() {
     );
   }
 
-  const token = data?.token;
-  const tokenNumber = token.tokenNumber;
-  const serviceName = token.serviceName || 'Service';
-  const officeName = token.officeName || 'Government Office';
-  const peopleAhead = data?.peopleAhead ?? 0;
-  const estimatedWaitMin = data?.estimatedWaitMin ?? 0;
-  const tokenId = token._id;
-
   if (!data?.token) {
     return (
       <div className="max-w-md mx-auto pt-10 px-4 text-center space-y-4">
@@ -86,6 +78,13 @@ function TokenConfirmationContent() {
     );
   }
 
+  const token = data.token;
+  const tokenNumber = token.tokenNumber;
+  const serviceName = token.serviceName || 'Service';
+  const officeName = token.officeName || 'Government Office';
+  const peopleAhead = data.peopleAhead ?? 0;
+  const estimatedWaitMin = data.estimatedWaitMin ?? 0;
+  const tokenId = token._id;
 
   return (
     <div className="space-y-6 pb-20 flex flex-col items-center pt-4 max-w-md mx-auto">
