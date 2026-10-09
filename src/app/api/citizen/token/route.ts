@@ -6,6 +6,7 @@ import { Token, TokenStatus } from '@/models/Token';
 import { User, UserRole } from '@/models/User';
 import { Office } from '@/models/Office';
 import { Service } from '@/models/Service';
+import { Counter, CounterStatus } from '@/models/Counter';
 import { QueueEvent } from '@/models/QueueEvent';
 import { SystemSettings } from '@/models/SystemSettings';
 import { TokenSequence } from '@/models/TokenSequence';
@@ -42,13 +43,27 @@ export async function POST(req: NextRequest) {
     }
 
     const office = await Office.findById(officeId);
-    if (!office || office.isActive === false) {
-      return NextResponse.json({ success: false, message: 'Office not found or currently inactive' }, { status: 404 });
+    if (!office || office.status === 'INACTIVE' || (office as any).isActive === false) {
+      return NextResponse.json({ success: false, message: 'Office not found or currently inactive', errorCode: 'OFFICE_INACTIVE' }, { status: 404 });
+    }
+
+    // Verify Office Operating Schedule
+    if (office.workingHours && office.workingHours.length > 0) {
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+      const currentDay = dayNames[new Date().getDay()];
+      const todayHours = office.workingHours.find((w: any) => w.day === currentDay);
+      if (todayHours && !todayHours.isOpen) {
+        return NextResponse.json({
+          success: false,
+          message: `The office is closed on ${currentDay} according to its official operating schedule.`,
+          errorCode: 'OFFICE_CLOSED'
+        }, { status: 400 });
+      }
     }
     
     const service = await Service.findById(serviceId);
-    if (!service || service.isActive === false) {
-      return NextResponse.json({ success: false, message: 'Service not found or currently inactive' }, { status: 404 });
+    if (!service || service.status === 'INACTIVE' || (service as any).isActive === false) {
+      return NextResponse.json({ success: false, message: 'Service not found or currently disabled', errorCode: 'SERVICE_INACTIVE' }, { status: 404 });
     }
 
     if (service.officeId.toString() !== office._id.toString()) {
@@ -59,7 +74,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Invalid organization relationship between office and service.' }, { status: 400 });
     }
 
-    // Check if citizen already has a conflicting active token
+    // Verify Active Counters Eligibility (must have at least 1 eligible active counter for this service)
+    const eligibleCountersCount = await Counter.countDocuments({
+      officeId: office._id,
+      status: CounterStatus.ACTIVE,
+      $or: [
+        { serviceIds: { $exists: false } },
+        { serviceIds: { $size: 0 } },
+        { serviceIds: service._id }
+      ]
+    });
+
+    if (eligibleCountersCount === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'No active counters are currently open to serve this service. Please check back during operating counter hours.',
+        errorCode: 'NO_ACTIVE_COUNTERS'
+      }, { status: 400 });
+    }
+
+    // Check if citizen already has a conflicting active token for this office
     const existingActiveToken = await Token.findOne({
       citizenId: citizen._id,
       officeId: office._id,
@@ -75,10 +109,41 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // Check if citizen already has an active token for this exact service
+    const existingSameServiceToken = await Token.findOne({
+      citizenId: citizen._id,
+      serviceId: service._id,
+      status: { $in: ACTIVE_TOKEN_STATUSES }
+    });
+
+    if (existingSameServiceToken) {
+      return NextResponse.json({
+        success: false,
+        message: `You already have an active token (${existingSameServiceToken.tokenNumber}) for ${service.name}. Please complete or cancel it first.`,
+        errorCode: 'ACTIVE_TOKEN_EXISTS',
+        data: { activeTokenId: existingSameServiceToken._id }
+      }, { status: 400 });
+    }
+
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
+
+    // Verify Daily Token Limit for this service
+    if (typeof service.dailyTokenLimit === 'number' && service.dailyTokenLimit > 0) {
+      const totalCreatedToday = await Token.countDocuments({
+        serviceId: service._id,
+        createdAt: { $gte: startOfDay, $lte: endOfDay }
+      });
+      if (totalCreatedToday >= service.dailyTokenLimit) {
+        return NextResponse.json({
+          success: false,
+          message: `Daily booking limit (${service.dailyTokenLimit} tokens) has been reached for ${service.name}. Please book tomorrow.`,
+          errorCode: 'DAILY_LIMIT_REACHED'
+        }, { status: 400 });
+      }
+    }
 
     const dateKey = startOfDay.toISOString().split('T')[0];
 

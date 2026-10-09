@@ -62,6 +62,21 @@ export default function OfficeServicesPage({ params }: { params: Promise<{ id: s
     );
   }
 
+  if (!office) {
+    return (
+      <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200 max-w-md mx-auto mt-8 p-6">
+        <AlertCircle className="mx-auto h-12 w-12 text-slate-300 mb-3" />
+        <h2 className="text-xl font-bold text-slate-800">Office Not Found</h2>
+        <p className="text-xs text-slate-500 mt-1 mb-6">
+          The requested government office is not active or could not be found.
+        </p>
+        <Link href="/citizen/offices">
+          <Button className="bg-blue-600 hover:bg-blue-700">Browse Offices</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-20 max-w-2xl mx-auto pt-2">
       {/* Header */}

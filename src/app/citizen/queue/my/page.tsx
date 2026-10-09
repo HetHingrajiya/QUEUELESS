@@ -90,10 +90,10 @@ export default function MyQueuePage() {
       if (json.success) {
         setActiveQueues(prev => prev.filter(t => t.id !== tokenId && t._id !== tokenId));
       } else {
-        alert(json.message || 'Failed to cancel token');
+        setError(json.message || 'Failed to cancel token');
       }
-    } catch (err) {
-      console.error('Cancel error:', err);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel token');
     } finally {
       setCancellingId(null);
     }

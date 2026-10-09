@@ -4,21 +4,32 @@ let socket: Socket | null = null;
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    // In a real app, you might want to read the URL from an env variable.
-    // Assuming the Next.js API handles the Socket.IO server on the same origin.
-    // If not, use process.env.NEXT_PUBLIC_WEBSOCKET_URL
+    const isServer = typeof window === 'undefined';
+    const authPayload: Record<string, string> = {};
+
+    if (isServer && process.env.JWT_SECRET) {
+      authPayload.serverToken = process.env.JWT_SECRET;
+    }
+
     socket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || '', {
-      path: '/api/socket', // If you have a custom path
+      path: '/api/socket',
       autoConnect: true,
       reconnection: true,
+      withCredentials: true,
+      auth: authPayload,
+      transports: ['websocket', 'polling']
     });
     
     socket.on('connect', () => {
-      console.log('Connected to WebSocket');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Connected to WebSocket server');
+      }
     });
 
     socket.on('disconnect', () => {
-      console.log('Disconnected from WebSocket');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Disconnected from WebSocket server');
+      }
     });
   }
   

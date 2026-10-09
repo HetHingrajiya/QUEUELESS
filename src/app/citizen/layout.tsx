@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, Layers, Clock, User, LogOut, Menu, X, Bell } from 'lucide-react';
+import { Home, Compass, Layers, Clock, User, LogOut, Menu, X, Bell, Star, HelpCircle, Settings } from 'lucide-react';
 
 const mainNavItems = [
   { name: 'Home', href: '/citizen/home', icon: <Home size={22} /> },
@@ -86,27 +86,38 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
 
       {/* Mobile Top Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-slate-200 shadow-xl z-40 p-4 space-y-2 animate-in slide-in-from-top-2 duration-150">
+        <div className="md:hidden bg-white border-b border-slate-200 shadow-xl z-40 p-4 space-y-1 animate-in slide-in-from-top-2 duration-150">
           <Link
             href="/citizen/search"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm"
+            className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
           >
-            <Compass size={18} className="text-slate-500" /> Search Offices & Services
+            <Compass size={18} className="text-blue-600" />
+            <span>Search Offices & Services</span>
           </Link>
           <Link
             href="/citizen/favorites"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm"
+            className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
           >
-            <span className="text-amber-500 font-bold">★</span> Bookmarked Favorites
+            <Star size={18} className="text-amber-500 fill-amber-500" />
+            <span>Bookmarked Favorites</span>
           </Link>
           <Link
             href="/citizen/help"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm"
+            className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
           >
-            <span className="text-slate-500 font-bold">?</span> Help & Support
+            <HelpCircle size={18} className="text-indigo-600" />
+            <span>Help & Support</span>
+          </Link>
+          <Link
+            href="/citizen/settings"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm transition-colors"
+          >
+            <Settings size={18} className="text-slate-500" />
+            <span>Account Settings</span>
           </Link>
           <div className="pt-2 border-t border-slate-100">
             <button 

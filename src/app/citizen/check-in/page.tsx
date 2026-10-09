@@ -38,19 +38,22 @@ export default function CheckIn() {
       setSubmitting(true);
       setError(null);
 
-      // Get user location for geofence validation if available
+      // Get user location for geofence validation
       let userLat: number | undefined;
       let userLng: number | undefined;
 
-      if (navigator.geolocation) {
+      if (typeof window !== 'undefined' && navigator.geolocation) {
         try {
           const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 });
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              timeout: 6000, 
+              enableHighAccuracy: true 
+            });
           });
           userLat = pos.coords.latitude;
           userLng = pos.coords.longitude;
-        } catch {
-          // Continue even if GPS timed out
+        } catch (geoErr) {
+          console.warn('Geolocation acquisition status:', geoErr);
         }
       }
 
@@ -60,6 +63,8 @@ export default function CheckIn() {
         body: JSON.stringify({
           tokenId: tokenIdToUse || activeToken?._id,
           tokenNumber: !tokenIdToUse ? tokenInput.trim().toUpperCase() : undefined,
+          lat: userLat,
+          lon: userLng,
           userLat,
           userLng
         })
@@ -67,7 +72,7 @@ export default function CheckIn() {
 
       const json = await res.json();
       if (json.success) {
-        const checkedTokenId = json.data?.tokenId || activeToken?._id || '';
+        const checkedTokenId = json.data?.tokenId || tokenIdToUse || activeToken?._id || '';
         router.push(`/citizen/check-in/success?tokenId=${checkedTokenId}`);
       } else {
         setError(json.message || 'Check-in validation failed');

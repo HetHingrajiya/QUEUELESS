@@ -60,14 +60,23 @@ export default function LeaveTimePage({ params }: { params: Promise<{ tokenId: s
     };
   }, [tokenId, fetchLeaveTime]);
 
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
   const requestGPS = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setGpsError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setGpsError(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocationPrompt(false);
+        setGpsError(null);
         fetchLeaveTime(pos.coords.latitude, pos.coords.longitude);
       },
-      () => alert('Please allow location access in your browser settings to compute travel time.')
+      () => {
+        setGpsError('Location access was denied. Please allow location in browser settings to calculate live travel time.');
+      }
     );
   };
 
@@ -90,6 +99,13 @@ export default function LeaveTimePage({ params }: { params: Promise<{ tokenId: s
           When Should I Leave?
         </h2>
       </div>
+
+      {gpsError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center gap-2">
+          <AlertCircle size={16} className="shrink-0 text-red-500" />
+          <span>{gpsError}</span>
+        </div>
+      )}
 
       <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 shadow-sm overflow-hidden">
         <div className="bg-indigo-600 h-1.5 w-full"></div>

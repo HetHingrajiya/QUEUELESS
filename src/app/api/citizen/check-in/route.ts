@@ -21,7 +21,28 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { tokenId, tokenNumber, lat, lon } = body;
+    const { tokenId, tokenNumber } = body;
+
+    // Support all parameter variations: lat/lon, lat/lng, userLat/userLng
+    const latRaw = body.lat !== undefined ? body.lat : (body.userLat !== undefined ? body.userLat : undefined);
+    const lonRaw = body.lon !== undefined ? body.lon : (body.lng !== undefined ? body.lng : (body.userLng !== undefined ? body.userLng : undefined));
+
+    let lat: number | undefined = undefined;
+    let lon: number | undefined = undefined;
+
+    if (latRaw !== undefined && lonRaw !== undefined && latRaw !== null && lonRaw !== null && latRaw !== '' && lonRaw !== '') {
+      const parsedLat = Number(latRaw);
+      const parsedLon = Number(lonRaw);
+
+      if (!Number.isFinite(parsedLat) || parsedLat < -90 || parsedLat > 90) {
+        return NextResponse.json({ success: false, message: 'Invalid latitude coordinate format (must be between -90 and 90)' }, { status: 400 });
+      }
+      if (!Number.isFinite(parsedLon) || parsedLon < -180 || parsedLon > 180) {
+        return NextResponse.json({ success: false, message: 'Invalid longitude coordinate format (must be between -180 and 180)' }, { status: 400 });
+      }
+      lat = parsedLat;
+      lon = parsedLon;
+    }
 
     let token = null;
     if (tokenId) {
@@ -64,6 +85,7 @@ export async function POST(req: NextRequest) {
         success: true,
         message: 'Token is already checked in',
         data: {
+          tokenId: token._id.toString(),
           tokenNumber: token.tokenNumber,
           checkInTime: token.checkInTime || new Date(),
           officeName: token.officeId?.name,
@@ -72,15 +94,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Geofence check if coordinates provided
-    if (lat != null && lon != null && token.officeId?.latitude != null && token.officeId?.longitude != null) {
-      const distanceKm = calculateDistanceKm(lat, lon, token.officeId.latitude, token.officeId.longitude);
+    // Geofence enforcement when office coordinates exist
+    const officeLat = token.officeId?.latitude;
+    const officeLon = token.officeId?.longitude;
+
+    if (officeLat != null && officeLon != null) {
+      if (lat == null || lon == null) {
+        return NextResponse.json({
+          success: false,
+          message: 'Venue arrival check-in requires GPS location verification. Please allow location permissions and try again.',
+          errorCode: 'LOCATION_REQUIRED'
+        }, { status: 400 });
+      }
+
+      const distanceKm = calculateDistanceKm(lat, lon, officeLat, officeLon);
       // Allow check-in if within 1.0 km of the office
       if (distanceKm > 1.0) {
         return NextResponse.json({
           success: false,
-          message: `You are too far from the office (${distanceKm.toFixed(1)} km away). Please check in upon arrival at the venue.`,
-          distanceKm
+          message: `You are currently ${distanceKm.toFixed(1)} km away from ${token.officeId?.name || 'the office'}. Please check in upon arrival at the venue (within 1.0 km).`,
+          distanceKm,
+          errorCode: 'OUTSIDE_GEOFENCE'
         }, { status: 400 });
       }
     }
