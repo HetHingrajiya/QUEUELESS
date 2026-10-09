@@ -13,17 +13,21 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
 
   const [data, setData] = useState<AIPrediction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPrediction = async () => {
       try {
-        const res = await fetch(`/api/citizen/queue/${tokenId}/prediction`);
+        const res = await fetch(`/api/citizen/queue/${encodeURIComponent(tokenId)}/prediction`, { cache: 'no-store' });
         const json: ApiResponse<AIPrediction> = await res.json();
-        if (json.success && json.data) {
-          setData(json.data);
+        if (!res.ok || !json.success || !json.data) {
+          throw new Error(json.message || 'Prediction data is currently unavailable.');
         }
+        setData(json.data);
+        setError(null);
       } catch (err: unknown) {
         console.error("Failed to load prediction", err);
+        setError(err instanceof Error ? err.message : 'Unable to load prediction data.');
       } finally {
         setLoading(false);
       }
@@ -42,11 +46,14 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
   if (!data) {
     return (
       <div className="p-6 text-center">
-        <h2 className="text-xl font-bold text-slate-800">No AI Data Available</h2>
+        <h2 className="text-xl font-bold text-slate-800">Prediction unavailable</h2>
+        <p className="text-sm text-slate-500 mt-2">{error || 'The prediction service did not return data for this token.'}</p>
         <Button onClick={() => router.back()} className="mt-4">Go Back</Button>
       </div>
     );
   }
+
+  const isFallback = (data.predictionSource || '').toUpperCase().includes('FALLBACK');
 
   return (
     <div className="space-y-6 pb-24 max-w-md mx-auto pt-4 px-4">
@@ -88,7 +95,7 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
           </div>
           <div>
             <p className="text-xs font-medium text-slate-500">Status</p>
-            <p className="text-sm font-bold text-slate-900">Live Sync</p>
+            <p className="text-sm font-bold text-slate-900">{isFallback ? 'Fallback estimate' : (data.predictionSource || 'Prediction received').replaceAll('_', ' ')}</p>
           </div>
         </div>
       </div>
@@ -119,8 +126,10 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
         </CardContent>
       </Card>
       
-      <p className="text-xs text-center text-slate-400 italic mt-4 px-4">
-        This prediction is powered by our Random Forest ML model, dynamically adjusting to live queue conditions.
+      <p className="text-xs text-center text-slate-500 mt-4 px-4">
+        {isFallback
+          ? 'The ML analytics service was unavailable. This is a fallback estimate based on current queue metrics; model confidence is not available.'
+          : `Prediction source: ${data.predictionSource || 'not specified'}${data.modelVersion ? ` · ${data.modelVersion}` : ''}. Estimates may change as queue conditions change.`}
       </p>
     </div>
   );
