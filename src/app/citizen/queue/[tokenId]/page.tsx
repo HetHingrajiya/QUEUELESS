@@ -66,9 +66,11 @@ export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId
     socket.io.on('reconnect_attempt', onReconnectAttempt);
     socket.io.on('reconnect', onReconnect);
 
-    if (socket.connected) {
-      setConnectionStatus('LIVE');
-    }
+    // Defer the initial connected-state sync so the effect does not trigger a
+    // synchronous render before the live queue subscriptions are established.
+    const connectionCheckTimer = setTimeout(() => {
+      if (socket.connected) setConnectionStatus('LIVE');
+    }, 0);
 
     const events = [
       'queue:updated', 'QUEUE_UPDATED',
@@ -92,6 +94,7 @@ export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId
     
     return () => {
       clearTimeout(timer);
+      clearTimeout(connectionCheckTimer);
       socket.emit('leave-token', tokenId);
       clearInterval(fallbackPoll);
       socket.off('connect', onConnect);
