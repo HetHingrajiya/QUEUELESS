@@ -253,8 +253,17 @@ export async function POST(req: NextRequest) {
     try {
       const { getSocket } = await import('@/lib/socketClient');
       const socket = getSocket();
-      socket.emit('queue:action', { action: 'TOKEN_CREATED', officeId: office._id, tokenId: newToken._id });
-      socket.emit('queue:updated');
+      socket.emit('queue:action', { action: 'TOKEN_CREATED', officeId: office._id.toString(), tokenId: newToken._id.toString() });
+      socket.emit('queue:updated', { officeId: office._id.toString(), serviceId: service._id.toString() });
+      socket.emit('notification:new', {
+        userId: citizen._id.toString(),
+        officeId: office._id.toString(),
+        tokenId: newToken._id.toString(),
+        type: 'TOKEN',
+        title: 'Token Generated Successfully',
+        message: `Your token ${newToken.tokenNumber} for ${service.name} at ${office.name} is confirmed.`,
+        createdAt: new Date().toISOString()
+      });
     } catch {}
 
     return NextResponse.json({
