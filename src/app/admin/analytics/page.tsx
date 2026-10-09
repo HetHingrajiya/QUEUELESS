@@ -1,268 +1,141 @@
 "use client";
-import { useState, useEffect, useCallback } from 'react';
+
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Download, Filter, Clock, Users, UserCheck, TrendingDown, X, Loader2, RefreshCw } from 'lucide-react';
+import { Activity, Clock, Users, CheckCircle2, UserX, Building2, Timer, RefreshCw, Loader2, TrendingUp } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+  BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
-interface AnalyticsSummary {
-  total: number;
-  waiting: number;
-  serving: number;
-  completed: number;
-  cancelled: number;
-  skipped: number;
-  noShow: number;
-  avgWaitMin: number;
-  avgServiceMin: number;
-  noShowRate: string;
-  completionRate: string;
+type AnyRecord = Record<string, any>;
+type AnalyticsPayload = {
+  waitingTime?: { data?: AnyRecord[]; kpis?: AnyRecord };
+  serviceTime?: { data?: AnyRecord[]; kpis?: AnyRecord };
+  peakHours?: { data?: AnyRecord[]; kpis?: AnyRecord };
+  noShowRate?: { data?: AnyRecord[]; kpis?: AnyRecord };
+  staffPerformance?: { data?: AnyRecord[]; kpis?: AnyRecord };
+  officePerformance?: { data?: AnyRecord[]; kpis?: AnyRecord };
+};
+
+function MetricCard({ title, value, icon: Icon, detail }: { title: string; value: string | number; icon: any; detail?: string }) {
+  return <Card><CardContent className="p-5 flex items-center gap-4">
+    <div className="rounded-xl bg-blue-50 p-3 text-blue-600"><Icon size={22} /></div>
+    <div className="min-w-0"><p className="text-sm text-slate-500">{title}</p><p className="text-2xl font-bold text-slate-900">{value}</p>{detail && <p className="text-xs text-slate-500 mt-1">{detail}</p>}</div>
+  </CardContent></Card>;
 }
 
-interface DailyBucket { day: string; count: number; }
+function ChartPanel({ title, children, empty }: { title: string; children: React.ReactNode; empty: boolean }) {
+  return <Card><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent>
+    {empty ? <div className="h-64 flex items-center justify-center text-sm text-slate-500">No recorded data available for this period.</div> : <div className="h-64 w-full">{children}</div>}
+  </CardContent></Card>;
+}
 
 export default function AdminAnalyticsPage() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
-  const [dailyData, setDailyData] = useState<DailyBucket[]>([]);
-  const [offices, setOffices] = useState<{ _id: string; name: string }[]>([]);
-  const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [analytics, setAnalytics] = useState<AnalyticsPayload | null>(null);
+  const [queue, setQueue] = useState<AnyRecord | null>(null);
 
-  const [filters, setFilters] = useState({
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-    officeId: '',
-    serviceId: '',
-  });
-  const [appliedFilters, setAppliedFilters] = useState(filters);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    fetch('/api/offices').then(r => r.json()).then(d => { if (d.success) setOffices(d.data || []); });
-    fetch('/api/services').then(r => r.json()).then(d => { if (d.success) setServices(d.data || []); });
-  }, []);
-
-  const fetchAnalytics = useCallback(async (f: typeof appliedFilters) => {
+  const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setError('');
     try {
-      const params = new URLSearchParams({
-        startDate: f.startDate,
-        endDate: f.endDate,
-        ...(f.officeId && { officeId: f.officeId }),
-        ...(f.serviceId && { serviceId: f.serviceId }),
-      });
-      const res = await fetch(`/api/admin/analytics?${params}`);
-      const json = await res.json();
-      if (json.success) {
-        setSummary(json.data.summary);
-        setDailyData(json.data.dailyVolume || []);
-      } else {
-        setError(json.message || 'Failed to load analytics.');
-      }
-    } catch {
-      setError('Network error. Please try again.');
+      const [allRes, queueRes] = await Promise.all([
+        fetch('/api/admin/analytics/all', { cache: 'no-store' }),
+        fetch('/api/admin/analytics/queue', { cache: 'no-store' }),
+      ]);
+      const [allJson, queueJson] = await Promise.all([allRes.json(), queueRes.json()]);
+      if (!allRes.ok || !allJson.success) throw new Error(allJson.message || 'Unable to load analytics.');
+      setAnalytics(allJson.data || {});
+      if (queueRes.ok && queueJson.success) setQueue(queueJson.data || {});
+      else setQueue(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to load analytics. Please try again.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchAnalytics(appliedFilters); }, [fetchAnalytics, appliedFilters]);
+  useEffect(() => { setMounted(true); void load(); }, [load]);
 
-  const applyFilters = () => { setAppliedFilters({ ...filters }); setShowFilters(false); };
-  const resetFilters = () => {
-    const def = {
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
-      officeId: '',
-      serviceId: '',
-    };
-    setFilters(def);
-    setAppliedFilters(def);
-    setShowFilters(false);
-  };
+  const waiting = analytics?.waitingTime;
+  const service = analytics?.serviceTime;
+  const peak = analytics?.peakHours;
+  const noShow = analytics?.noShowRate;
+  const staff = analytics?.staffPerformance;
+  const office = analytics?.officePerformance;
+  const queueKpis = queue?.kpis || {};
+  const n = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : 0;
 
-  const exportCSV = async () => {
-    setExporting(true);
-    try {
-      const params = new URLSearchParams({
-        startDate: appliedFilters.startDate,
-        endDate: appliedFilters.endDate,
-        ...(appliedFilters.officeId && { officeId: appliedFilters.officeId }),
-        ...(appliedFilters.serviceId && { serviceId: appliedFilters.serviceId }),
-        format: 'csv',
-      });
-      const res = await fetch(`/api/admin/analytics/export?${params}`);
-      if (!res.ok) throw new Error('Export failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `queueless-analytics-${appliedFilters.startDate}-to-${appliedFilters.endDate}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      alert('Export failed. Please try again.');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const stats = [
-    { label: 'Avg. Wait Time', value: summary ? `${summary.avgWaitMin} min` : '—', icon: <Clock size={16} className="mr-2 text-blue-500" />, note: null },
-    { label: 'Tokens Served', value: summary?.completed ?? '—', icon: <Users size={16} className="mr-2 text-blue-500" />, note: null },
-    { label: 'Avg. Service Time', value: summary ? `${summary.avgServiceMin} min` : '—', icon: <UserCheck size={16} className="mr-2 text-blue-500" />, note: null },
-    { label: 'No-show Rate', value: summary ? `${summary.noShowRate}%` : '—', icon: <TrendingDown size={16} className="mr-2 text-red-500" />, note: null },
-  ];
-
-  return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Organization Analytics</h2>
-          <p className="text-sm text-slate-500">
-            {appliedFilters.startDate} → {appliedFilters.endDate}
-            {appliedFilters.officeId && ` · Office filtered`}
-            {appliedFilters.serviceId && ` · Service filtered`}
-          </p>
-        </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" className="text-slate-600" onClick={() => setShowFilters(v => !v)}>
-            <Filter size={16} className="mr-2" /> Filter
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={exportCSV} disabled={exporting || loading}>
-            {exporting ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Download size={16} className="mr-2" />}
-            Export CSV
-          </Button>
-        </div>
-      </div>
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <Card className="border-blue-200 bg-blue-50/40">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="space-y-1">
-                <Label>Start Date</Label>
-                <Input type="date" value={filters.startDate} onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>End Date</Label>
-                <Input type="date" value={filters.endDate} onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>Office</Label>
-                <select value={filters.officeId} onChange={e => setFilters(f => ({ ...f, officeId: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm bg-white">
-                  <option value="">All Offices</option>
-                  {offices.map(o => <option key={o._id} value={o._id}>{o.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label>Service</Label>
-                <select value={filters.serviceId} onChange={e => setFilters(f => ({ ...f, serviceId: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-md px-3 py-2 text-sm bg-white">
-                  <option value="">All Services</option>
-                  {services.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-sm" onClick={applyFilters}>Apply Filters</Button>
-              <Button variant="outline" className="text-sm" onClick={resetFilters}><X size={14} className="mr-1" /> Reset</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Error */}
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4 flex items-center justify-between text-red-600 text-sm">
-            {error}
-            <Button variant="ghost" size="sm" onClick={() => fetchAnalytics(appliedFilters)}>
-              <RefreshCw size={14} className="mr-1" /> Retry
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {stats.map((s, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500 flex items-center">
-                {s.icon} {s.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading
-                ? <div className="h-8 w-24 bg-slate-200 animate-pulse rounded" />
-                : <div className="text-3xl font-bold text-slate-900">{String(s.value)}</div>
-              }
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Summary Cards */}
-      {!loading && summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Tokens', value: summary.total, color: 'text-slate-800' },
-            { label: 'Waiting', value: summary.waiting, color: 'text-blue-600' },
-            { label: 'Skipped', value: summary.skipped, color: 'text-amber-600' },
-            { label: 'No-Show', value: summary.noShow, color: 'text-red-600' },
-            { label: 'Cancelled', value: summary.cancelled, color: 'text-slate-500' },
-            { label: 'Currently Serving', value: summary.serving, color: 'text-emerald-600' },
-            { label: 'Completion Rate', value: `${summary.completionRate}%`, color: 'text-emerald-700' },
-            { label: 'No-show Rate', value: `${summary.noShowRate}%`, color: 'text-red-600' },
-          ].map((item, i) => (
-            <div key={i} className="bg-white rounded-lg border border-slate-100 p-4 shadow-sm">
-              <p className="text-xs text-slate-500 font-medium mb-1">{item.label}</p>
-              <p className={`text-xl font-bold ${item.color}`}>{item.value}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Daily Volume Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daily Queue Volume</CardTitle>
-        </CardHeader>
-        <CardContent className="h-72">
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-slate-400">
-              <Loader2 className="animate-spin mr-2" /> Loading...
-            </div>
-          ) : dailyData.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-              No analytics data available for the selected period.
-            </div>
-          ) : mounted ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : null}
-        </CardContent>
-      </Card>
+  return <div className="space-y-6 p-4 md:p-6">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div><h1 className="text-2xl font-bold text-slate-900">Organization Analytics</h1>
+        <p className="text-sm text-slate-500 mt-1">All queue, waiting time, service, peak-hour, no-show, staff and office reports in one place. Data is scoped to your organization.</p></div>
+      <Button variant="outline" onClick={() => void load()} disabled={loading}>{loading ? <Loader2 size={16} className="mr-2 animate-spin" /> : <RefreshCw size={16} className="mr-2" />}Refresh data</Button>
     </div>
-  );
+
+    {error && <Card className="border-red-200"><CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-red-700"><span>{error}</span><Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></CardContent></Card>}
+
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">Queue Overview</h2><p className="text-sm text-slate-500">Today’s token activity</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <MetricCard title="Tokens Today" value={loading ? '—' : n(queueKpis.totalTokensToday)} icon={Users}/>
+        <MetricCard title="Tokens Served Today" value={loading ? '—' : n(queueKpis.tokensServedToday)} icon={CheckCircle2}/>
+        <MetricCard title="Average Wait Today" value={loading ? '—' : `${n(queueKpis.avgWaitMinutes)} min`} icon={Clock}/>
+        <MetricCard title="Peak Queue Hour" value={loading ? '—' : (queueKpis.peakHour || 'No data')} icon={Activity}/>
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <ChartPanel title="Hourly Queue Volume & Wait Time" empty={!loading && !(queue?.hourlyData || []).some((x: AnyRecord) => n(x.tokens) > 0)}>
+          {mounted && <ResponsiveContainer width="100%" height="100%"><LineChart data={queue?.hourlyData || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="time"/><YAxis/><Tooltip/><Legend/><Line type="monotone" dataKey="tokens" name="Tokens" stroke="#2563eb" strokeWidth={2}/><Line type="monotone" dataKey="waitTime" name="Avg wait (min)" stroke="#f97316" strokeWidth={2}/></LineChart></ResponsiveContainer>}
+        </ChartPanel>
+        <ChartPanel title="Most Used Services" empty={!loading && !(queue?.serviceData || []).length}>
+          {mounted && <ResponsiveContainer width="100%" height="100%"><BarChart data={queue?.serviceData || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:11}}/><YAxis allowDecimals={false}/><Tooltip/><Bar dataKey="count" name="Tokens" fill="#4f46e5" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer>}
+        </ChartPanel>
+      </div>
+    </section>
+
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">Waiting Time Analytics</h2><p className="text-sm text-slate-500">Completed-token wait durations over the recent seven-day window</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><MetricCard title="Average Wait (7 days)" value={loading ? '—' : `${n(waiting?.kpis?.avgWaitWeek)} min`} icon={Clock}/><MetricCard title="Maximum Wait Recorded" value={loading ? '—' : `${n(waiting?.kpis?.maxWaitWeek)} min`} icon={Timer}/></div>
+      <ChartPanel title="Average and Maximum Waiting Time (Minutes)" empty={!loading && !(waiting?.data || []).some((x: AnyRecord) => n(x.avgWait) > 0 || n(x.maxWait) > 0)}>
+        {mounted && <ResponsiveContainer width="100%" height="100%"><LineChart data={waiting?.data || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="day"/><YAxis/><Tooltip/><Legend/><Line type="monotone" dataKey="avgWait" name="Average wait" stroke="#2563eb" strokeWidth={2}/><Line type="monotone" dataKey="maxWait" name="Maximum wait" stroke="#dc2626" strokeWidth={2}/></LineChart></ResponsiveContainer>}
+      </ChartPanel>
+    </section>
+
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">Service Time Analytics</h2><p className="text-sm text-slate-500">Recorded processing durations grouped by service</p></div>
+      <MetricCard title="Average Service Time" value={loading ? '—' : `${n(service?.kpis?.globalAvgServiceTime)} min`} icon={Timer}/>
+      <ChartPanel title="Average Service Time by Service (Minutes)" empty={!loading && !(service?.data || []).length}>
+        {mounted && <ResponsiveContainer width="100%" height="100%"><BarChart data={service?.data || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="service" tick={{fontSize:11}}/><YAxis/><Tooltip/><Bar dataKey="avgTime" name="Average minutes" fill="#0891b2" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer>}
+      </ChartPanel>
+    </section>
+
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">Peak Hours</h2><p className="text-sm text-slate-500">Today’s recorded token arrivals by hour</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"><MetricCard title="Busiest Hour" value={loading ? '—' : (peak?.kpis?.peakHourStr || 'No data')} icon={TrendingUp}/><MetricCard title="Morning Tokens" value={loading ? '—' : n(peak?.kpis?.morningVolume)} icon={Activity}/><MetricCard title="Afternoon Tokens" value={loading ? '—' : n(peak?.kpis?.afternoonVolume)} icon={Activity}/></div>
+      <ChartPanel title="Token Arrivals by Hour" empty={!loading && !(peak?.data || []).some((x: AnyRecord) => n(x.volume) > 0)}>
+        {mounted && <ResponsiveContainer width="100%" height="100%"><AreaChart data={peak?.data || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="time"/><YAxis allowDecimals={false}/><Tooltip/><Area type="monotone" dataKey="volume" name="Tokens" stroke="#ea580c" fill="#fed7aa"/></AreaChart></ResponsiveContainer>}
+      </ChartPanel>
+    </section>
+
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">No-Show Analytics</h2><p className="text-sm text-slate-500">Skipped/no-show tokens compared with completed tokens</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"><MetricCard title="No-Shows (7 days)" value={loading ? '—' : n(noShow?.kpis?.totalNoShows)} icon={UserX}/><MetricCard title="Tokens Generated" value={loading ? '—' : n(noShow?.kpis?.totalGen)} icon={Users}/><MetricCard title="No-Show Rate" value={loading ? '—' : `${noShow?.kpis?.avgNoShowRate ?? '0.0'}%`} icon={TrendingUp}/></div>
+      <ChartPanel title="Completed vs No-Show Tokens by Day" empty={!loading && !(noShow?.data || []).some((x: AnyRecord) => n(x.Served) > 0 || n(x['No Show']) > 0)}>
+        {mounted && <ResponsiveContainer width="100%" height="100%"><BarChart data={noShow?.data || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name"/><YAxis allowDecimals={false}/><Tooltip/><Legend/><Bar dataKey="Served" fill="#059669"/><Bar dataKey="No Show" fill="#dc2626"/></BarChart></ResponsiveContainer>}
+      </ChartPanel>
+    </section>
+
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">Staff Performance</h2><p className="text-sm text-slate-500">Completed tokens attributed to staff in the selected organization</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"><MetricCard title="Staff Members" value={loading ? '—' : n(staff?.kpis?.totalStaff)} icon={Users}/><MetricCard title="Top Performer" value={loading ? '—' : (staff?.kpis?.topPerformer || 'No data')} icon={CheckCircle2}/><MetricCard title="Fastest Average Service" value={loading ? '—' : `${n(staff?.kpis?.fastestTime)} min`} icon={Timer}/></div>
+      <ChartPanel title="Completed Tokens by Staff" empty={!loading && !(staff?.data || []).some((x: AnyRecord) => n(x.served) > 0)}>
+        {mounted && <ResponsiveContainer width="100%" height="100%"><BarChart data={staff?.data || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:11}}/><YAxis allowDecimals={false}/><Tooltip/><Bar dataKey="served" name="Completed tokens" fill="#4f46e5" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer>}
+      </ChartPanel>
+    </section>
+
+    <section className="space-y-3"><div><h2 className="text-lg font-semibold">Office Performance</h2><p className="text-sm text-slate-500">Compare workload and completion efficiency by office</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"><MetricCard title="Offices" value={loading ? '—' : n(office?.kpis?.activeOffices)} icon={Building2}/><MetricCard title="Busiest Office" value={loading ? '—' : (office?.kpis?.busiestOffice || 'No data')} icon={Activity}/><MetricCard title="Most Efficient Office" value={loading ? '—' : (office?.kpis?.mostEfficient || 'No data')} icon={TrendingUp}/></div>
+      <ChartPanel title="Office Tokens & Completion Efficiency" empty={!loading && !(office?.data || []).length}>
+        {mounted && <ResponsiveContainer width="100%" height="100%"><BarChart data={office?.data || []}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name" tick={{fontSize:11}}/><YAxis/><Tooltip/><Legend/><Bar dataKey="tokens" name="Tokens" fill="#2563eb" radius={[5,5,0,0]}/><Bar dataKey="efficiency" name="Completion efficiency (%)" fill="#059669" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer>}
+      </ChartPanel>
+    </section>
+  </div>;
 }
