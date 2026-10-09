@@ -159,10 +159,7 @@ export default function WhenShouldILeaveScreen() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-              Screen 23 • Live Queue
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">When Should I Leave?</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">When Should I Leave?</h1>
           </div>
         </div>
       </div>

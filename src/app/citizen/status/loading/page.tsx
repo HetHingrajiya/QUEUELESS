@@ -14,10 +14,7 @@ export default function LoadingSkeletonShowcasePage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Screen 57 • System UI
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Loading & Skeleton States</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Loading & Skeleton States</h1>
           </div>
         </div>
         <div className="flex items-center text-xs text-blue-600 font-semibold">

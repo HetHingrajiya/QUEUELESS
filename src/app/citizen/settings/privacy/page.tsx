@@ -74,10 +74,7 @@ export default function PrivacySettingsPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Screen 45 • Privacy
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Privacy Settings</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Privacy Settings</h1>
           </div>
         </div>
       </div>
@@ -163,6 +160,22 @@ export default function PrivacySettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <MapPin size={20} className="text-blue-600 shrink-0" />
+          <div>
+            <p className="text-xs font-bold text-slate-800">Browser GPS Permission</p>
+            <p className="text-[10px] text-slate-500">Configure device location access & geofencing</p>
+          </div>
+        </div>
+        <Link
+          href="/citizen/permissions/location"
+          className="text-xs font-bold text-blue-700 bg-white px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
+        >
+          Manage
+        </Link>
+      </div>
 
       <Button
         onClick={handleSave}

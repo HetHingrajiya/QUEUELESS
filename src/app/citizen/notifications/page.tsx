@@ -95,10 +95,7 @@ export default function CitizenNotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-            Screen 36 • Notifications
-          </span>
-          <h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Center</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Center</h1>
         </div>
         {unreadCount > 0 && (
           <button

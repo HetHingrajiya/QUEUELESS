@@ -8,10 +8,10 @@ export default function Splash() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to onboarding after 2.5 seconds
+    // Redirect to full animated splash screen
     const timer = setTimeout(() => {
-      router.push('/onboarding');
-    }, 2500);
+      router.push('/splash');
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [router]);

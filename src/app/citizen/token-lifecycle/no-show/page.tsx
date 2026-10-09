@@ -53,10 +53,7 @@ function TokenNoShowContent() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-          Screen 30 • Token Lifecycle
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">
+<h1 className="text-2xl font-black text-slate-900 mt-2">
           {actualStatus === 'SKIPPED' ? 'Token Skipped' : 'Token Marked as No-Show'}
         </h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">

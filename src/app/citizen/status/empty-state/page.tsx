@@ -21,10 +21,7 @@ export default function EmptyStateShowcasePage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-              Screen 56 • System UI
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Empty State Variations</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Empty State Variations</h1>
           </div>
         </div>
       </div>

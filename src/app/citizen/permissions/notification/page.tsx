@@ -52,10 +52,7 @@ export default function NotificationPermissionPage() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
-          Screen 59 • Device Permission
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Push Notifications</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">Push Notifications</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           Never miss your turn. Get instant alerts on your lock screen when your token is called.
         </p>

@@ -62,10 +62,7 @@ export default function CitizenTokenHistoryPage() {
   return (
     <div className="space-y-6 pb-20 max-w-2xl mx-auto pt-2">
       <div className="flex flex-col space-y-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit">
-          Screen 32 • History
-        </span>
-        <h1 className="text-2xl font-extrabold text-slate-900">Token History</h1>
+<h1 className="text-2xl font-extrabold text-slate-900">Token History</h1>
         <p className="text-slate-500 text-sm">Chronological record of all government visits, tokens and service audits.</p>
       </div>
 
@@ -84,6 +81,22 @@ export default function CitizenTokenHistoryPage() {
             {tab === 'ALL' ? 'All Visits' : tab === 'NO_SHOW' ? 'No Show' : tab.charAt(0) + tab.slice(1).toLowerCase()}
           </button>
         ))}
+      </div>
+
+      {/* Dedicated Category Views */}
+      <div className="flex items-center gap-2 text-xs">
+        <Link 
+          href="/citizen/history/completed" 
+          className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-semibold hover:bg-emerald-100 transition-colors inline-flex items-center"
+        >
+          <CheckCircle2 size={13} className="mr-1" /> Completed Services Hub
+        </Link>
+        <Link 
+          href="/citizen/history/cancelled" 
+          className="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-semibold hover:bg-red-100 transition-colors inline-flex items-center"
+        >
+          <XCircle size={13} className="mr-1" /> Cancelled & No-Show Logs
+        </Link>
       </div>
 
       {loading ? (

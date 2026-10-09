@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Car, Clock, Navigation, Ticket, Users } from 'lucide-react';
+import { ArrowLeft, Car, Clock, Navigation, Ticket, Users, QrCode, BrainCircuit, CheckCircle2, ArrowRightLeft, Volume2, ArrowRight, UserCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -170,6 +170,60 @@ export default function LiveQueue() {
         </div>
       </div>
 
+      {token.status === 'CALLED' && (
+        <div className="bg-amber-500 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between animate-pulse">
+          <div className="flex items-center space-x-3">
+            <Volume2 className="h-6 w-6 shrink-0" />
+            <div>
+              <p className="font-bold text-sm">Your Token Is Called!</p>
+              <p className="text-xs text-amber-100">Proceed immediately to assigned counter</p>
+            </div>
+          </div>
+          <Link
+            href={`/citizen/token-lifecycle/called?tokenId=${token._id}`}
+            className="bg-white text-amber-700 px-3 py-1.5 rounded-xl font-bold text-xs inline-flex items-center shadow-xs"
+          >
+            View Screen <ArrowRight size={14} className="ml-1" />
+          </Link>
+        </div>
+      )}
+
+      {token.status === 'SERVING' && (
+        <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="h-6 w-6 shrink-0" />
+            <div>
+              <p className="font-bold text-sm">Service In Progress</p>
+              <p className="text-xs text-emerald-100">Counter officer is serving your token</p>
+            </div>
+          </div>
+          <Link
+            href={`/citizen/token-lifecycle/serving?tokenId=${token._id}`}
+            className="bg-white text-emerald-700 px-3 py-1.5 rounded-xl font-bold text-xs inline-flex items-center shadow-xs"
+          >
+            View Live Session <ArrowRight size={14} className="ml-1" />
+          </Link>
+        </div>
+      )}
+
+      {Boolean(token.transferDetails) && (
+        <div className="bg-indigo-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <ArrowRightLeft className="h-6 w-6 shrink-0" />
+            <div>
+              <p className="font-bold text-sm">Token Transferred</p>
+              <p className="text-xs text-indigo-100">Transferred to another service counter</p>
+            </div>
+          </div>
+          <Link
+            href={`/citizen/token-lifecycle/transferred?tokenId=${token._id}`}
+            className="bg-white text-indigo-700 px-3 py-1.5 rounded-xl font-bold text-xs inline-flex items-center shadow-xs"
+          >
+            Transfer Info <ArrowRight size={14} className="ml-1" />
+          </Link>
+        </div>
+      )}
+
       {/* When should I leave? Feature */}
       <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-0 shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-20">
@@ -262,6 +316,65 @@ export default function LiveQueue() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Queue Utilities & Detailed Views */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Queue Tools & Views</h3>
+        <div className="grid grid-cols-2 gap-2.5">
+          <Link href="/citizen/queue/position" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 hover:shadow-xs transition-all flex items-center space-x-3">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+              <Users size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-800">Queue Position</p>
+              <p className="text-[10px] text-slate-500">Step-by-step line</p>
+            </div>
+          </Link>
+
+          <Link href="/citizen/queue/prediction" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-purple-400 hover:shadow-xs transition-all flex items-center space-x-3">
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg shrink-0">
+              <BrainCircuit size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-800">AI Predictions</p>
+              <p className="text-[10px] text-slate-500">ML wait analytics</p>
+            </div>
+          </Link>
+
+          <Link href="/citizen/queue/leave-time" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-amber-400 hover:shadow-xs transition-all flex items-center space-x-3">
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg shrink-0">
+              <Car size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-800">Departure ETA</p>
+              <p className="text-[10px] text-slate-500">When should I leave</p>
+            </div>
+          </Link>
+
+          <Link href="/citizen/queue/qr" className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-400 hover:shadow-xs transition-all flex items-center space-x-3">
+            <div className="p-2 bg-slate-100 text-slate-700 rounded-lg shrink-0">
+              <QrCode size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-800">Digital QR Pass</p>
+              <p className="text-[10px] text-slate-500">Scan at entrance</p>
+            </div>
+          </Link>
+
+          <Link href="/citizen/check-in" className="col-span-2 p-3 bg-white border border-slate-200 rounded-xl hover:border-emerald-400 hover:shadow-xs transition-all flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
+                <UserCheck size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800">Arrival Check-In</p>
+                <p className="text-[10px] text-slate-500">Confirm presence at the office kiosk</p>
+              </div>
+            </div>
+            <ArrowRight size={16} className="text-slate-400 mr-1" />
+          </Link>
+        </div>
+      </div>
       
       <Button 
         variant="outline" 

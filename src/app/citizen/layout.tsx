@@ -31,12 +31,6 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
             <Link href="/citizen/home" className="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               QueueLess
             </Link>
-            <Link 
-              href="/citizen/screens" 
-              className="inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
-            >
-              <Layers size={13} className="mr-1.5" /> 59 Screens
-            </Link>
           </div>
           
           {/* Desktop Navigation */}
@@ -93,14 +87,6 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
       {/* Mobile Top Menu Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-slate-200 shadow-xl z-40 p-4 space-y-2 animate-in slide-in-from-top-2 duration-150">
-          <Link
-            href="/citizen/screens"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-between p-3 rounded-xl bg-blue-50 text-blue-700 font-bold text-sm"
-          >
-            <span className="flex items-center gap-2"><Layers size={18} /> 59 Screen Master Directory</span>
-            <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">All Screens</span>
-          </Link>
           <Link
             href="/citizen/search"
             onClick={() => setMobileMenuOpen(false)}

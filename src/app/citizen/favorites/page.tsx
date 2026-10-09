@@ -51,10 +51,7 @@ export default function CitizenFavoritesPage() {
   return (
     <div className="space-y-6 pb-20 max-w-4xl mx-auto pt-2">
       <div className="flex flex-col space-y-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit">
-          Screen 38 • Bookmarks
-        </span>
-        <h1 className="text-2xl font-extrabold text-slate-900">Favorite Government Offices</h1>
+<h1 className="text-2xl font-extrabold text-slate-900">Favorite Government Offices</h1>
         <p className="text-slate-500 text-sm">Your pinned offices with live queue statistics and quick token booking.</p>
       </div>
 

@@ -50,10 +50,7 @@ export default function LocationPermissionPage() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-          Screen 58 • Device Permission
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Location Services</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">Location Services</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           QueueLess uses precise location to unlock seamless smart queue features.
         </p>

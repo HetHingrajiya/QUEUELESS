@@ -66,10 +66,7 @@ function ServiceCompletedContent() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-          Screen 28 • Token Lifecycle
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Service Completed!</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">Service Completed!</h1>
         <p className="text-xs text-slate-500 mt-1">
           Your service request has been successfully completed and recorded.
         </p>

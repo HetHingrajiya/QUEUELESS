@@ -45,10 +45,7 @@ export default function CompletedServicesPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-              Screen 34 • History
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Completed Services</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Completed Services</h1>
           </div>
         </div>
         <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">

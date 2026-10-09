@@ -66,10 +66,7 @@ function TokenConfirmationContent() {
         <CheckCircle2 size={38} />
       </div>
       <div className="text-center">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-          Screen 17 • Token Confirmation
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Token Confirmed!</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">Token Confirmed!</h1>
         <p className="text-xs text-slate-500 mt-0.5">Your official virtual queue ticket is now active</p>
       </div>
 

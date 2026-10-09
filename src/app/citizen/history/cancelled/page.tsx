@@ -45,10 +45,7 @@ export default function CancelledTokensHistoryPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-50 px-2 py-0.5 rounded">
-              Screen 35 • History
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Cancelled Tokens</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Cancelled Tokens</h1>
           </div>
         </div>
         <span className="bg-red-100 text-red-800 text-xs font-bold px-2.5 py-1 rounded-full">

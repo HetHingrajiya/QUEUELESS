@@ -122,10 +122,7 @@ function ServiceStartedContent() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-          Screen 27 • Token Lifecycle
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Service In Progress</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">Service In Progress</h1>
         <p className="text-xs text-slate-500 mt-1">
           {serviceName !== 'Data unavailable' 
             ? `Your request for ${serviceName} is currently being processed.`

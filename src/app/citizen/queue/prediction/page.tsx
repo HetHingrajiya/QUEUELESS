@@ -95,10 +95,7 @@ export default function AIWaitPredictionScreen() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
-              Screen 22 • Live Queue
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">AI Wait Prediction</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">AI Wait Prediction</h1>
           </div>
         </div>
       </div>

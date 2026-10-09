@@ -89,10 +89,7 @@ export default function CheckIn() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Screen 24 • Check-In
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Venue Check-In</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Venue Check-In</h1>
           </div>
         </div>
       </div>

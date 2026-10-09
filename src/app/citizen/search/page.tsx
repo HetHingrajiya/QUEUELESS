@@ -125,10 +125,7 @@ function CitizenSearchContent() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Screen 14 • Search
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Search Offices & Services</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Search Offices & Services</h1>
           </div>
         </div>
 
@@ -173,6 +170,15 @@ function CitizenSearchContent() {
           </button>
         )}
       </div>
+
+      {locationStatus === 'denied' && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-3.5 py-2 rounded-xl text-xs flex items-center justify-between">
+          <span>Location access was denied. Sorting without distance.</span>
+          <Link href="/citizen/permissions/location" className="font-bold underline text-amber-900 ml-2">
+            Configure Permission
+          </Link>
+        </div>
+      )}
 
       {/* Popular Chips */}
       {!query && (

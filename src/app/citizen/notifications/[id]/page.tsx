@@ -71,10 +71,7 @@ export default function NotificationDetailPage({ params }: { params: Promise<{ i
             <ArrowLeft size={20} />
           </button>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Screen 37 • Notifications
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Details</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Details</h1>
           </div>
         </div>
       </div>

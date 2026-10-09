@@ -53,10 +53,7 @@ function TokenCancelledContent() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-red-800 bg-red-50 px-3 py-1 rounded-full border border-red-200">
-          Screen 29 • Token Lifecycle
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Token Cancelled</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">Token Cancelled</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           Your virtual queue ticket has been cancelled and your position in line released.
         </p>

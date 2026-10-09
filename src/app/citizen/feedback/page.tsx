@@ -92,10 +92,7 @@ export default function CitizenFeedbackPage() {
   return (
     <div className="space-y-6 pb-20 max-w-lg mx-auto pt-2">
       <div className="flex flex-col space-y-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit">
-          Screen 46 • Citizen Feedback
-        </span>
-        <h1 className="text-2xl font-extrabold text-slate-900">Provide Feedback</h1>
+<h1 className="text-2xl font-extrabold text-slate-900">Provide Feedback</h1>
         <p className="text-slate-500 text-sm">Your ratings directly evaluate staff service quality and queue efficiency.</p>
       </div>
 

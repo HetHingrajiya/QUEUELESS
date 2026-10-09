@@ -22,13 +22,6 @@ export default function SplashScreen() {
       <div className="absolute bottom-[-15%] right-[-15%] w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl"></div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
 
-      {/* Screen Badge */}
-      <div className="absolute top-6 left-6 z-20">
-        <span className="bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold px-3 py-1.5 rounded-full text-blue-200">
-          Screen 01 • Splash
-        </span>
-      </div>
-
       <div className="z-10 flex flex-col items-center animate-in fade-in slide-in-from-bottom-6 duration-1000 max-w-sm text-center">
         <div className="bg-white p-5 rounded-3xl shadow-2xl mb-6 ring-8 ring-white/10">
           <Layers size={64} className="text-blue-600" />

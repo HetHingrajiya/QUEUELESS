@@ -85,10 +85,7 @@ function ServiceRatingContent() {
           <CheckCircle2 size={40} />
         </div>
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            Screen 47 • Feedback Recorded
-          </span>
-          <h2 className="text-2xl font-black text-slate-900 mt-2">Thank You for Your Rating!</h2>
+<h2 className="text-2xl font-black text-slate-900 mt-2">Thank You for Your Rating!</h2>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
             Your detailed service review has been submitted and forwarded to office quality assurance.
           </p>
@@ -119,10 +116,7 @@ function ServiceRatingContent() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
-              Screen 47 • Feedback
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Rate Your Service</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Rate Your Service</h1>
           </div>
         </div>
       </div>

@@ -30,10 +30,7 @@ export default function NoInternetStatusPage() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-          Screen 52 • System Offline
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">No Internet Connection</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">No Internet Connection</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           We can&apos;t connect to QueueLess cloud servers right now. Check your mobile network or Wi-Fi connection.
         </p>

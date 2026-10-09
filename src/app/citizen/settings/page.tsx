@@ -73,10 +73,7 @@ export default function CitizenSettingsPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Screen 44 • Notification Settings
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Settings</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Settings</h1>
           </div>
         </div>
       </div>
@@ -136,6 +133,22 @@ export default function CitizenSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Bell size={20} className="text-purple-600 shrink-0" />
+          <div>
+            <p className="text-xs font-bold text-slate-800">Browser Sound & Push Permission</p>
+            <p className="text-[10px] text-slate-500">Configure device chime audio and system alerts</p>
+          </div>
+        </div>
+        <Link
+          href="/citizen/permissions/notification"
+          className="text-xs font-bold text-purple-700 bg-white px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition-colors"
+        >
+          Manage
+        </Link>
+      </div>
 
       <Button
         onClick={savePreferences}

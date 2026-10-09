@@ -99,10 +99,7 @@ export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{
             <ArrowLeft size={20} />
           </button>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 bg-red-50 px-2 py-0.5 rounded">
-              Screen 39 • Favorites
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">Favorite Office Hub</h1>
+<h1 className="text-xl font-bold text-slate-900 mt-0.5">Favorite Office Hub</h1>
           </div>
         </div>
 

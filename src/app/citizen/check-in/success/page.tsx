@@ -74,10 +74,7 @@ function CheckInSuccessContent() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-          Screen 25 • Check-In Complete
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">You&apos;re Checked In!</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">You&apos;re Checked In!</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           The counter officers have been notified of your presence in the waiting area.
         </p>

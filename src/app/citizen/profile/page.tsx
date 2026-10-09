@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { 
   Mail, Phone, Edit3, Settings, Shield, 
   LogOut, Heart, Clock, HelpCircle, MessageSquare, 
-  Bell, ChevronRight, Lock 
+  Bell, ChevronRight, Lock, Info 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -74,17 +74,15 @@ export default function CitizenProfilePage() {
     { label: 'Favorites', href: '/citizen/favorites', icon: <Heart size={18} className="text-rose-600" /> },
     { label: 'Token History', href: '/citizen/token-history', icon: <Clock size={18} className="text-cyan-600" /> },
     { label: 'Give Feedback', href: '/citizen/feedback', icon: <MessageSquare size={18} className="text-violet-600" /> },
-    { label: 'Help & FAQ', href: '/citizen/help/faq', icon: <HelpCircle size={18} className="text-teal-600" /> },
+    { label: 'Help & FAQ', href: '/citizen/help', icon: <HelpCircle size={18} className="text-teal-600" /> },
+    { label: 'About QueueLess', href: '/citizen/about', icon: <Info size={18} className="text-blue-600" /> },
   ];
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
       {/* Header */}
       <div className="flex flex-col space-y-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-fit">
-          Screen 40 • Profile
-        </span>
-        <h1 className="text-2xl font-extrabold text-slate-900">Citizen Profile</h1>
+<h1 className="text-2xl font-extrabold text-slate-900">Citizen Profile</h1>
       </div>
 
       {/* Profile Card */}

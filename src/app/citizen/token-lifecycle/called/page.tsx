@@ -135,10 +135,7 @@ function TokenCalledContent() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
-          Screen 26 • Token Lifecycle
-        </span>
-        <h1 className="text-3xl font-black text-slate-900 mt-2">YOUR TOKEN IS CALLED!</h1>
+<h1 className="text-3xl font-black text-slate-900 mt-2">YOUR TOKEN IS CALLED!</h1>
         <p className="text-xs text-slate-500 mt-1">Please proceed directly to your assigned service counter now.</p>
       </div>
 

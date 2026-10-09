@@ -19,10 +19,7 @@ export default function ServerErrorStatusPage() {
       </div>
 
       <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-red-800 bg-red-50 px-3 py-1 rounded-full border border-red-200">
-          Screen 53 • Internal Server Error (500)
-        </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Server Encountered an Error</h1>
+<h1 className="text-2xl font-black text-slate-900 mt-2">Server Encountered an Error</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           Our backend queue services encountered an unexpected hiccup. Our engineering team has been automatically dispatched.
         </p>
