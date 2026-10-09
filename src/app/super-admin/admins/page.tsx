@@ -2,12 +2,10 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { EmptyState } from '@/components/common/EmptyState';
 import { StatusBadge } from '@/components/common/StatusBadge';
 export const dynamic = 'force-dynamic';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { User, UserRole } from '@/models/User';
-import Link from 'next/link';
 import { AdminActions } from './AdminActions';
 
 async function getAdmins() {
@@ -21,13 +19,11 @@ export default async function AdminsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      
-      <PageHeader 
+      <PageHeader
         title="Administrators"
         description="Manage organization-level administrators."
         action={{ label: 'Add Admin', href: '/super-admin/admins/add', icon: <Plus size={18} /> }}
       />
-
 
       <Card>
         <CardContent className="p-0">
@@ -45,24 +41,15 @@ export default async function AdminsPage() {
               <tbody>
                 {admins.map((admin) => (
                   <tr key={admin._id.toString()} className="bg-white border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-6 py-4 font-semibold text-slate-900">
-                      {admin.fullName}
-                    </td>
-                    <td className="px-6 py-4">
-                      {admin.email}
-                    </td>
-                    <td className="px-6 py-4">
-                      {admin.organizationId ? (admin.organizationId as any).name : '-'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={admin.status || 'UNKNOWN'} />
-                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-900">{admin.fullName}</td>
+                    <td className="px-6 py-4">{admin.email}</td>
+                    <td className="px-6 py-4">{admin.organizationId ? (admin.organizationId as any).name : '-'}</td>
+                    <td className="px-6 py-4"><StatusBadge status={admin.status || 'UNKNOWN'} /></td>
                     <td className="px-6 py-4 text-right">
                       <AdminActions adminId={admin._id.toString()} />
                     </td>
                   </tr>
                 ))}
-                
                 {admins.length === 0 && (
                   <EmptyState colSpan={5} title="No administrators found" description="Organization administrators will appear here." />
                 )}
