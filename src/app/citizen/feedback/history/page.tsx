@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Star, Building2, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CitizenFeedback, ApiResponse } from '@/types/citizen';
 
@@ -12,12 +13,14 @@ export default function FeedbackHistoryPage() {
   const [history, setHistory] = useState<CitizenFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const fetchFeedback = async () => {
       try {
         setLoading(true);
         const res = await fetch('/api/citizen/feedback');
+        if (!res.ok) throw new Error(`Unable to load feedback (${res.status})`);
         const json: ApiResponse<CitizenFeedback[]> = await res.json();
         if (json.success) {
           setHistory(json.data || []);
@@ -32,7 +35,7 @@ export default function FeedbackHistoryPage() {
     };
 
     fetchFeedback();
-  }, []);
+  }, [retryCount]);
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -49,11 +52,9 @@ export default function FeedbackHistoryPage() {
       </div>
 
       {loading ? (
-        <SkeletonLoader type="history" count={3} />
+        <LoadingState label="Loading feedback history..." />
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
-          {error}
-        </div>
+        <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} />
       ) : history.length === 0 ? (
         <EmptyState
           icon={<Star size={32} className="text-amber-400" />}
