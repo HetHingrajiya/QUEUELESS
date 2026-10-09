@@ -41,6 +41,7 @@ export default function CitizenTokenHistoryPage() {
     switch(status) {
       case 'COMPLETED': return <CheckCircle2 size={14} className="text-emerald-500 mr-1" />;
       case 'NO_SHOW':
+      case 'SKIPPED':
       case 'CANCELLED': return <XCircle size={14} className="text-red-500 mr-1" />;
       default: return <Clock size={14} className="text-blue-500 mr-1" />;
     }
@@ -50,6 +51,7 @@ export default function CitizenTokenHistoryPage() {
     switch(status) {
       case 'COMPLETED': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'NO_SHOW':
+      case 'SKIPPED':
       case 'CANCELLED': return 'bg-red-50 text-red-700 border-red-200';
       case 'WAITING':
       case 'CHECKED_IN': return 'bg-blue-50 text-blue-700 border-blue-200';
@@ -95,7 +97,7 @@ export default function CitizenTokenHistoryPage() {
           href="/citizen/history/cancelled" 
           className="px-3 py-1 bg-red-50 text-red-700 border border-red-200 rounded-lg font-semibold hover:bg-red-100 transition-colors inline-flex items-center"
         >
-          <XCircle size={13} className="mr-1" /> Cancelled & No-Show Logs
+          <XCircle size={13} className="mr-1" /> Cancelled Tokens
         </Link>
       </div>
 
