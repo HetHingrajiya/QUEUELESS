@@ -7,7 +7,8 @@ import {
   Building2, Ticket, Star, ArrowRight 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CitizenToken, ApiResponse } from '@/types/citizen';
 
@@ -15,12 +16,14 @@ export default function CompletedServicesPage() {
   const [completedList, setCompletedList] = useState<CitizenToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const fetchCompleted = async () => {
       try {
         setLoading(true);
         const res = await fetch('/api/citizen/token-history?status=COMPLETED');
+        if (!res.ok) throw new Error(`Unable to load completed services (${res.status})`);
         const json: ApiResponse<CitizenToken[]> = await res.json();
         if (json.success) {
           setCompletedList(json.data || []);
@@ -34,7 +37,7 @@ export default function CompletedServicesPage() {
       }
     };
     fetchCompleted();
-  }, []);
+  }, [retryCount]);
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -54,11 +57,9 @@ export default function CompletedServicesPage() {
       </div>
 
       {loading ? (
-        <SkeletonLoader type="history" count={3} />
+        <LoadingState label="Loading completed services..." />
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
-          {error}
-        </div>
+        <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} />
       ) : completedList.length === 0 ? (
         <EmptyState
           icon={<CheckCircle2 size={32} className="text-emerald-500" />}
