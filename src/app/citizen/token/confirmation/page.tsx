@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, QrCode, ArrowRight, Clock, Users } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Clock, Users, AlertCircle, Ticket } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
@@ -15,33 +15,43 @@ function TokenConfirmationContent() {
 
   const [data, setData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchToken = async () => {
       try {
         setLoading(true);
-        if (tokenIdParam) {
-          const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
-          const json: ApiResponse<CitizenQueueSummary> = await res.json();
-          if (json.success && json.data) {
-            setData(json.data);
-            return;
-          }
+        setError(null);
+
+        // A supplied token ID must resolve to that exact token. Never silently
+        // show a different active token if the requested one cannot be loaded.
+        const endpoint = tokenIdParam
+          ? `/api/citizen/queue/${encodeURIComponent(tokenIdParam)}`
+          : '/api/citizen/queue';
+        const res = await fetch(endpoint, { cache: 'no-store' });
+        const json: ApiResponse<CitizenQueueSummary> = await res.json();
+
+        if (!res.ok || !json.success || !json.data?.token) {
+          throw new Error(json.message || (tokenIdParam
+            ? 'The requested token could not be found or is not available to this account.'
+            : 'No active token was found for your account.'));
         }
 
-        const res = await fetch('/api/citizen/queue');
-        const json: ApiResponse<CitizenQueueSummary> = await res.json();
-        if (json.success && json.data) {
-          setData(json.data);
-        }
+        if (!cancelled) setData(json.data);
       } catch (err: unknown) {
-        console.error(err);
+        if (!cancelled) {
+          setData(null);
+          setError(err instanceof Error ? err.message : 'Unable to load your token confirmation.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchToken();
+    void fetchToken();
+    return () => { cancelled = true; };
   }, [tokenIdParam]);
 
   if (loading) {
@@ -53,12 +63,29 @@ function TokenConfirmationContent() {
   }
 
   const token = data?.token;
-  const tokenNumber = token?.tokenNumber || 'Data unavailable';
-  const serviceName = token?.serviceName || 'Data unavailable';
-  const officeName = token?.officeName || 'Data unavailable';
+  const tokenNumber = token.tokenNumber;
+  const serviceName = token.serviceName || 'Service';
+  const officeName = token.officeName || 'Government Office';
   const peopleAhead = data?.peopleAhead ?? 0;
   const estimatedWaitMin = data?.estimatedWaitMin ?? 0;
-  const tokenId = token?._id || tokenIdParam || '';
+  const tokenId = token._id;
+
+  if (!data?.token) {
+    return (
+      <div className="max-w-md mx-auto pt-10 px-4 text-center space-y-4">
+        <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <AlertCircle size={28} />
+        </div>
+        <h1 className="text-xl font-bold text-slate-900">Token confirmation unavailable</h1>
+        <p className="text-sm text-slate-600">{error || 'Token details could not be loaded.'}</p>
+        <div className="flex gap-2 justify-center">
+          <Link href="/citizen/token"><Button className="bg-blue-600 hover:bg-blue-700">Get a token</Button></Link>
+          <Link href="/citizen/queue/my"><Button variant="outline">My Queue</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-6 pb-20 flex flex-col items-center pt-4 max-w-md mx-auto">
@@ -92,10 +119,11 @@ function TokenConfirmationContent() {
           </div>
 
           <div className="bg-slate-50 rounded-2xl p-4 flex flex-col items-center justify-center mb-4 border border-slate-100">
-            <QrCode size={120} className="text-slate-800" />
-            <p className="text-[10px] text-slate-400 mt-2 font-mono">PASS #{tokenId.slice(-8) || 'TOKEN'}</p>
+            <Ticket size={32} className="text-blue-700" />
+            <p className="text-[10px] text-slate-500 mt-2 font-semibold">Digital token reference</p>
+            <p className="text-[11px] text-slate-700 mt-1 font-mono break-all">{tokenId}</p>
           </div>
-          <p className="text-[11px] text-slate-400">Scan at office kiosk or reception upon arrival to check in</p>
+          <p className="text-[11px] text-slate-500">Show your token number or use Venue Check-In after arriving. Camera QR scanning is not enabled on this screen yet.</p>
         </CardContent>
       </Card>
 
