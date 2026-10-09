@@ -31,6 +31,7 @@ export default function CitizenOfficesPage() {
   const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -78,7 +79,7 @@ export default function CitizenOfficesPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, retryCount]);
 
   const processedOffices = offices.map((office) => {
     let dist: number | null = null;
@@ -125,7 +126,7 @@ export default function CitizenOfficesPage() {
       {loading ? (
         <LoadingState label="Loading government offices…" className="py-12" />
       ) : loadError ? (
-        <ErrorState title="Could not load offices" description={loadError} onRetry={() => setSearch((current) => current)} />
+        <ErrorState title="Could not load offices" description={loadError} onRetry={() => { setLoading(true); setRetryCount((count) => count + 1); }} />
       ) : offices.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {processedOffices.map((office) => (
