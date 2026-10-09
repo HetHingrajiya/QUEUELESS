@@ -1,11 +1,11 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 export const dynamic = 'force-dynamic';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Plus } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
-import Link from 'next/link';
 import { OfficeActions } from './OfficeActions';
 
 async function getOffices() {
@@ -53,9 +53,7 @@ export default async function OfficesPage() {
                       {office.city || '-'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
-                        ACTIVE
-                      </span>
+                      <StatusBadge status="ACTIVE" />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <OfficeActions officeId={office._id.toString()} />
@@ -64,11 +62,7 @@ export default async function OfficesPage() {
                 ))}
                 
                 {offices.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No offices found.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={5} title="No offices found" description="Registered government offices will appear here." />
                 )}
               </tbody>
             </table>
