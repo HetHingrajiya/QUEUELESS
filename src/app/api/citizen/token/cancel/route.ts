@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Valid Token ID is required' }, { status: 400 });
     }
 
-    const token = await Token.findById(tokenId);
+    let token = await Token.findById(tokenId);
     if (!token) {
       return NextResponse.json({ success: false, message: 'Token not found' }, { status: 404 });
     }
@@ -36,22 +36,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Forbidden: You can only cancel your own token' }, { status: 403 });
     }
 
-    // Validate transition
+    // Validate current state before attempting the atomic transition.
     const cancelValidation = canCancel(token.status);
     if (!cancelValidation.allowed) {
-      return NextResponse.json({ 
-        success: false, 
-        message: cancelValidation.reason || 'Token cannot be cancelled' 
+      return NextResponse.json({
+        success: false,
+        message: cancelValidation.reason || 'Token cannot be cancelled'
       }, { status: 400 });
     }
 
-    token.status = TokenStatus.CANCELLED;
-    const cancelReason = typeof reason === 'string' && reason.trim() ? reason.trim() : 'Cancelled by citizen';
-    token.notes = cancelReason;
-    token.cancellationReason = cancelReason;
-    token.cancelledAt = new Date();
-    token.endTime = new Date();
-    await token.save();
+    const cancelReason = typeof reason === 'string' ? reason.trim().slice(0, 500) : '';
+    const cancellationTimestamp = new Date();
+
+    // Use a conditional update so a concurrent staff call/start action cannot
+    // be overwritten by a stale citizen-side document save.
+    const cancelledToken = await Token.findOneAndUpdate(
+      {
+        _id: token._id,
+        citizenId: user.userId,
+        status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN, TokenStatus.CALLED] }
+      },
+      {
+        $set: {
+          status: TokenStatus.CANCELLED,
+          notes: cancelReason || 'Cancelled by citizen',
+          cancellationReason: cancelReason || 'Cancelled by citizen',
+          cancelledAt: cancellationTimestamp,
+          endTime: cancellationTimestamp
+        }
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!cancelledToken) {
+      return NextResponse.json({
+        success: false,
+        message: 'This token has changed state and can no longer be cancelled. Refresh the queue and try again.',
+        errorCode: 'TOKEN_STATE_CHANGED'
+      }, { status: 409 });
+    }
+
+    token = cancelledToken;
 
     await QueueEvent.create({
       tokenId: token._id,
