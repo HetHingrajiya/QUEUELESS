@@ -43,28 +43,36 @@ def get_queue_analytics(
     service_name = service_doc.get("name", "Service") if service_doc else "Service"
     configured_svc_duration = float(service_doc.get("averageServiceTime", 10.0)) if service_doc else 10.0
 
-    # Real Active Counters for this office
+    # Real active counters eligible for this office and service.
     active_counters_count = db.counters.count_documents({
         "officeId": office_oid,
-        "status": "ACTIVE"
+        "status": "ACTIVE",
+        "$or": [
+            {"serviceIds": {"$exists": False}},
+            {"serviceIds": {"$size": 0}},
+            {"serviceIds": service_oid}
+        ]
     })
     active_counters = max(1, active_counters_count)
 
-    # Real Waiting Tokens scoped to this Office and Service
+    # Live queue is scoped to the current UTC day, matching this engine's clock.
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
     waiting_tokens = list(db.tokens.find({
         "officeId": office_oid,
         "serviceId": service_oid,
-        "status": {"$in": ["WAITING", "CHECKED_IN"]}
+        "status": {"$in": ["WAITING", "CHECKED_IN"]},
+        "createdAt": {"$gte": start_of_day, "$lte": end_of_day}
     }))
     queue_length = len(waiting_tokens)
     ahead_count = people_ahead if (people_ahead is not None and people_ahead >= 0) else max(0, queue_length - 1)
 
-    # Historical Completed Tokens for this Service & Office
+    # Use the most recent completed history for this service and office.
     historical_completed = list(db.tokens.find({
         "officeId": office_oid,
         "serviceId": service_oid,
         "status": "COMPLETED"
-    }).limit(100))
+    }).sort("createdAt", -1).limit(100))
     sample_count = len(historical_completed)
     is_cold_start = sample_count < 5
 
