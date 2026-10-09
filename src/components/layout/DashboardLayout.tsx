@@ -54,9 +54,9 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
 
       {/* Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:sticky lg:top-0 h-screen max-h-screen ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } flex flex-col`}
+        } flex flex-col shrink-0`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-slate-200 shrink-0">
           <span className="text-xl font-bold text-blue-600">QueueLess</span>
@@ -72,7 +72,7 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
           {role} PORTAL
         </div>
 
-        <nav className="flex-1 px-4 mt-2 space-y-1 overflow-y-auto">
+        <nav className="flex-1 min-h-0 px-4 mt-2 space-y-1 overflow-y-auto">
           {sidebarItems.map((item) => {
             // Check if active (including subpaths)
             const isActive = pathname === item.href || (pathname?.startsWith(`${item.href}/`) ?? false);
@@ -141,10 +141,10 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-200 shrink-0">
+        <div className="p-4 border-t border-slate-200 shrink-0 bg-white sticky bottom-0 z-10">
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-4 py-3 text-sm text-red-600 rounded-xl hover:bg-red-50 transition-colors"
+            className="flex items-center w-full px-4 py-3 text-sm text-red-600 font-semibold rounded-xl hover:bg-red-50 transition-colors"
           >
             <LogOut size={18} className="mr-3" />
             Logout
