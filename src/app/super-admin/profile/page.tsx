@@ -1,3 +1,6 @@
+// This profile queries the authenticated user and live MongoDB data per request.
+export const dynamic = 'force-dynamic';
+
 import { PageHeader } from '@/components/common/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { User, Mail, Shield, Building, Building2, MapPin } from 'lucide-react';
