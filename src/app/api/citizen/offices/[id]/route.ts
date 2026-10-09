@@ -33,14 +33,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Get active counters for this office
     const activeCounters = await Counter.find({ officeId: id, status: 'ACTIVE' }).lean();
     
-    // Collect all serviceIds from active counters
+    // Collect service assignments from active counters. An empty/missing serviceIds
+    // list means the counter can serve every service, matching token-booking eligibility.
     const activeServiceIds = new Set(
       activeCounters.flatMap((c: { serviceIds?: Array<{ toString(): string }> }) => (c.serviceIds || []).map((sid: { toString(): string }) => sid.toString()))
     );
+    const hasGeneralActiveCounter = activeCounters.some(
+      (c: { serviceIds?: Array<unknown> }) => !Array.isArray(c.serviceIds) || c.serviceIds.length === 0
+    );
 
-    // Get services for this office and filter only those that are served by an active counter
+    // Only show services an active counter can serve; general counters serve all active services.
     let services = await Service.find({ officeId: id, status: 'ACTIVE' }).lean();
-    services = services.filter(service => activeServiceIds.has(service._id.toString()));
+    if (!hasGeneralActiveCounter) {
+      services = services.filter(service => activeServiceIds.has(service._id.toString()));
+    }
 
     // Map services with live stats using QueueMetricsService
     const servicesWithStats = await Promise.all(services.map(async (service) => {
