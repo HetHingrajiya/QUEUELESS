@@ -55,6 +55,29 @@ export default function CitizenNotificationsPage() {
     return () => clearTimeout(timer);
   }, [filter, retryCount]);
 
+  useEffect(() => {
+    let socket: ReturnType<typeof import('@/lib/socketClient').getSocket> | null = null;
+    let mounted = true;
+    try {
+      const { getSocket } = require('@/lib/socketClient') as typeof import('@/lib/socketClient');
+      socket = getSocket();
+      socket.emit('join-my-notifications');
+      const refresh = () => {
+        if (mounted) void fetchNotifications();
+      };
+      socket.on('notification:new', refresh);
+      socket.on('NOTIFICATION_NEW', refresh);
+      return () => {
+        mounted = false;
+        socket?.off('notification:new', refresh);
+        socket?.off('NOTIFICATION_NEW', refresh);
+      };
+    } catch (socketError) {
+      console.error('Live notification connection unavailable', socketError);
+      return () => { mounted = false; };
+    }
+  }, [filter]);
+
   const markAllRead = async () => {
     try {
       await fetch('/api/citizen/notifications', {
