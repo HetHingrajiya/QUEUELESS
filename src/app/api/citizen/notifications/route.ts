@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
 
     const filter: Record<string, unknown> = { userId: user.userId };
     if (category && category !== 'ALL') {
-      filter.type = category.toUpperCase();
+      filter.type = category.toUpperCase() === 'QUEUE'
+        ? { $in: ['QUEUE', 'TOKEN', 'TOKEN_CALLED', 'TOKEN_SERVING', 'TOKEN_COMPLETED', 'TOKEN_CANCELLED'] }
+        : category.toUpperCase();
     }
 
     const notifications = await Notification.find(filter)
