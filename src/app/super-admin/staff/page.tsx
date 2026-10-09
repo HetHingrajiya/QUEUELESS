@@ -1,4 +1,6 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,9 +62,7 @@ export default async function StaffPage() {
                       {staff.officeId ? (staff.officeId as any).name : '-'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-emerald-100 text-emerald-700 border-emerald-200">
-                        ACTIVE
-                      </span>
+                      <StatusBadge status={staff.status || 'UNKNOWN'} />
                     </td>
                     <td className="px-6 py-4 text-right">
                       <StaffActions staffId={staff._id.toString()} />
@@ -71,11 +71,7 @@ export default async function StaffPage() {
                 ))}
                 
                 {staffMembers.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      No staff members found.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={6} title="No staff members found" description="Office staff will appear here once added." />
                 )}
               </tbody>
             </table>
