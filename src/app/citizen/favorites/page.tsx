@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Building2, MapPin, ArrowRight, Heart, Users, Clock } from 'lucide-react';
 import Link from 'next/link';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CitizenFavorite, CitizenOffice, ApiResponse } from '@/types/citizen';
 
@@ -12,12 +13,14 @@ export default function CitizenFavoritesPage() {
   const [favorites, setFavorites] = useState<CitizenFavorite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const fetchFavorites = async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await fetch('/api/citizen/favorites');
+      if (!res.ok) throw new Error(`Unable to load favorites (${res.status})`);
       const json: ApiResponse<CitizenFavorite[]> = await res.json();
       if (json.success) {
         setFavorites(json.data || []);
@@ -36,7 +39,7 @@ export default function CitizenFavoritesPage() {
       fetchFavorites();
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [retryCount]);
 
   const removeFavorite = async (officeId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -56,11 +59,9 @@ export default function CitizenFavoritesPage() {
       </div>
 
       {loading ? (
-        <SkeletonLoader type="office" count={4} />
+        <LoadingState label="Loading saved offices..." />
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-          {error}
-        </div>
+        <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} />
       ) : favorites.length === 0 ? (
         <EmptyState
           icon={<Heart size={32} className="text-red-400" />}
