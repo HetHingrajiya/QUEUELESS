@@ -55,16 +55,92 @@ export async function POST(req: NextRequest) {
       const settings = await SystemSettings.findOne();
       const noShowTimeout = settings?.noShowTimeout || 5;
 
-      // Auto NO_SHOW for tokens that were called but never started within the timeout
+      // Atomically transition timed-out calls and persist their lifecycle events.
       const timeoutThreshold = new Date(Date.now() - (noShowTimeout * 60000));
-      await Token.updateMany(
-        {
-          counterId: counter._id,
-          status: TokenStatus.CALLED,
-          callTime: { $lt: timeoutThreshold }
-        },
-        { $set: { status: TokenStatus.NO_SHOW, endTime: new Date() } }
-      );
+      const timedOutTokens = await Token.find({
+        counterId: counter._id,
+        officeId,
+        status: TokenStatus.CALLED,
+        callTime: { $lt: timeoutThreshold }
+      }).select('_id citizenId officeId serviceId tokenNumber organizationId').limit(100).lean();
+
+      for (const timedOut of timedOutTokens) {
+        const noShowAt = new Date();
+        const noShowToken = await Token.findOneAndUpdate(
+          { _id: timedOut._id, counterId: counter._id, status: TokenStatus.CALLED, callTime: { $lt: timeoutThreshold } },
+          { $set: { status: TokenStatus.NO_SHOW, endTime: noShowAt } },
+          { new: true }
+        );
+        if (!noShowToken) continue;
+
+        try {
+          await QueueEvent.create({
+            tokenId: noShowToken._id,
+            officeId: noShowToken.officeId,
+            serviceId: noShowToken.serviceId,
+            eventType: 'NO_SHOW',
+            counterId: noShowToken.counterId || counter._id,
+            staffId: staffUser._id,
+            metadata: { reason: 'CALL_TIMEOUT', timeoutMinutes: noShowTimeout }
+          });
+        } catch (eventErr) {
+          console.error('Failed to persist automatic no-show queue event:', eventErr);
+        }
+
+        if (noShowToken.citizenId) {
+          const citizenIdStr = noShowToken.citizenId.toString();
+          const notificationTitle = 'Token Marked No-Show';
+          const notificationMessage = `Token ${noShowToken.tokenNumber} was marked as No-Show because it was not started within ${noShowTimeout} minutes. Please contact the office if you believe this is incorrect.`;
+          try {
+            const { Notification } = await import('@/models/Notification');
+            await Notification.create({
+              userId: noShowToken.citizenId,
+              organizationId: (noShowToken as any).organizationId,
+              officeId: noShowToken.officeId,
+              tokenId: noShowToken._id,
+              type: 'TOKEN',
+              title: notificationTitle,
+              message: notificationMessage,
+              channel: 'IN_APP',
+              isRead: false
+            });
+          } catch (notificationErr) {
+            console.error('Failed to persist automatic no-show notification:', notificationErr);
+          }
+          try {
+            const { sendWebPush } = await import('@/lib/push');
+            await sendWebPush(citizenIdStr, notificationTitle, notificationMessage, `/citizen/queue/${noShowToken._id}`);
+          } catch (pushErr) {
+            console.error('Failed to send automatic no-show push:', pushErr);
+          }
+          try {
+            const { getSocket } = await import('@/lib/socketClient');
+            const socket = getSocket();
+            const payload = {
+              tokenId: noShowToken._id.toString(),
+              tokenNumber: noShowToken.tokenNumber,
+              officeId: noShowToken.officeId.toString(),
+              serviceId: noShowToken.serviceId?.toString(),
+              status: noShowToken.status,
+              action: 'NO_SHOW'
+            };
+            socket.emit('queue:action', payload);
+            socket.emit('queue:updated', payload);
+            socket.emit('token:no_show', payload);
+            socket.emit('notification:new', {
+              userId: citizenIdStr,
+              officeId: payload.officeId,
+              tokenId: payload.tokenId,
+              type: 'TOKEN',
+              title: notificationTitle,
+              message: notificationMessage,
+              createdAt: noShowAt.toISOString()
+            });
+          } catch (socketErr) {
+            console.error('Failed to broadcast automatic no-show update:', socketErr);
+          }
+        }
+      }
 
       if (tokenId) {
         token = await Token.findOneAndUpdate(
