@@ -32,15 +32,15 @@ export function DashboardCharts({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-2 border-0 bg-background shadow-neu rounded-2xl transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-neu-hover">
         <CardHeader>
-          <CardTitle className="text-slate-800">Queue Trend (Today)</CardTitle>
-          <p className="text-sm text-slate-500">Hourly token creation counts from the database.</p>
+          <CardTitle className="text-foreground uppercase tracking-wide">Queue Trend (Today)</CardTitle>
+          <p className="text-sm font-semibold text-muted-foreground">Hourly token creation counts from the database.</p>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
             {!hasHourlyData ? (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">
+              <div className="flex h-full items-center justify-center text-sm font-semibold text-muted-foreground">
                 No token activity recorded today.
               </div>
             ) : (
@@ -51,7 +51,7 @@ export function DashboardCharts({
                   <YAxis allowDecimals={false} stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
                   <Tooltip
                     formatter={(value) => [Number(value ?? 0), 'Tokens']}
-                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    contentStyle={{ backgroundColor: 'var(--background)', borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-neu)', color: 'var(--foreground)' }}
                   />
                   <Line type="monotone" dataKey="queue" name="Tokens" stroke="#2563EB" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 6, strokeWidth: 0 }} />
                 </LineChart>
@@ -61,15 +61,15 @@ export function DashboardCharts({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-0 bg-background shadow-neu rounded-2xl transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-neu-hover">
         <CardHeader>
-          <CardTitle className="text-slate-800">Service Distribution</CardTitle>
-          <p className="text-sm text-slate-500">Token totals grouped by actual service records.</p>
+          <CardTitle className="text-foreground uppercase tracking-wide">Service Distribution</CardTitle>
+          <p className="text-sm font-semibold text-muted-foreground">Token totals grouped by actual service records.</p>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full flex items-center justify-center">
             {!hasServiceData ? (
-              <p className="text-center text-sm text-slate-500">No service-linked token data available.</p>
+              <p className="text-center text-sm font-semibold text-muted-foreground">No service-linked token data available.</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -78,7 +78,7 @@ export function DashboardCharts({
                       <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [Number(value ?? 0), 'Tokens']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <Tooltip formatter={(value) => [Number(value ?? 0), 'Tokens']} contentStyle={{ backgroundColor: 'var(--background)', borderRadius: '12px', border: 'none', boxShadow: 'var(--shadow-neu)', color: 'var(--foreground)' }} />
                   <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
                 </PieChart>
               </ResponsiveContainer>

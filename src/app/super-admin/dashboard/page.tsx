@@ -110,7 +110,7 @@ export default async function SuperAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Row 1: System Stats */}
         <StatCard title="Organizations" value={stats.totalOrgs} icon={<Building2 size={20} className="text-blue-500" />} />
         <StatCard title="Offices" value={stats.totalOffices} icon={<MapPin size={20} className="text-green-500" />} />
@@ -119,7 +119,7 @@ export default async function SuperAdminDashboard() {
         <StatCard title="Citizens" value={stats.totalCitizens} icon={<User size={20} className="text-pink-500" />} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Row 2: Today's Queue Stats */}
         <StatCard title="Today's Tokens" value={stats.todaysTokens} icon={<Ticket size={20} className="text-blue-600" />} />
         <StatCard title="Completed" value={stats.completedTokens} icon={<CheckCircle2 size={20} className="text-emerald-500" />} />

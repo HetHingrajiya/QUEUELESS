@@ -50,72 +50,81 @@
 
 :root {
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #2563eb;
+  --background: #F0F2F5;
+  --foreground: #334155;
+  --card: #F0F2F5;
+  --card-foreground: #334155;
+  --popover: #F0F2F5;
+  --popover-foreground: #334155;
+  --primary: #3B82F6;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #334155;
+  --muted: #e2e8f0;
   --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #dc2626;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #2563eb;
-  --chart-1: #2563eb;
-  --chart-2: #16a34a;
+  --accent: #e2e8f0;
+  --accent-foreground: #334155;
+  --destructive: #ef4444;
+  --border: transparent;
+  --input: #F0F2F5;
+  --ring: #3b82f6;
+  --chart-1: #3b82f6;
+  --chart-2: #10b981;
   --chart-3: #f59e0b;
   --chart-4: #8b5cf6;
   --chart-5: #64748b;
-  --radius: 0.75rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #2563eb;
+  --radius: 1rem;
+  --sidebar: #F0F2F5;
+  --sidebar-foreground: #334155;
+  --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #2563eb;
+  --sidebar-accent: #e2e8f0;
+  --sidebar-accent-foreground: #334155;
+  --sidebar-border: transparent;
+  --sidebar-ring: #3b82f6;
+  --shadow-neu: 6px 6px 12px #d1d5db, -6px -6px 12px #ffffff;
+  --shadow-neu-sm: 4px 4px 8px #d1d5db, -4px -4px 8px #ffffff;
+  --shadow-neu-inset: inset 4px 4px 8px #d1d5db, inset -4px -4px 8px #ffffff;
+  --shadow-neu-hover: 8px 8px 16px #c5c9d1, -8px -8px 16px #ffffff;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #111111;
+  --foreground: #fde047;
+  --card: #111111;
+  --card-foreground: #fde047;
+  --popover: #111111;
+  --popover-foreground: #fde047;
+  --primary: #fde047;
+  --primary-foreground: #111111;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #fde047;
+  --muted: #1a1a1a;
+  --muted-foreground: #fef08a;
+  --accent: #1a1a1a;
+  --accent-foreground: #fde047;
+  --destructive: #ef4444;
+  --border: transparent;
+  --input: #111111;
+  --ring: #fde047;
+  --chart-1: #fde047;
+  --chart-2: #fef08a;
+  --chart-3: #eab308;
+  --chart-4: #ca8a04;
+  --chart-5: #a16207;
+  --sidebar: #111111;
+  --sidebar-foreground: #fde047;
+  --sidebar-primary: #fde047;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #fde047;
+  --sidebar-border: transparent;
+  --sidebar-ring: #fde047;
+  
+  --shadow-neu: 6px 6px 12px #070707, -6px -6px 12px #1b1b1b;
+  --shadow-neu-sm: 4px 4px 8px #070707, -4px -4px 8px #1b1b1b;
+  --shadow-neu-inset: inset 4px 4px 8px #070707, inset -4px -4px 8px #1b1b1b;
+  --shadow-neu-hover: 8px 8px 16px #050505, -8px -8px 16px #1d1d1d;
 }
 
 @layer base {
@@ -144,4 +153,29 @@
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .shadow-neu {
+    box-shadow: var(--shadow-neu);
+  }
+  
+  .shadow-neu-sm {
+    box-shadow: var(--shadow-neu-sm);
+  }
+  
+  .shadow-neu-inset {
+    box-shadow: var(--shadow-neu-inset);
+  }
+  
+  .shadow-neu-hover {
+    box-shadow: var(--shadow-neu-hover);
+  }
 }
