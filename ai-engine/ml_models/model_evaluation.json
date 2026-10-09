@@ -1,31 +1,31 @@
 {
   "status": "TRAINED",
   "model_version": "rf-v2.1.0",
-  "trained_at": "2026-10-08T22:17:24.666566",
-  "total_samples": 65,
+  "trained_at": "2026-10-09T11:31:36.863695",
+  "total_samples": 66,
   "train_samples": 52,
-  "test_samples": 13,
+  "test_samples": 14,
   "baseline_metrics": {
     "model": "Statistical Queue Heuristic",
-    "mae": 12.19,
-    "rmse": 16.75,
-    "r2": 0.5594
+    "mae": 10.58,
+    "rmse": 15.81,
+    "r2": 0.6762
   },
   "ml_metrics": {
     "model": "Random Forest Regressor",
-    "mae": 14.95,
-    "rmse": 20.12,
-    "r2": 0.3642
+    "mae": 14.81,
+    "rmse": 20.35,
+    "r2": 0.4634
   },
   "feature_importances": {
-    "queue_length": 0.424,
-    "people_ahead": 0.3973,
-    "hour": 0.0895,
-    "day_of_week": 0.0224,
-    "is_weekend": 0.0052,
-    "is_working_hour": 0.0007,
-    "priority": 0.0066,
+    "queue_length": 0.4096,
+    "people_ahead": 0.4402,
+    "hour": 0.0562,
+    "day_of_week": 0.0349,
+    "is_weekend": 0.0043,
+    "is_working_hour": 0.0005,
+    "priority": 0.0182,
     "active_counters": 0.0,
-    "service_duration": 0.0544
+    "service_duration": 0.0361
   }
 }

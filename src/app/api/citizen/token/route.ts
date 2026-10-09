@@ -8,6 +8,7 @@ import { Office } from '@/models/Office';
 import { Service } from '@/models/Service';
 import { QueueEvent } from '@/models/QueueEvent';
 import { SystemSettings } from '@/models/SystemSettings';
+import { TokenSequence } from '@/models/TokenSequence';
 import { createAuditLog } from '@/lib/auditLogger';
 import { 
   ACTIVE_TOKEN_STATUSES, 
@@ -79,15 +80,7 @@ export async function POST(req: NextRequest) {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Get number of tokens today to generate tokenNumber like A-001
-    const todaysTokens = await Token.countDocuments({
-      officeId,
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
-    });
-    
-    const prefix = service.code ? service.code.substring(0, 1).toUpperCase() : 'A';
-    const number = (todaysTokens + 1).toString().padStart(3, '0');
-    const tokenNumber = `${prefix}-${number}`;
+    const dateKey = startOfDay.toISOString().split('T')[0];
 
     const waitingTokensCount = await Token.countDocuments({
       officeId,
@@ -107,6 +100,17 @@ export async function POST(req: NextRequest) {
         errorCode: 'QUEUE_FULL'
       }, { status: 400 });
     }
+
+    // Atomic sequence allocation to guarantee concurrency safety
+    const sequenceDoc = await TokenSequence.findOneAndUpdate(
+      { officeId: office._id, date: dateKey },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    const prefix = service.code ? service.code.substring(0, 1).toUpperCase() : 'A';
+    const number = sequenceDoc.seq.toString().padStart(3, '0');
+    const tokenNumber = `${prefix}-${number}`;
 
     const activeCountersCount = await QueueMetricsService.getActiveCountersCount(office._id, service._id);
     const averageServiceTime = await QueueMetricsService.getAverageServiceTime(office._id, service._id);
@@ -129,7 +133,7 @@ export async function POST(req: NextRequest) {
       status: TokenStatus.WAITING,
       estimatedWaitTime,
       recommendedArrivalTime,
-      queuePosition: todaysTokens + 1
+      queuePosition: sequenceDoc.seq
     });
 
     await QueueEvent.create({

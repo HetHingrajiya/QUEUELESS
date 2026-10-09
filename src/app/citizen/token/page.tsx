@@ -29,7 +29,7 @@ export default function CitizenTokenGeneration() {
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
-    fetch('/api/offices')
+    fetch('/api/citizen/offices')
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -44,7 +44,7 @@ export default function CitizenTokenGeneration() {
     setSelectedService('');
     
     try {
-      const res = await fetch(`/api/services?officeId=${officeId}`);
+      const res = await fetch(`/api/citizen/services?officeId=${officeId}`);
       const data = await res.json();
       if (data.success) {
         setServices(data.data);

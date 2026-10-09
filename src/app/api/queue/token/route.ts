@@ -8,6 +8,7 @@ import { Service } from '@/models/Service';
 import { Office } from '@/models/Office';
 import { QueueEvent } from '@/models/QueueEvent';
 import { SystemSettings } from '@/models/SystemSettings';
+import { TokenSequence } from '@/models/TokenSequence';
 import { createAuditLog } from '@/lib/auditLogger';
 import {
   ACTIVE_TOKEN_STATUSES,
@@ -79,13 +80,7 @@ export async function POST(request: Request) {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    const tokenCount = await Token.countDocuments({
-      officeId,
-      createdAt: { $gte: today, $lte: endOfDay }
-    });
-
-    const prefix = service.code ? service.code.substring(0, 1).toUpperCase() : 'A';
-    const tokenNumber = `${prefix}-${(tokenCount + 1).toString().padStart(3, '0')}`;
+    const dateKey = today.toISOString().split('T')[0];
 
     const waitingTokensCount = await Token.countDocuments({
       officeId,
@@ -105,6 +100,16 @@ export async function POST(request: Request) {
         errorCode: 'QUEUE_FULL'
       }, { status: 400 });
     }
+
+    // Atomic sequence allocation
+    const sequenceDoc = await TokenSequence.findOneAndUpdate(
+      { officeId, date: dateKey },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    const prefix = service.code ? service.code.substring(0, 1).toUpperCase() : 'A';
+    const tokenNumber = `${prefix}-${sequenceDoc.seq.toString().padStart(3, '0')}`;
 
     const activeCounters = await QueueMetricsService.getActiveCountersCount(officeId, serviceId);
     const averageServiceTime = await QueueMetricsService.getAverageServiceTime(officeId, serviceId);

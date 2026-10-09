@@ -159,7 +159,7 @@ export interface QueueAnalytics {
   ai_insights: AIInsightItem[];
 }
 
-const ML_API_URL = process.env.ML_API_URL || 'http://localhost:8000';
+const getMlApiUrl = () => process.env.ML_API_URL || 'http://localhost:8000';
 
 /**
  * Feature 1: Wait Time Prediction
@@ -174,7 +174,7 @@ export async function predictWaitTime(
   fallbackMins: number = 10
 ): Promise<WaitTimePrediction> {
   try {
-    const response = await fetch(`${ML_API_URL}/api/predict/wait-time`, {
+    const response = await fetch(`${getMlApiUrl()}/api/predict/wait-time`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -227,7 +227,7 @@ export async function getComprehensiveQueueAnalytics(
   fallbackWaitMins: number = 10
 ): Promise<QueueAnalytics> {
   try {
-    const response = await fetch(`${ML_API_URL}/api/predict/analytics`, {
+    const response = await fetch(`${getMlApiUrl()}/api/predict/analytics`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

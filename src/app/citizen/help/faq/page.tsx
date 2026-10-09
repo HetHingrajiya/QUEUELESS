@@ -1,3 +1,5 @@
-import CitizenHelpPage from '../page';
+import { redirect } from 'next/navigation';
 
-export default CitizenHelpPage;
+export default function HelpFaqRedirect() {
+  redirect('/citizen/help');
+}

@@ -102,7 +102,7 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
             <span className="text-amber-500 font-bold">★</span> Bookmarked Favorites
           </Link>
           <Link
-            href="/citizen/help/faq"
+            href="/citizen/help"
             onClick={() => setMobileMenuOpen(false)}
             className="flex items-center gap-3 p-3 rounded-xl text-slate-700 hover:bg-slate-50 font-medium text-sm"
           >
