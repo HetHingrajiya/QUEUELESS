@@ -54,6 +54,12 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
   }
 
   const isFallback = (data.predictionSource || '').toUpperCase().includes('FALLBACK');
+  const factorRows = Array.isArray(data.factors)
+    ? data.factors.map((factor) => ({ name: factor.name, detail: factor.desc || factor.impact }))
+    : Object.entries(data.factors || {}).map(([name, detail]) => ({
+        name,
+        detail: typeof detail === 'string' ? detail : String(detail),
+      }));
 
   return (
     <div className="space-y-6 pb-24 max-w-md mx-auto pt-4 px-4">
@@ -95,7 +101,7 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
           </div>
           <div>
             <p className="text-xs font-medium text-slate-500">Status</p>
-            <p className="text-sm font-bold text-slate-900">{isFallback ? 'Fallback estimate' : (data.predictionSource || 'Prediction received').replaceAll('_', ' ')}</p>
+            <p className="text-sm font-bold text-slate-900">{isFallback ? 'Fallback estimate' : (data.predictionSource || 'Prediction received').replace(/_/g, ' ')}</p>
           </div>
         </div>
       </div>
@@ -106,23 +112,21 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
             <Zap className="text-amber-500 mr-2" size={16} />
             Prediction Factors
           </h3>
-          <div className="space-y-4">
-            {data.factors && typeof data.factors === 'object' && Object.entries(data.factors as Record<string, string>).map(([factor, impact], i) => (
-              <div key={i} className="flex justify-between items-center border-b border-slate-100 pb-2 last:border-0 last:pb-0">
-                <span className="text-sm font-medium text-slate-700 flex items-center">
-                  <Clock size={14} className="mr-2 text-slate-400" />
-                  {factor}
-                </span>
-                <span className={`text-xs font-bold px-2 py-1 rounded-md ${
-                  impact === 'High Impact' ? 'bg-red-100 text-red-700' :
-                  impact === 'Medium Impact' ? 'bg-amber-100 text-amber-700' :
-                  'bg-emerald-100 text-emerald-700'
-                }`}>
-                  {String(impact)}
-                </span>
-              </div>
-            ))}
-          </div>
+          {factorRows.length > 0 ? (
+            <div className="space-y-3">
+              {factorRows.map((factor) => (
+                <div key={factor.name} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                  <p className="text-sm font-semibold text-slate-800 flex items-center">
+                    <Clock size={14} className="mr-2 text-slate-400" />
+                    {factor.name}
+                  </p>
+                  <p className="text-xs text-slate-600 mt-1 pl-5">{factor.detail}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Prediction factors are not available.</p>
+          )}
         </CardContent>
       </Card>
       
