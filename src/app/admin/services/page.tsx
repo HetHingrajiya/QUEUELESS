@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -74,11 +75,7 @@ export default async function AdminServicesPage() {
                 ))}
                 
                 {services.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No services found in your organization.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={5} title="No services found" description="Services offered by your organization will appear here." />
                 )}
               </tbody>
             </table>
