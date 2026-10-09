@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bell, Volume2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { CitizenNotification, ApiResponse } from '@/types/citizen';
 
 export default function NotificationDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,10 +17,14 @@ export default function NotificationDetailPage({ params }: { params: Promise<{ i
   const [notification, setNotification] = useState<CitizenNotification | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     fetch(`/api/citizen/notifications/${id}`)
-      .then(r => r.json() as Promise<ApiResponse<CitizenNotification>>)
+      .then(r => {
+        if (!r.ok) throw new Error(`Unable to load notification (${r.status})`);
+        return r.json() as Promise<ApiResponse<CitizenNotification>>;
+      })
       .then(res => {
         if (res.success && res.data) {
           setNotification(res.data);
@@ -32,23 +37,19 @@ export default function NotificationDetailPage({ params }: { params: Promise<{ i
         setError('Failed to load notification');
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, retryCount]);
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto pt-6">
-        <SkeletonLoader type="notification" />
-      </div>
+      <div className="max-w-md mx-auto pt-6"><LoadingState label="Loading notification..." /></div>
     );
   }
 
   if (error || !notification) {
     return (
-      <div className="max-w-md mx-auto pt-6 text-center">
-        <p className="text-red-600 font-medium">{error || 'Notification not found'}</p>
-        <Link href="/citizen/notifications" className="text-blue-600 font-semibold text-sm mt-3 inline-block">
-          Return to Notifications
-        </Link>
+      <div className="max-w-md mx-auto pt-6 space-y-4">
+        {error ? <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} /> : <p className="text-slate-600 text-center">Notification not found.</p>}
+        <div className="text-center"><Link href="/citizen/notifications" className="text-blue-600 font-semibold text-sm inline-block">Return to Notifications</Link></div>
       </div>
     );
   }
