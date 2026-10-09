@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Download, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
@@ -79,9 +78,7 @@ export default async function AnalyticsPage() {
           <h2 className="text-2xl font-bold text-slate-800">System Analytics</h2>
           <p className="text-sm text-slate-500">Metrics and distributions calculated from live QueueLess token records.</p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700">
-          <Link href="/super-admin/reports"><Download size={16} className="mr-2" /> Generate / View Reports</Link>
-        </Button>
+        <Link href="/super-admin/reports" className="inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"><Download size={16} className="mr-2" /> Generate / View Reports</Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
