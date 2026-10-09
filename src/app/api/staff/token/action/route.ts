@@ -213,6 +213,7 @@ export async function POST(req: NextRequest) {
         RECALL: [TokenStatus.CALLED],
         TRANSFER: [TokenStatus.WAITING, TokenStatus.CHECKED_IN, TokenStatus.CALLED]
       };
+      const tokenServiceId = token.serviceId?.toString();
       const allowedStatuses = allowedStatusesByAction[action];
       if (allowedStatuses && !allowedStatuses.includes(token.status)) {
         return NextResponse.json({
@@ -222,11 +223,11 @@ export async function POST(req: NextRequest) {
         }, { status: 409 });
       }
       if (counter.serviceIds?.length &&
-          !counter.serviceIds.some((serviceId: any) => serviceId.toString() === token.serviceId?.toString())) {
+          !counter.serviceIds.some((serviceId: any) => serviceId.toString() === tokenServiceId)) {
         return NextResponse.json({ success: false, message: 'Your assigned counter cannot process this token service.' }, { status: 403 });
       }
       if (!counter.serviceIds?.length && staffUser.serviceId &&
-          staffUser.serviceId.toString() !== token.serviceId?.toString()) {
+          staffUser.serviceId.toString() !== tokenServiceId) {
         return NextResponse.json({ success: false, message: 'This token is outside your assigned service.' }, { status: 403 });
       }
 
@@ -274,8 +275,8 @@ export async function POST(req: NextRequest) {
           if (!newCounter) {
             return NextResponse.json({ success: false, message: 'Target counter not found in your office' }, { status: 400 });
           }
-          if (newCounter.serviceIds?.length && token.serviceId &&
-              !newCounter.serviceIds.some((serviceId: any) => serviceId.toString() === token.serviceId.toString())) {
+          if (newCounter.serviceIds?.length && tokenServiceId &&
+              !newCounter.serviceIds.some((serviceId: any) => serviceId.toString() === tokenServiceId)) {
             return NextResponse.json({ success: false, message: 'Target counter is not configured for this service' }, { status: 400 });
           }
           const prevCounterName = counter.name || `Counter ${counter.number || 1}`;
