@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       // Find current active waiting or called token for this authenticated citizen
       token = await Token.findOne({
         citizenId: user.userId,
-        status: { $in: [TokenStatus.WAITING, TokenStatus.CALLED] }
+        status: { $in: [TokenStatus.WAITING, TokenStatus.CALLED, TokenStatus.CHECKED_IN] }
       }).populate('officeId').populate('serviceId').sort({ createdAt: -1 });
     }
 
