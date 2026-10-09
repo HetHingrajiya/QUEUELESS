@@ -239,6 +239,33 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponse 
     registerAuthoritativeEventPair('token:transferred', 'TOKEN_TRANSFERRED');
     registerAuthoritativeEventPair('counter:updated', 'COUNTER_UPDATED');
 
+    // Private notification room: authenticated users may only subscribe to their own room.
+    socket.on('join-user', (requestedUserId: string) => {
+      if (!requestedUserId || !mongoose.Types.ObjectId.isValid(requestedUserId)) {
+        socket.emit('error', { message: 'Invalid userId' });
+        return;
+      }
+      if (socket.data.isServer || socket.data.user?.userId?.toString() === requestedUserId) {
+        socket.join(`user:${requestedUserId}`);
+        return;
+      }
+      socket.emit('error', { message: 'Unauthorized user notification subscription' });
+    });
+
+    socket.on('leave-user', (requestedUserId: string) => {
+      if (requestedUserId && mongoose.Types.ObjectId.isValid(requestedUserId) &&
+          (socket.data.isServer || socket.data.user?.userId?.toString() === requestedUserId)) {
+        socket.leave(`user:${requestedUserId}`);
+      }
+    });
+
+    // Only trusted internal API emitters can publish private notification events.
+    socket.on('notification:new', (data: any) => {
+      if (!socket.data.isServer || !data?.userId || !mongoose.Types.ObjectId.isValid(data.userId)) return;
+      io.to(`user:${data.userId}`).emit('notification:new', data);
+      io.to(`user:${data.userId}`).emit('NOTIFICATION_NEW', data);
+    });
+
     socket.on('disconnect', () => {
       // Clean disconnect
     });
