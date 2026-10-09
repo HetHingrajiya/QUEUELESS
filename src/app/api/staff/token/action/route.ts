@@ -201,115 +201,114 @@ export async function POST(req: NextRequest) {
         request: req,
       });
 
-      // Send Push Notification to Citizen
+      // Citizen lifecycle notifications are persisted independently from push delivery.
       if (token.citizenId) {
-        const { sendWebPush } = await import('@/lib/push');
         const citizenIdStr = token.citizenId.toString();
-        const url = `/citizen/queue/${token._id}`;
-        
+        const tokenIdStr = token._id.toString();
+        const officeIdStr = token.officeId?.toString();
+        const url = action === 'COMPLETE' || action === 'COMPLETE_SERVICE'
+          ? '/citizen/token-history'
+          : `/citizen/queue/${tokenIdStr}`;
+
+        let notifTitle = 'Queue Update';
+        let notifMsg = `Token ${token.tokenNumber} status updated to ${token.status}.`;
+        let pushTitle = notifTitle;
+        let notifType = 'TOKEN';
+
+        if (action === 'CALL_NEXT' || action === 'CALL' || action === 'CALL_SPECIFIC' || action === 'RECALL') {
+          notifTitle = 'Your Turn — Token Called';
+          notifMsg = `Token ${token.tokenNumber} has been called at ${counter.name || `Counter ${counter.number || ''}`}. Please proceed to the counter.`;
+          pushTitle = 'It is your turn!';
+        } else if (action === 'START' || action === 'START_SERVICE') {
+          notifTitle = 'Service Started';
+          notifMsg = `Service for token ${token.tokenNumber} has started.`;
+          pushTitle = notifTitle;
+        } else if (action === 'COMPLETE' || action === 'COMPLETE_SERVICE') {
+          notifTitle = 'Service Completed';
+          notifMsg = `Your service for token ${token.tokenNumber} is complete. Thank you!`;
+          pushTitle = notifTitle;
+        } else if (action === 'NO_SHOW') {
+          notifTitle = 'Token Marked No-Show';
+          notifMsg = `Token ${token.tokenNumber} was marked as No-Show. Please contact the office if you believe this is incorrect.`;
+          pushTitle = notifTitle;
+        } else if (action === 'SKIP') {
+          notifTitle = 'Token Skipped';
+          notifMsg = `Token ${token.tokenNumber} was skipped by counter staff.`;
+          pushTitle = notifTitle;
+        } else if (action === 'TRANSFER') {
+          notifTitle = 'Token Transferred';
+          notifMsg = `Token ${token.tokenNumber} has been transferred to another counter.`;
+          pushTitle = notifTitle;
+        }
+
         try {
-          if (action === 'CALL_NEXT' || action === 'RECALL') {
-            await sendWebPush(citizenIdStr, 'It is your turn!', `Token ${token.tokenNumber} is now being served at Counter ${counter.name}`, url);
-          } else if (action === 'START_SERVICE') {
-            await sendWebPush(citizenIdStr, 'Service Started', `Your service for Token ${token.tokenNumber} has started.`, url);
-          } else if (action === 'COMPLETE') {
-            await sendWebPush(citizenIdStr, 'Service Completed', `Your service for Token ${token.tokenNumber} is complete. Thank you!`, '/citizen/token-history');
-          } else if (action === 'SKIP') {
-            await sendWebPush(citizenIdStr, 'Token Skipped', `Token ${token.tokenNumber} was skipped by the staff.`, url);
-          } else if (action === 'NO_SHOW') {
-            await sendWebPush(citizenIdStr, 'No-Show Marked', `Token ${token.tokenNumber} was marked as No-Show.`, url);
-          }
-          // Create In-App Notification record for citizen
-          try {
-            const { Notification } = await import('@/models/Notification');
-            let notifTitle = 'Queue Update';
-            let notifMsg = `Token ${token.tokenNumber} status updated to ${token.status}`;
-            let notifType = 'INFO';
-            
-            if (action === 'CALL_NEXT' || action === 'RECALL') {
-              notifTitle = 'Token Called! Your Turn';
-              notifMsg = `Token ${token.tokenNumber} is called at ${counter.name}. Please proceed to the counter.`;
-              notifType = 'SUCCESS';
-            } else if (action === 'START' || action === 'START_SERVICE') {
-              notifTitle = 'Service Started';
-              notifMsg = `Service for Token ${token.tokenNumber} has started at ${counter.name}.`;
-              notifType = 'INFO';
-            } else if (action === 'COMPLETE' || action === 'COMPLETE_SERVICE') {
-              notifTitle = 'Service Completed';
-              notifMsg = `Your service for Token ${token.tokenNumber} is complete. You can rate your experience now!`;
-              notifType = 'SUCCESS';
-            } else if (action === 'NO_SHOW') {
-              notifTitle = 'Token Marked No-Show';
-              notifMsg = `Token ${token.tokenNumber} was marked as No-Show. Please rebook if needed.`;
-              notifType = 'WARNING';
-            } else if (action === 'SKIP') {
-              notifTitle = 'Token Skipped';
-              notifMsg = `Token ${token.tokenNumber} was skipped by counter staff.`;
-              notifType = 'WARNING';
-            }
+          const { Notification } = await import('@/models/Notification');
+          await Notification.create({
+            userId: token.citizenId,
+            organizationId: (token as any).organizationId,
+            officeId: token.officeId,
+            tokenId: token._id,
+            type: notifType,
+            title: notifTitle,
+            message: notifMsg,
+            channel: 'IN_APP',
+            isRead: false
+          });
+        } catch (notifErr) {
+          console.error('Failed to persist citizen lifecycle notification:', notifErr);
+        }
 
-            await Notification.create({
-              userId: token.citizenId,
-              officeId: token.officeId,
-              tokenId: token._id,
-              type: notifType,
-              title: notifTitle,
-              message: notifMsg,
-              channel: 'IN_APP',
-              isRead: false
-            });
-          } catch (notifErr) {
-            console.error('Failed to create in-app notification:', notifErr);
-          }
-
-          // Socket.IO real-time broadcast
-          try {
-            const { getSocket } = await import('@/lib/socketClient');
-            const socket = getSocket();
-            const officeIdStr = token.officeId?.toString();
-            const tokenIdStr = token._id.toString();
-
-            socket.emit('queue:action', { 
-              action, 
-              officeId: officeIdStr, 
-              tokenId: tokenIdStr, 
-              tokenNumber: token.tokenNumber,
-              status: token.status 
-            });
-            socket.emit('queue:updated', { 
-              officeId: officeIdStr, 
-              serviceId: token.serviceId?.toString() 
-            });
-
-            const eventPayload = {
-              tokenId: tokenIdStr,
-              tokenNumber: token.tokenNumber,
-              officeId: officeIdStr,
-              counterName: counter.name,
-              counterNumber: counter.counterNumber,
-              status: token.status
-            };
-
-            if (action === 'CALL_NEXT' || action === 'RECALL' || action === 'CALL' || action === 'CALL_SPECIFIC') {
-              socket.emit('token:called', eventPayload);
-            } else if (action === 'START' || action === 'START_SERVICE') {
-              socket.emit('token:serving', eventPayload);
-            } else if (action === 'COMPLETE' || action === 'COMPLETE_SERVICE') {
-              socket.emit('token:completed', eventPayload);
-            } else if (action === 'SKIP' || action === 'NO_SHOW') {
-              socket.emit('token:no_show', eventPayload);
-            } else if (action === 'TRANSFER') {
-              socket.emit('token:called', eventPayload);
-              socket.emit('token:transferred', eventPayload);
-            }
-          } catch {
-            // socket broadcast optional
-          }
+        try {
+          const { sendWebPush } = await import('@/lib/push');
+          await sendWebPush(citizenIdStr, pushTitle, notifMsg, url);
         } catch (pushErr) {
-          console.error('Failed to send push for action', action, pushErr);
+          console.error('Failed to send citizen lifecycle push notification:', pushErr);
+        }
+
+        // Broadcast queue state and private notification to the citizen's authenticated room.
+        try {
+          const { getSocket } = await import('@/lib/socketClient');
+          const socket = getSocket();
+          const eventPayload = {
+            action,
+            tokenId: tokenIdStr,
+            tokenNumber: token.tokenNumber,
+            officeId: officeIdStr,
+            serviceId: token.serviceId?.toString(),
+            counterName: counter.name,
+            counterNumber: counter.number,
+            status: token.status
+          };
+
+          socket.emit('queue:action', eventPayload);
+          socket.emit('queue:updated', eventPayload);
+
+          if (action === 'CALL_NEXT' || action === 'CALL' || action === 'CALL_SPECIFIC' || action === 'RECALL') {
+            socket.emit('token:called', eventPayload);
+          } else if (action === 'START' || action === 'START_SERVICE') {
+            socket.emit('token:serving', eventPayload);
+          } else if (action === 'COMPLETE' || action === 'COMPLETE_SERVICE') {
+            socket.emit('token:completed', eventPayload);
+          } else if (action === 'SKIP' || action === 'NO_SHOW') {
+            socket.emit('token:no_show', eventPayload);
+          } else if (action === 'TRANSFER') {
+            socket.emit('token:called', eventPayload);
+            socket.emit('token:transferred', eventPayload);
+          }
+
+          socket.emit('notification:new', {
+            userId: citizenIdStr,
+            officeId: officeIdStr,
+            tokenId: tokenIdStr,
+            type: notifType,
+            title: notifTitle,
+            message: notifMsg,
+            createdAt: new Date().toISOString()
+          });
+        } catch (socketErr) {
+          console.error('Failed to broadcast citizen lifecycle update:', socketErr);
         }
       }
-    }
 
     return NextResponse.json({ success: true, data: token });
 
