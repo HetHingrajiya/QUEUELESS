@@ -240,7 +240,7 @@ export interface AIPrediction {
   modelVersion: string;
   predictionTimestamp: string;
   factors: Record<string, string> | AIPredictionFactor[];
-  crowdPrediction?: { level: string; confidence: number; label?: string; hourly_trends?: Array<{ hour: string; crowd_level: string }> };
+  crowdPrediction?: { level?: string; crowd_level?: string; confidence?: number | null; label?: string; hourly_trends?: Array<{ hour: string; wait: number; token_count?: number; current?: boolean }> };
   queueHealth?: { score: number; status: string; factors?: string[] };
   serviceTimePrediction?: { duration: number; range?: string; predicted_service_time_mins?: number };
   bestTimeToVisit?: { time: string; reason?: string; best_window?: string };
