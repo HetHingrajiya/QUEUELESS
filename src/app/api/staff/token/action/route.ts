@@ -27,20 +27,17 @@ export async function POST(req: NextRequest) {
     }
 
     const staffUser = await User.findById(user.userId).lean();
-    if (!staffUser || !staffUser.officeId) {
-       return NextResponse.json({ success: false, message: 'Staff user or office not found' }, { status: 404 });
+    if (!staffUser || !staffUser.officeId || staffUser.status !== 'ACTIVE') {
+       return NextResponse.json({ success: false, message: 'Active staff account and office assignment are required' }, { status: 403 });
     }
 
+    // Never silently assign an unassigned staff member to another staff member's counter.
     let counter = await Counter.findOne({ staffId: staffUser._id, officeId: staffUser.officeId }).lean();
-    if (!counter) {
-      counter = await Counter.findOne({ staffId: staffUser._id }).lean();
+    if (!counter && staffUser.counterId) {
+      counter = await Counter.findOne({ _id: staffUser.counterId, officeId: staffUser.officeId }).lean();
     }
     if (!counter) {
-      // Find an available or existing counter in this office
-      counter = await Counter.findOne({ officeId: staffUser.officeId }).lean();
-    }
-    if (!counter) {
-      return NextResponse.json({ success: false, message: 'No counter available in your office' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'No counter is assigned to your staff account. Ask an administrator to assign one.' }, { status: 403 });
     }
 
     const officeId = staffUser.officeId;
@@ -231,14 +228,19 @@ export async function POST(req: NextRequest) {
         case 'TRANSFER': {
           let newCounter = null;
           if (targetCounterId) {
-            newCounter = await Counter.findById(targetCounterId).lean();
+            newCounter = await Counter.findOne({ _id: targetCounterId, officeId: staffUser.officeId }).lean();
           } else if (targetCounterNumber) {
             newCounter = await Counter.findOne({ officeId: staffUser.officeId, number: targetCounterNumber }).lean();
           }
-          const prevCounterName = counter.name || `Counter ${counter.number || 1}`;
-          if (newCounter) {
-            token.counterId = newCounter._id;
+          if (!newCounter) {
+            return NextResponse.json({ success: false, message: 'Target counter not found in your office' }, { status: 400 });
           }
+          if (newCounter.serviceIds?.length && token.serviceId &&
+              !newCounter.serviceIds.some((serviceId: any) => serviceId.toString() === token.serviceId.toString())) {
+            return NextResponse.json({ success: false, message: 'Target counter is not configured for this service' }, { status: 400 });
+          }
+          const prevCounterName = counter.name || `Counter ${counter.number || 1}`;
+          token.counterId = newCounter._id;
           token.status = TokenStatus.CALLED;
           token.callTime = now;
           token.notes = `Transferred from ${prevCounterName}`;
