@@ -309,6 +309,7 @@ export async function POST(req: NextRequest) {
           console.error('Failed to broadcast citizen lifecycle update:', socketErr);
         }
       }
+    }
 
     return NextResponse.json({ success: true, data: token });
 
