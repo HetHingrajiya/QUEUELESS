@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, QrCode, ScanLine, CheckCircle2, 
-  MapPin, AlertCircle, Building2 
+  ArrowLeft, QrCode, AlertCircle 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
