@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
+import { Office } from '@/models/Office';
 import { createAuditLog } from '@/lib/auditLogger';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -83,6 +84,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (currentUser.role === 'SUPER_ADMIN' && body.organizationId) {
        updateData.organizationId = body.organizationId;
+    }
+
+    if (updateData.officeId !== undefined || updateData.organizationId !== undefined) {
+      const targetOfficeId = updateData.officeId ?? oldService.officeId;
+      const targetOffice = await Office.findById(targetOfficeId).lean();
+      if (!targetOffice) {
+        return NextResponse.json({ success: false, message: 'Target office not found' }, { status: 404 });
+      }
+      const expectedOrganizationId = updateData.organizationId ?? oldService.organizationId;
+      if (targetOffice.organizationId?.toString() !== expectedOrganizationId?.toString()) {
+        return NextResponse.json({ success: false, message: 'Service office must belong to the same organization' }, { status: 400 });
+      }
+      if (currentUser.role === 'ADMIN' &&
+          targetOffice.organizationId?.toString() !== currentUser.organizationId?.toString()) {
+        return NextResponse.json({ success: false, message: 'Cannot move a service outside your organization' }, { status: 403 });
+      }
     }
 
     const updatedService = await Service.findOneAndUpdate(
