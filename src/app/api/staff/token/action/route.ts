@@ -201,6 +201,33 @@ export async function POST(req: NextRequest) {
       });
       if (!token) return NextResponse.json({ success: false, message: 'Token not found' }, { status: 404 });
 
+      const allowedStatusesByAction: Record<string, string[]> = {
+        START: [TokenStatus.CALLED],
+        START_SERVICE: [TokenStatus.CALLED],
+        COMPLETE: [TokenStatus.SERVING],
+        COMPLETE_SERVICE: [TokenStatus.SERVING],
+        SKIP: [TokenStatus.WAITING, TokenStatus.CHECKED_IN, TokenStatus.CALLED],
+        NO_SHOW: [TokenStatus.CALLED],
+        RECALL: [TokenStatus.CALLED],
+        TRANSFER: [TokenStatus.WAITING, TokenStatus.CHECKED_IN, TokenStatus.CALLED]
+      };
+      const allowedStatuses = allowedStatusesByAction[action];
+      if (allowedStatuses && !allowedStatuses.includes(token.status)) {
+        return NextResponse.json({
+          success: false,
+          message: `Action ${action} is not allowed for a token in ${token.status} status.`,
+          errorCode: 'TOKEN_STATE_CHANGED'
+        }, { status: 409 });
+      }
+      if (counter.serviceIds?.length &&
+          !counter.serviceIds.some((serviceId: any) => serviceId.toString() === token.serviceId?.toString())) {
+        return NextResponse.json({ success: false, message: 'Your assigned counter cannot process this token service.' }, { status: 403 });
+      }
+      if (!counter.serviceIds?.length && staffUser.serviceId &&
+          staffUser.serviceId.toString() !== token.serviceId?.toString()) {
+        return NextResponse.json({ success: false, message: 'This token is outside your assigned service.' }, { status: 403 });
+      }
+
       const now = new Date();
       token.counterId = counter._id;
       token.staffId = staffUser._id;
