@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Ticket, Users, CheckCircle2, PlayCircle, Loader2 } from 'lucide-react';
+import { Ticket, Users, CheckCircle2, PlayCircle } from 'lucide-react';
 import { getSocket } from '@/lib/socketClient';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 
 export default function StaffDashboard() {
   const [data, setData] = useState<any>(null);
@@ -123,21 +125,19 @@ export default function StaffDashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-      </div>
+      <LoadingState label="Loading staff dashboard…" className="h-[50vh]" />
     );
   }
 
   if (!data) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4">
-        <h3 className="text-xl font-bold text-slate-800">Unable to load staff dashboard</h3>
-        <p className="text-slate-500 max-w-sm">No dashboard data available for this staff account. Please verify your counter assignment or contact an administrator.</p>
-        <Button onClick={() => fetchDashboardData()} variant="outline">
-          Retry
-        </Button>
-      </div>
+      <ErrorState
+        title="Unable to load staff dashboard"
+        description="No dashboard data available for this staff account. Please verify your counter assignment or contact an administrator."
+        onRetry={() => fetchDashboardData()}
+        retryLabel="Retry"
+        className="min-h-[50vh]"
+      />
     );
   }
 
