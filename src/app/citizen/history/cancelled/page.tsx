@@ -7,7 +7,8 @@ import {
   Building2, ArrowRight 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CitizenToken, ApiResponse } from '@/types/citizen';
 
@@ -15,12 +16,14 @@ export default function CancelledTokensHistoryPage() {
   const [cancelledList, setCancelledList] = useState<CitizenToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const fetchCancelled = async () => {
       try {
         setLoading(true);
         const res = await fetch('/api/citizen/token-history?status=CANCELLED');
+        if (!res.ok) throw new Error(`Unable to load cancelled tokens (${res.status})`);
         const json: ApiResponse<CitizenToken[]> = await res.json();
         if (json.success) {
           setCancelledList(json.data || []);
@@ -34,7 +37,7 @@ export default function CancelledTokensHistoryPage() {
       }
     };
     fetchCancelled();
-  }, []);
+  }, [retryCount]);
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -54,11 +57,9 @@ export default function CancelledTokensHistoryPage() {
       </div>
 
       {loading ? (
-        <SkeletonLoader type="history" count={3} />
+        <LoadingState label="Loading cancelled tokens..." />
       ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
-          {error}
-        </div>
+        <ErrorState description={error} onRetry={() => setRetryCount((count) => count + 1)} />
       ) : cancelledList.length === 0 ? (
         <EmptyState
           icon={<XCircle size={32} className="text-slate-400" />}
