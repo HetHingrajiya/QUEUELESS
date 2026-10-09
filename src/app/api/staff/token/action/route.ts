@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
         tokenId: token._id,
         officeId: token.officeId,
         serviceId: token.serviceId,
-        eventType: ((action === 'CALL_NEXT' || action === 'RECALL') ? 'CALLED' : action === 'START_SERVICE' ? 'SERVING' : action === 'COMPLETE' ? 'COMPLETED' : action === 'SKIP' ? 'SKIPPED' : action === 'NO_SHOW' ? 'NO_SHOW' : action === 'TRANSFER' ? 'TRANSFERRED' : String(action)),
+        eventType: ((action === 'CALL_NEXT' || action === 'CALL' || action === 'CALL_SPECIFIC' || action === 'RECALL') ? 'CALLED' : (action === 'START' || action === 'START_SERVICE') ? 'SERVING' : (action === 'COMPLETE' || action === 'COMPLETE_SERVICE') ? 'COMPLETED' : action === 'SKIP' ? 'SKIPPED' : action === 'NO_SHOW' ? 'NO_SHOW' : action === 'TRANSFER' ? 'TRANSFERRED' : String(action)),
         counterId: token.counterId || counter._id,
         staffId: staffUser._id,
         metadata: action === 'TRANSFER' ? { previousCounterName: counter.name || `Counter ${counter.number || 1}`, transferTime: new Date() } : undefined,
