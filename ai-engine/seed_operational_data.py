@@ -8,6 +8,14 @@ sys.path.append(os.path.dirname(__file__))
 from database import get_sync_db
 
 def seed_operational_history():
+    # This utility creates synthetic historical records for offline model experiments only.
+    # Require an explicit opt-in and refuse production to avoid contaminating real analytics.
+    if os.getenv("ALLOW_SYNTHETIC_TRAINING_DATA", "").lower() != "true":
+        print("Synthetic data seeding is disabled. Set ALLOW_SYNTHETIC_TRAINING_DATA=true only in an isolated development/training database.")
+        return
+    if os.getenv("APP_ENV", os.getenv("NODE_ENV", "development")).lower() in {"production", "prod"}:
+        raise RuntimeError("Refusing to insert synthetic training records in production.")
+
     db = get_sync_db()
     print("Seeding realistic historical operational data for QueueLess...")
 
