@@ -67,26 +67,27 @@ export default function AIWaitPredictionScreen() {
         }
 
         const pred = predJson.data;
+        const isFallback = (pred.predictionSource || '').toUpperCase().includes('FALLBACK');
         const factors: PredictionFactor[] = [
           { name: 'People Ahead', impact: 'High Impact', desc: `${pred.waitingAhead} citizens are ahead in your queue.` },
           { name: 'Active Counters', impact: 'High Impact', desc: `${pred.activeCounters} active counter(s) are serving this queue.` },
         ];
 
-        if (pred.queueHealth) {
+        if (!isFallback && pred.queueHealth) {
           factors.push({
             name: 'Queue Health',
             impact: 'Medium Impact',
             desc: `Current queue status: ${pred.queueHealth.status} (${pred.queueHealth.score}/100).`,
           });
         }
-        if (pred.serviceTimePrediction?.predicted_service_time_mins != null) {
+        if (!isFallback && pred.serviceTimePrediction?.predicted_service_time_mins != null) {
           factors.push({
             name: 'Predicted Service Pace',
             impact: 'Medium Impact',
             desc: `Estimated service duration: ${pred.serviceTimePrediction.predicted_service_time_mins} minutes.`,
           });
         }
-        if (pred.bestTimeToVisit?.best_window) {
+        if (!isFallback && pred.bestTimeToVisit?.best_window) {
           factors.push({
             name: 'Best Time to Visit',
             impact: 'Low Impact',
@@ -102,7 +103,8 @@ export default function AIWaitPredictionScreen() {
         }
 
         const rawTrends = pred.crowdPrediction?.hourly_trends;
-        const trends: TrendBar[] = (rawTrends || [])
+        // A statistical fallback has no observed hourly series. Do not graph its illustrative values as real traffic.
+        const trends: TrendBar[] = (isFallback ? [] : (rawTrends || []))
           .filter((item) => typeof item.wait === 'number' && Number.isFinite(item.wait))
           .map((item) => ({ hour: item.hour, wait: item.wait, current: Boolean(item.current) }));
 
@@ -117,7 +119,7 @@ export default function AIWaitPredictionScreen() {
             modelVersion: pred.modelVersion || '',
             factors,
             hourlyTrends: trends,
-            bestWindow: pred.bestTimeToVisit?.best_window || null,
+            bestWindow: !isFallback ? (pred.bestTimeToVisit?.best_window || null) : null,
             error: null,
           });
         }
@@ -170,7 +172,7 @@ export default function AIWaitPredictionScreen() {
             <CardContent className="p-6 relative z-10 text-center">
               <div className="inline-flex items-center space-x-1.5 bg-white/15 px-3 py-1 rounded-full text-xs font-semibold mb-3 border border-white/20">
                 <Sparkles size={14} className="text-amber-300" />
-                <span>Queue prediction engine</span>
+                <span>{prediction.predictionSource.toUpperCase().includes('FALLBACK') ? 'Statistical estimate' : 'Queue prediction engine'}</span>
               </div>
               <p className="text-xs uppercase tracking-widest text-purple-200 font-semibold">Predicted wait time</p>
               <div className="flex items-baseline justify-center space-x-1 my-2">
