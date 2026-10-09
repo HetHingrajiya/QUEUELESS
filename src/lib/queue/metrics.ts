@@ -351,7 +351,11 @@ export class QueueMetricsService {
         officeId,
         serviceId,
         status: { $in: WAITING_TOKEN_STATUSES },
-        createdAt: { $gte: startOfDay, $lt: token.createdAt }
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+        $or: [
+          { createdAt: { $lt: token.createdAt } },
+          { createdAt: token.createdAt, _id: { $lt: token._id } }
+        ]
       });
       queuePosition = peopleAhead + 1;
     }
@@ -362,7 +366,7 @@ export class QueueMetricsService {
       serviceId,
       status: { $in: WAITING_TOKEN_STATUSES },
       createdAt: { $gte: startOfDay, $lte: endOfDay }
-    }).sort({ createdAt: 1 }).limit(5).select('tokenNumber').lean();
+    }).sort({ createdAt: 1, _id: 1 }).limit(5).select('tokenNumber').lean();
 
     const nextTokens = nextTokensDocs.map((t: any) => t.tokenNumber);
 
