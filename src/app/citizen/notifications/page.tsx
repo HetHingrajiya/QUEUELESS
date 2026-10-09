@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { LoadingState } from '@/components/common/LoadingState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
+import { getSocket } from '@/lib/socketClient';
 
 interface NotificationItem {
   _id: string;
@@ -56,10 +57,9 @@ export default function CitizenNotificationsPage() {
   }, [filter, retryCount]);
 
   useEffect(() => {
-    let socket: ReturnType<typeof import('@/lib/socketClient').getSocket> | null = null;
+    let socket: ReturnType<typeof getSocket> | null = null;
     let mounted = true;
     try {
-      const { getSocket } = require('@/lib/socketClient') as typeof import('@/lib/socketClient');
       socket = getSocket();
       socket.emit('join-my-notifications');
       const refresh = () => {
