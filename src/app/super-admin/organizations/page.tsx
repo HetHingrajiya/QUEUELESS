@@ -50,7 +50,7 @@ export default async function OrganizationsPage() {
                       {org.type || 'Government'}
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status="ACTIVE" />
+                      <StatusBadge status={org.status || 'UNKNOWN'} />
                     </td>
                     <td className="px-6 py-4 text-slate-500">
                       {new Date(org.createdAt).toLocaleDateString()}
