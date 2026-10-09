@@ -1,11 +1,11 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
 export const dynamic = 'force-dynamic';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Counter } from '@/models/Counter';
-import Link from 'next/link';
 import { CounterActions } from './CounterActions';
 
 async function getCounters() {
@@ -22,13 +22,11 @@ export default async function CountersPage() {
 
   return (
     <div className="space-y-6 p-6">
-      
-      <PageHeader 
+      <PageHeader
         title="Counters"
         description="Manage all service counters across offices."
         action={{ label: 'Add Counter', href: '/super-admin/counters/add', icon: <Plus size={18} /> }}
       />
-
 
       <Card>
         <CardContent className="p-0">
@@ -47,35 +45,18 @@ export default async function CountersPage() {
               <tbody>
                 {counters.map((counter) => (
                   <tr key={counter._id.toString()} className="bg-white border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-6 py-4 font-semibold text-slate-900">
-                      {counter.number}
-                    </td>
-                    <td className="px-6 py-4">
-                      {counter.name || '-'}
-                    </td>
-                    <td className="px-6 py-4">
-                      {counter.officeId ? (counter.officeId as any).name : '-'}
-                    </td>
-                    <td className="px-6 py-4">
-                      {counter.serviceIds && counter.serviceIds.length > 0 ? counter.serviceIds.map((s: any) => s.name).join(', ') : 'All Services'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${counter.status === 'ACTIVE' || counter.status === 'SERVING' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                        {counter.status || 'OFFLINE'}
-                      </span>
-                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-900">{counter.number}</td>
+                    <td className="px-6 py-4">{counter.name || '-'}</td>
+                    <td className="px-6 py-4">{counter.officeId ? (counter.officeId as any).name : '-'}</td>
+                    <td className="px-6 py-4">{counter.serviceIds && counter.serviceIds.length > 0 ? counter.serviceIds.map((s: any) => s.name).join(', ') : 'All Services'}</td>
+                    <td className="px-6 py-4"><StatusBadge status={counter.status || 'OFFLINE'} /></td>
                     <td className="px-6 py-4 text-right">
                       <CounterActions counterId={counter._id.toString()} />
                     </td>
                   </tr>
                 ))}
-                
                 {counters.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                      No counters found.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={6} title="No counters found" description="Counters across your offices will appear here." />
                 )}
               </tbody>
             </table>

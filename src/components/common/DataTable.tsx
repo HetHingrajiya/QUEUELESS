@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/common/EmptyState';
 
 export interface Column<T> {
   header: string;
@@ -44,12 +45,7 @@ export function DataTable<T>({ data, columns, keyExtractor, emptyMessage = "No i
               ))}
               
               {data.length === 0 && (
-                <tr>
-                  <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-500">
-                    {emptyIcon && <div className="flex justify-center mb-2">{emptyIcon}</div>}
-                    {emptyMessage}
-                  </td>
-                </tr>
+                <EmptyState colSpan={columns.length} title={emptyMessage} icon={emptyIcon} />
               )}
             </tbody>
           </table>

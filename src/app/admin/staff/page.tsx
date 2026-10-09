@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/common/PageHeader';
+import { EmptyState } from '@/components/common/EmptyState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
@@ -71,11 +72,7 @@ export default async function AdminStaffPage() {
                 ))}
                 
                 {staffMembers.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
-                      No staff members found in your organization.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={4} title="No staff members found" description="There are no staff members in your organization yet." />
                 )}
               </tbody>
             </table>

@@ -1,7 +1,8 @@
 import { PageHeader } from '@/components/common/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit, Eye } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
 import { getUserFromCookie } from '@/lib/auth';
@@ -22,18 +23,16 @@ export default async function AdminServicesPage() {
   const { hasPermission } = await import('@/lib/permissions');
   const canManageServices = await hasPermission(user.userId, 'MANAGE_SERVICES');
   if (!canManageServices) redirect('/admin/unauthorized');
-  
+
   const services = await getServices(user.organizationId as string);
 
   return (
     <div className="space-y-6 p-6">
-      
-      <PageHeader 
+      <PageHeader
         title="Services"
         description="Manage services offered by your offices."
         action={{ label: 'Add Service', href: '/admin/services/add', icon: <Plus size={18} /> }}
       />
-
 
       <Card>
         <CardContent className="p-0">
@@ -67,18 +66,13 @@ export default async function AdminServicesPage() {
                             <Edit size={14} className="text-slate-600" />
                           </Button>
                         </Link>
-                          <DeleteButton url={`/api/services/${service._id}`} entityName="Service" />
+                        <DeleteButton url={`/api/services/${service._id}`} entityName="Service" />
                       </div>
                     </td>
                   </tr>
                 ))}
-                
                 {services.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      No services found in your organization.
-                    </td>
-                  </tr>
+                  <EmptyState colSpan={5} title="No services found" description="Services offered by your organization will appear here." />
                 )}
               </tbody>
             </table>
