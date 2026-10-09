@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     
     const user = await getUserFromCookie();
     
-    if (!user || user.role === 'CITIZEN' || user.role === 'STAFF') {
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
@@ -153,6 +153,18 @@ export async function POST(req: NextRequest) {
     const service = await Service.findById(serviceId);
     if (!service) {
       return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
+    }
+
+    if (service.officeId?.toString() !== officeId.toString() ||
+        service.organizationId?.toString() !== office.organizationId?.toString()) {
+      return NextResponse.json({ success: false, message: 'Service must belong to the selected office and organization' }, { status: 400 });
+    }
+
+    if (citizenEmail) {
+      const citizen = await User.findById(citizenId).select('role').lean();
+      if (!citizen || citizen.role !== UserRole.CITIZEN) {
+        return NextResponse.json({ success: false, message: 'Selected account is not a citizen' }, { status: 400 });
+      }
     }
 
     const tokenNumber = `${service.code}-${(tokenCount + 1).toString().padStart(3, '0')}`;
