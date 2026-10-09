@@ -1,69 +1,114 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Navigation, Car, Clock, 
-  MapPin, Bell, CheckCircle2, AlertCircle, Compass, ShieldCheck 
+  MapPin, Bell, Compass, ShieldCheck 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
+import { formatDistance } from '@/lib/geo/distance';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { CitizenQueueSummary, LeaveTimeData, ApiResponse } from '@/types/citizen';
 
 export default function WhenShouldILeaveScreen() {
   const [alarmSet, setAlarmSet] = useState(false);
-  const [queueData, setQueueData] = useState<any>(null);
+  const [queueData, setQueueData] = useState<CitizenQueueSummary | null>(null);
+  const [leaveAdvisory, setLeaveAdvisory] = useState<LeaveTimeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [locationPrompt, setLocationPrompt] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchLeaveAdvisory = useCallback(async (tokenId: string, loc: { lat: number; lon: number } | null) => {
+    try {
+      const url = loc
+        ? `/api/citizen/queue/${tokenId}/leave-time?lat=${loc.lat}&lng=${loc.lon}`
+        : `/api/citizen/queue/${tokenId}/leave-time`;
+      const res = await fetch(url);
+      const json: ApiResponse<LeaveTimeData> = await res.json();
+      if (json.success && json.data) {
+        setLeaveAdvisory(json.data);
+      }
+    } catch (e: unknown) {
+      console.error('Failed to fetch leave advisory', e);
+    }
+  }, []);
+
   useEffect(() => {
+    let isMounted = true;
     const fetchQueue = async () => {
       try {
         setLoading(true);
         const res = await fetch('/api/citizen/queue');
-        const json = await res.json();
+        const json: ApiResponse<CitizenQueueSummary> = await res.json();
+        if (!isMounted) return;
         if (json.success && json.data) {
           setQueueData(json.data);
         } else {
           setError(json.message || 'No active queue token found');
         }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load queue');
+      } catch (err: unknown) {
+        if (isMounted) setError(err instanceof Error ? err.message : 'Failed to load queue');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
-    fetchQueue();
+    void fetchQueue();
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setUserLocation({
+          if (!isMounted) return;
+          const loc = {
             lat: pos.coords.latitude,
             lon: pos.coords.longitude
-          });
+          };
+          setUserLocation(loc);
         },
         () => {
-          setLocationPrompt(true);
+          if (isMounted) setLocationPrompt(true);
         }
       );
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    if (queueData?.token?._id) {
+      const run = async () => {
+        await Promise.resolve();
+        if (!ignore) {
+          void fetchLeaveAdvisory(queueData.token._id, userLocation);
+        }
+      };
+      void run();
+    }
+    return () => {
+      ignore = true;
+    };
+  }, [queueData?.token?._id, userLocation, fetchLeaveAdvisory]);
 
   const requestGPS = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation({
+        const loc = {
           lat: pos.coords.latitude,
           lon: pos.coords.longitude
-        });
+        };
+        setUserLocation(loc);
         setLocationPrompt(false);
+        if (queueData?.token?._id) {
+          fetchLeaveAdvisory(queueData.token._id, loc);
+        }
       },
       () => alert('Please allow location access in your browser settings to compute travel time.')
     );
@@ -92,26 +137,18 @@ export default function WhenShouldILeaveScreen() {
   }
 
   const { token, estimatedWaitMin } = queueData;
-  const officeName = token.officeName || 'Government Office';
+  const officeName = token.officeName || 'Not available';
 
-  // Compute travel time based on distance
-  let distanceKm: number | null = null;
-  let travelTimeMin = 15; // default fallback if GPS unavailable
-  let travelSource: 'GPS' | 'FALLBACK' = 'FALLBACK';
-
-  if (userLocation && token.officeLatitude && token.officeLongitude) {
-    distanceKm = calculateDistanceKm(userLocation.lat, userLocation.lon, token.officeLatitude, token.officeLongitude);
-    travelTimeMin = Math.max(5, Math.round(distanceKm * 2.5)); // ~25km/h in city
-    travelSource = 'GPS';
-  }
-
-  const bufferTimeMin = 5;
-  const totalTravelNeeded = travelTimeMin + bufferTimeMin;
-  const leaveInMin = Math.max(1, estimatedWaitMin - totalTravelNeeded);
-
-  const now = new Date();
-  const departureDate = new Date(now.getTime() + leaveInMin * 60000);
-  const expectedTurnDate = new Date(now.getTime() + estimatedWaitMin * 60000);
+  // Real Travel & Departure calculation from real routing provider
+  const travelAvailable = Boolean(leaveAdvisory?.travelTimeAvailable);
+  const travelTimeMin = travelAvailable ? (leaveAdvisory?.travelTimeMinutes ?? leaveAdvisory?.travelDurationMinutes ?? null) : null;
+  const distanceKm = travelAvailable ? (leaveAdvisory?.distanceKm ?? leaveAdvisory?.travelDistanceKm ?? null) : null;
+  const bufferTimeMin = leaveAdvisory?.checkInBufferMinutes ?? 5;
+  const leaveInMin = travelAvailable ? (leaveAdvisory?.leaveInMinutes ?? null) : null;
+  const recommendedDepartureTime = travelAvailable ? (leaveAdvisory?.recommendedDepartureTime ?? leaveAdvisory?.recommendedDepartureFormatted ?? null) : null;
+  const targetArrivalTime = leaveAdvisory?.targetArrivalTime || 'On queue call';
+  const expectedTurnTime = leaveAdvisory?.expectedCallTime || 'In turn';
+  const adviceText = leaveAdvisory?.advice || 'Monitor live queue status.';
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -138,28 +175,47 @@ export default function WhenShouldILeaveScreen() {
         <CardContent className="p-6 relative z-10 text-center">
           <div className="inline-flex items-center space-x-1.5 bg-white/15 px-3 py-1 rounded-full text-xs font-semibold mb-3 border border-white/20">
             <Navigation size={14} className="text-emerald-300" />
-            <span>Mobility Timing Engine • {travelSource === 'GPS' ? 'GPS Active' : 'Estimated'}</span>
+            <span>Mobility Timing Engine • {travelAvailable ? 'GPS Road Route Active' : 'Travel time unavailable'}</span>
           </div>
 
           <p className="text-xs uppercase tracking-widest text-indigo-200 font-semibold">RECOMMENDED DEPARTURE</p>
-          <div className="my-2">
-            <span className="text-5xl font-black tracking-tight">Leave in {leaveInMin}m</span>
-          </div>
           
-          <p className="text-xs text-indigo-100">
-            Target departure: <strong className="text-white text-sm">{departureDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</strong>
-          </p>
+          {travelAvailable && leaveInMin !== null ? (
+            <>
+              <div className="my-2">
+                <span className="text-5xl font-black tracking-tight">
+                  {leaveInMin === 0 ? 'Leave Now' : `Leave in ${leaveInMin}m`}
+                </span>
+              </div>
+              <p className="text-xs text-indigo-100">
+                Target departure: <strong className="text-white text-sm">{recommendedDepartureTime}</strong>
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="my-3">
+                <span className="text-2xl font-bold tracking-tight text-amber-200">
+                  Travel time unavailable
+                </span>
+              </div>
+              <p className="text-xs text-indigo-100 max-w-xs mx-auto">
+                Please arrive by <strong className="text-white">{targetArrivalTime}</strong> to check in before your turn.
+              </p>
+            </>
+          )}
 
           <div className="grid grid-cols-2 gap-2 mt-5 pt-4 border-t border-white/20 text-xs text-left">
             <div>
               <p className="text-[10px] uppercase font-bold text-indigo-200">Expected Turn</p>
               <p className="text-base font-bold text-white mt-0.5">
-                {expectedTurnDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                {expectedTurnTime}
               </p>
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold text-indigo-200">Travel + Buffer</p>
-              <p className="text-base font-bold text-emerald-300 mt-0.5">{travelTimeMin}m + {bufferTimeMin}m</p>
+              <p className="text-base font-bold text-emerald-300 mt-0.5">
+                {travelAvailable ? `${travelTimeMin}m + ${bufferTimeMin}m` : `Unavailable + ${bufferTimeMin}m`}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -170,7 +226,7 @@ export default function WhenShouldILeaveScreen() {
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between text-xs text-amber-800">
           <div className="flex items-center gap-2">
             <Compass size={18} className="text-amber-600 shrink-0" />
-            <span>Enable GPS for precise live road travel calculation</span>
+            <span>Enable GPS to compute live road travel time</span>
           </div>
           <Button size="sm" onClick={requestGPS} className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8">
             Enable GPS
@@ -202,15 +258,31 @@ export default function WhenShouldILeaveScreen() {
               <span className="text-slate-500 flex items-center">
                 <Car size={13} className="mr-1.5 text-indigo-500" /> Road Travel Duration
               </span>
-              <span className="font-bold text-slate-800">{travelTimeMin} mins {distanceKm ? `(${formatDistance(distanceKm)})` : ''}</span>
+              <span className="font-bold text-slate-800">
+                {travelAvailable 
+                  ? `${travelTimeMin} mins ${distanceKm ? `(${formatDistance(distanceKm)})` : ''}`
+                  : 'Travel time unavailable'
+                }
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <span className="text-slate-500 flex items-center">
+                <ShieldCheck size={13} className="mr-1.5 text-emerald-500" /> Check-in Buffer
+              </span>
+              <span className="font-bold text-emerald-600">{bufferTimeMin} mins</span>
             </div>
 
             <div className="flex justify-between items-center">
               <span className="text-slate-500 flex items-center">
-                <ShieldCheck size={13} className="mr-1.5 text-emerald-500" /> Security Buffer
+                <Navigation size={13} className="mr-1.5 text-purple-500" /> Target Arrival
               </span>
-              <span className="font-bold text-emerald-600">{bufferTimeMin} mins</span>
+              <span className="font-bold text-purple-700">{targetArrivalTime}</span>
             </div>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+            <p>{adviceText}</p>
           </div>
         </CardContent>
       </Card>

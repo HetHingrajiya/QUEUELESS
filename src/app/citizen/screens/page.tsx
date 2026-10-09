@@ -229,9 +229,15 @@ export default function CitizenScreensDirectoryPage() {
                     <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 font-black text-xs flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                       #{screen.id < 10 ? `0${screen.id}` : screen.id}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full truncate max-w-[140px]">
-                      {screen.category}
-                    </span>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
+                        Implemented
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full truncate max-w-[130px]">
+                        {screen.category}
+                      </span>
+                    </div>
                   </div>
 
                   <h3 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">
@@ -258,7 +264,7 @@ export default function CitizenScreensDirectoryPage() {
 
       {filteredScreens.length === 0 && (
         <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
-          <p className="text-slate-500 text-sm">No screens found matching "{search}".</p>
+          <p className="text-slate-500 text-sm">No screens found matching &ldquo;{search}&rdquo;.</p>
         </div>
       )}
     </div>

@@ -6,13 +6,14 @@ import { Star, MessageSquare, CheckCircle2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { CitizenOffice, ApiResponse } from '@/types/citizen';
 
 export default function CitizenFeedbackPage() {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
   const [officeId, setOfficeId] = useState('');
-  const [offices, setOffices] = useState<any[]>([]);
+  const [offices, setOffices] = useState<CitizenOffice[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +23,12 @@ export default function CitizenFeedbackPage() {
     const fetchOffices = async () => {
       try {
         const res = await fetch('/api/citizen/offices');
-        const json = await res.json();
-        if (json.success && json.data.length > 0) {
+        const json: ApiResponse<CitizenOffice[]> = await res.json();
+        if (json.success && json.data && json.data.length > 0) {
           setOffices(json.data);
           setOfficeId(json.data[0]._id);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Failed to load offices', err);
       }
     };
@@ -56,8 +57,8 @@ export default function CitizenFeedbackPage() {
       } else {
         setError(json.message || 'Failed to submit feedback');
       }
-    } catch (err: any) {
-      setError(err.message || 'Submission error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Submission error');
     } finally {
       setSubmitting(false);
     }
@@ -70,7 +71,7 @@ export default function CitizenFeedbackPage() {
           <CheckCircle2 size={36} />
         </div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 mb-2">
-          Feedback Submitted to MongoDB
+          Feedback Submitted Successfully
         </span>
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Thank You!</h2>
         <p className="text-slate-500 text-sm mb-6 max-w-sm">
@@ -111,7 +112,7 @@ export default function CitizenFeedbackPage() {
             {/* Select Office */}
             <div className="space-y-2">
               <Label className="font-semibold text-slate-700 text-xs flex items-center">
-                <Building2 size={14} className="mr-1.5 text-slate-400" /> Government Office
+                <Building2 size={14} className="mr-1.5 text-slate-400" /> Select Office
               </Label>
               <select
                 value={officeId}

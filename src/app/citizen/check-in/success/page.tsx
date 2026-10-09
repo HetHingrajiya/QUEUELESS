@@ -9,12 +9,13 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { CitizenQueueSummary, ApiResponse } from '@/types/citizen';
 
 function CheckInSuccessContent() {
   const searchParams = useSearchParams();
   const tokenIdParam = searchParams ? searchParams.get('tokenId') : null;
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ function CheckInSuccessContent() {
         setLoading(true);
         if (tokenIdParam) {
           const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
-          const json = await res.json();
+          const json: ApiResponse<CitizenQueueSummary> = await res.json();
           if (json.success && json.data) {
             setData(json.data);
             return;
@@ -31,11 +32,11 @@ function CheckInSuccessContent() {
         }
 
         const res = await fetch('/api/citizen/queue');
-        const json = await res.json();
+        const json: ApiResponse<CitizenQueueSummary> = await res.json();
         if (json.success && json.data) {
           setData(json.data);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error(err);
       } finally {
         setLoading(false);
@@ -53,12 +54,12 @@ function CheckInSuccessContent() {
     );
   }
 
-  const token = data?.token || {};
-  const tokenNumber = token.tokenNumber || 'A-001';
-  const serviceName = token.serviceName || 'Government Service';
-  const officeName = token.officeName || 'Government Office';
+  const token = data?.token;
+  const tokenNumber = token?.tokenNumber || 'Data unavailable';
+  const serviceName = token?.serviceName || 'Data unavailable';
+  const officeName = token?.officeName || 'Data unavailable';
   const peopleAhead = data?.peopleAhead ?? 0;
-  const estimatedWaitMin = data?.estimatedWaitMin ?? 10;
+  const estimatedWaitMin = data?.estimatedWaitMin ?? 0;
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-6 text-center">
@@ -76,7 +77,7 @@ function CheckInSuccessContent() {
         <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
           Screen 25 • Check-In Complete
         </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">You're Checked In!</h1>
+        <h1 className="text-2xl font-black text-slate-900 mt-2">You&apos;re Checked In!</h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
           The counter officers have been notified of your presence in the waiting area.
         </p>
@@ -119,7 +120,7 @@ function CheckInSuccessContent() {
 
       {/* Actions */}
       <div className="space-y-2 pt-2">
-        <Link href={`/citizen/queue/${token._id || ''}`} className="block w-full">
+        <Link href={`/citizen/queue/${token?._id || ''}`} className="block w-full">
           <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold text-xs shadow-md">
             Monitor Live Turn <ArrowRight size={14} className="ml-1.5" />
           </Button>

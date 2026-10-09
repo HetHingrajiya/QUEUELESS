@@ -13,6 +13,8 @@ export interface IOffice extends Document {
   name: string;
   code: string;
   organizationId: mongoose.Types.ObjectId;
+  department?: string;
+  district?: string;
   address?: string;
   city?: string;
   state?: string;
@@ -43,6 +45,8 @@ const OfficeSchema: Schema = new Schema(
     name: { type: String, required: true },
     code: { type: String, required: true },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
+    department: { type: String },
+    district: { type: String },
     address: { type: String },
     city: { type: String },
     state: { type: String },

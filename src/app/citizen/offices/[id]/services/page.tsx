@@ -10,13 +10,14 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CitizenOffice, CitizenService, ApiResponse } from '@/types/citizen';
 
 export default function OfficeServicesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
-  const [office, setOffice] = useState<any>(null);
-  const [services, setServices] = useState<any[]>([]);
+  const [office, setOffice] = useState<CitizenOffice | null>(null);
+  const [services, setServices] = useState<CitizenService[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -25,7 +26,7 @@ export default function OfficeServicesPage({ params }: { params: Promise<{ id: s
     const fetchServicesData = async () => {
       try {
         const res = await fetch(`/api/citizen/offices/${id}`);
-        const json = await res.json();
+        const json: ApiResponse<{ office: CitizenOffice; services: CitizenService[] }> = await res.json();
         if (json.success && json.data) {
           setOffice(json.data.office);
           setServices(json.data.services || []);
@@ -33,7 +34,7 @@ export default function OfficeServicesPage({ params }: { params: Promise<{ id: s
           setOffice(null);
           setServices([]);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error(err);
         setOffice(null);
         setServices([]);
@@ -87,10 +88,10 @@ export default function OfficeServicesPage({ params }: { params: Promise<{ id: s
           <div>
             <div className="flex items-center space-x-2 text-blue-200 text-xs mb-1">
               <Building2 size={14} />
-              <span>{office?.code || 'GOV-BRANCH'}</span>
+              <span>{office?.code || 'OFFICE'}</span>
             </div>
-            <h2 className="text-xl font-bold">{office?.name || 'Government Office'}</h2>
-            <p className="text-xs text-blue-100 mt-1 line-clamp-1">{office?.address || 'City Main Center'}</p>
+            <h2 className="text-xl font-bold">{office?.name || 'Office Details'}</h2>
+            <p className="text-xs text-blue-100 mt-1 line-clamp-1">{office?.address || 'Address unavailable'}</p>
           </div>
           <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20 text-center">
             <span className="text-xs text-blue-100 block">Total Services</span>

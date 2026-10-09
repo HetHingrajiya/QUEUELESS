@@ -1,32 +1,49 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { 
-  XCircle, ArrowRight, RefreshCw, Calendar, 
-  Building2, AlertCircle 
-} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { XCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CitizenToken, ApiResponse, CitizenQueueSummary } from '@/types/citizen';
 
-export default function TokenCancelledPage() {
-  const [tokenData, setTokenData] = useState<any>(null);
+function TokenCancelledContent() {
+  const searchParams = useSearchParams();
+  const tokenIdParam = searchParams ? searchParams.get('tokenId') : null;
+
+  const [tokenData, setTokenData] = useState<CitizenToken | null>(null);
 
   useEffect(() => {
-    fetch('/api/citizen/token-history?status=CANCELLED')
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.data && res.data.length > 0) {
-          setTokenData(res.data[0]);
+    const fetchCancelledToken = async () => {
+      try {
+        if (tokenIdParam) {
+          const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
+          const json: ApiResponse<CitizenQueueSummary> = await res.json();
+          if (json.success && json.data?.token) {
+            setTokenData(json.data.token);
+            return;
+          }
         }
-      })
-      .catch(() => {});
-  }, []);
 
-  const tokenNumber = tokenData?.tokenNumber || 'A-001';
-  const serviceName = tokenData?.serviceName || 'Government Service';
-  const officeName = tokenData?.officeName || 'Government Office';
-  const reason = tokenData?.notes || 'Citizen voluntary cancellation';
+        const histRes = await fetch('/api/citizen/token-history?status=CANCELLED');
+        const histJson: ApiResponse<CitizenToken[]> = await histRes.json();
+        if (histJson.success && histJson.data && histJson.data.length > 0) {
+          setTokenData(histJson.data[0]);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchCancelledToken();
+  }, [tokenIdParam]);
+
+  const tokenNumber = tokenData?.tokenNumber || 'Data unavailable';
+  const serviceName = tokenData?.serviceName || 'Data unavailable';
+  const officeName = tokenData?.officeName || 'Data unavailable';
+  const reason = tokenData?.cancellationReason || tokenData?.notes || 'Citizen voluntary cancellation';
+  const cancelledAt = tokenData?.cancelledAt || tokenData?.updatedAt || tokenData?.endTime;
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-6 text-center">
@@ -66,9 +83,22 @@ export default function TokenCancelledPage() {
               <span className="font-semibold text-slate-800">{officeName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Reason:</span>
-              <span className="font-medium text-slate-800">{reason}</span>
+              <span className="text-slate-400">Cancellation Reason:</span>
+              <span className="font-medium text-slate-800 text-right max-w-[200px]">{reason}</span>
             </div>
+            {cancelledAt && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Cancelled At:</span>
+                <span className="font-medium text-slate-800">
+                  {new Date(cancelledAt).toLocaleString(undefined, { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -87,5 +117,13 @@ export default function TokenCancelledPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function TokenCancelledPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading cancellation details...</div>}>
+      <TokenCancelledContent />
+    </Suspense>
   );
 }

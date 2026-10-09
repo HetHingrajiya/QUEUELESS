@@ -1,30 +1,62 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { 
-  CheckCircle2, Star, ArrowRight 
-} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { CheckCircle2, Star, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CitizenToken, ApiResponse, CitizenQueueSummary } from '@/types/citizen';
 
-export default function ServiceCompletedPage() {
-  const [tokenData, setTokenData] = useState<any>(null);
+function ServiceCompletedContent() {
+  const searchParams = useSearchParams();
+  const tokenIdParam = searchParams ? searchParams.get('tokenId') : null;
+
+  const [tokenData, setTokenData] = useState<CitizenToken | null>(null);
 
   useEffect(() => {
-    fetch('/api/citizen/token-history')
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.data && res.data.length > 0) {
-          setTokenData(res.data[0]);
+    const fetchCompletedToken = async () => {
+      try {
+        if (tokenIdParam) {
+          const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
+          const json: ApiResponse<CitizenQueueSummary> = await res.json();
+          if (json.success && json.data?.token) {
+            setTokenData(json.data.token);
+            return;
+          }
         }
-      })
-      .catch(() => {});
-  }, []);
 
-  const tokenNumber = tokenData?.tokenNumber || 'A-001';
-  const serviceName = tokenData?.serviceName || 'Government Service';
-  const officeName = tokenData?.officeName || 'Government Office';
+        const histRes = await fetch('/api/citizen/token-history');
+        const histJson: ApiResponse<CitizenToken[]> = await histRes.json();
+        if (histJson.success && histJson.data && histJson.data.length > 0) {
+          setTokenData(histJson.data[0]);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchCompletedToken();
+  }, [tokenIdParam]);
+
+  const tokenNumber = tokenData?.tokenNumber || 'Data unavailable';
+  const serviceName = tokenData?.serviceName || 'Data unavailable';
+  const officeName = tokenData?.officeName || 'Data unavailable';
+  const counterName = tokenData?.counterName || (tokenData?.counterNumber ? `Counter ${tokenData.counterNumber}` : null);
+  const completionTimestamp = tokenData?.completedAt || tokenData?.completionTime;
+
+  // Actual Duration Calculation
+  let durationDisplay = 'Not available';
+  if (tokenData?.processingTime && tokenData.processingTime > 0) {
+    const mins = Math.floor(tokenData.processingTime / 60);
+    const secs = tokenData.processingTime % 60;
+    durationDisplay = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  } else if (tokenData?.startTime && completionTimestamp) {
+    const diffSec = Math.max(1, Math.floor((new Date(completionTimestamp).getTime() - new Date(tokenData.startTime).getTime()) / 1000));
+    const mins = Math.floor(diffSec / 60);
+    const secs = diffSec % 60;
+    durationDisplay = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  }
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-4 text-center">
@@ -39,7 +71,7 @@ export default function ServiceCompletedPage() {
         </span>
         <h1 className="text-2xl font-black text-slate-900 mt-2">Service Completed!</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Your request has been successfully processed and verified in MongoDB.
+          Your service request has been successfully completed and recorded.
         </p>
       </div>
 
@@ -63,14 +95,28 @@ export default function ServiceCompletedPage() {
               <span className="text-slate-400">Office:</span>
               <span className="font-semibold text-slate-800 text-right">{officeName}</span>
             </div>
+            {counterName && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Counter:</span>
+                <span className="font-semibold text-slate-800 text-right">{counterName}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Status:</span>
               <span className="font-bold text-emerald-600">COMPLETED</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Audit Timestamp:</span>
+              <span className="text-slate-400">Completed At:</span>
               <span className="font-medium text-slate-700">
-                {new Date().toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {completionTimestamp 
+                  ? new Date(completionTimestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  : 'Not available'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Actual Duration:</span>
+              <span className="font-bold text-slate-900 flex items-center gap-1">
+                <Clock size={11} className="text-emerald-600" /> {durationDisplay}
               </span>
             </div>
           </div>
@@ -79,7 +125,7 @@ export default function ServiceCompletedPage() {
 
       {/* Actions */}
       <div className="space-y-2">
-        <Link href={`/citizen/feedback/rating?tokenId=${tokenData?._id || ''}`} className="block w-full">
+        <Link href={`/citizen/feedback/rating?tokenId=${tokenData?._id || tokenIdParam || ''}`} className="block w-full">
           <Button className="w-full h-11 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md">
             <Star size={14} className="mr-1.5" /> Rate Officer & Service Quality
           </Button>
@@ -91,5 +137,13 @@ export default function ServiceCompletedPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function ServiceCompletedPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading service completion...</div>}>
+      <ServiceCompletedContent />
+    </Suspense>
   );
 }

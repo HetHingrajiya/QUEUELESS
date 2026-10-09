@@ -1,0 +1,31 @@
+{
+  "status": "TRAINED",
+  "model_version": "rf-v2.1.0",
+  "trained_at": "2026-10-08T22:17:24.666566",
+  "total_samples": 65,
+  "train_samples": 52,
+  "test_samples": 13,
+  "baseline_metrics": {
+    "model": "Statistical Queue Heuristic",
+    "mae": 12.19,
+    "rmse": 16.75,
+    "r2": 0.5594
+  },
+  "ml_metrics": {
+    "model": "Random Forest Regressor",
+    "mae": 14.95,
+    "rmse": 20.12,
+    "r2": 0.3642
+  },
+  "feature_importances": {
+    "queue_length": 0.424,
+    "people_ahead": 0.3973,
+    "hour": 0.0895,
+    "day_of_week": 0.0224,
+    "is_weekend": 0.0052,
+    "is_working_hour": 0.0007,
+    "priority": 0.0066,
+    "active_counters": 0.0,
+    "service_duration": 0.0544
+  }
+}

@@ -5,16 +5,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Heart, MapPin, Clock, Users, 
-  Building2, ArrowRight, Zap, ShieldCheck 
+  ArrowRight, Zap 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { CitizenOffice, CitizenService, ApiResponse } from '@/types/citizen';
 
 export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [office, setOffice] = useState<any>(null);
+  const [office, setOffice] = useState<CitizenOffice | null>(null);
   const [isFavorite, setIsFavorite] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,14 +25,23 @@ export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{
       try {
         setLoading(true);
         const res = await fetch(`/api/citizen/offices/${id}`);
-        const json = await res.json();
-        if (json.success) {
+        const json: ApiResponse<{ office: CitizenOffice; services: CitizenService[] }> = await res.json();
+        if (json.success && json.data) {
           setOffice(json.data.office);
+          try {
+            const favRes = await fetch(`/api/citizen/favorites?officeId=${id}`);
+            const favJson: ApiResponse<{ isFavorite: boolean }> = await favRes.json();
+            if (favJson.success && favJson.data) {
+              setIsFavorite(!!favJson.data.isFavorite);
+            }
+          } catch {
+            // Keep default
+          }
         } else {
           setError(json.message || 'Office not found');
         }
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch office');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch office');
       } finally {
         setLoading(false);
       }
@@ -132,7 +142,7 @@ export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{
               <span className="text-slate-400 flex items-center">
                 <Clock size={13} className="mr-1 text-emerald-500" /> Working Hours
               </span>
-              <p className="text-xs font-bold text-emerald-600 mt-1 truncate">{office.operatingHours || office.workingHours || '09:00 - 17:00'}</p>
+              <p className="text-xs font-bold text-emerald-600 mt-1 truncate">{office.operatingHours || '09:00 - 17:00'}</p>
             </div>
           </div>
 
@@ -144,7 +154,7 @@ export default function FavoriteOfficeDetailPage({ params }: { params: Promise<{
             </h4>
             <div className="space-y-2">
               {office.services && office.services.length > 0 ? (
-                office.services.map((srv: any) => (
+                office.services.map((srv: CitizenService) => (
                   <Link key={srv._id} href={`/citizen/services/${srv._id}`}>
                     <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 hover:border-red-300 transition-all text-xs">
                       <div>

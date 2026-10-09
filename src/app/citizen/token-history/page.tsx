@@ -6,9 +6,10 @@ import { Calendar, Clock, Building2, Ticket, CheckCircle2, XCircle, ArrowRight }
 import Link from 'next/link';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { CitizenToken, ApiResponse } from '@/types/citizen';
 
 export default function CitizenTokenHistoryPage() {
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<CitizenToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ALL' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'>('ALL');
   const [error, setError] = useState<string | null>(null);
@@ -20,14 +21,14 @@ export default function CitizenTokenHistoryPage() {
         setError(null);
         const query = activeTab === 'ALL' ? '' : `?status=${activeTab}`;
         const res = await fetch(`/api/citizen/token-history${query}`);
-        const json = await res.json();
+        const json: ApiResponse<CitizenToken[]> = await res.json();
         if (json.success) {
           setHistory(json.data || []);
         } else {
           setError(json.message || 'Failed to load history');
         }
-      } catch (err: any) {
-        setError(err.message || 'Network error');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Network error');
       } finally {
         setLoading(false);
       }
@@ -126,7 +127,7 @@ export default function CitizenTokenHistoryPage() {
                   <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                     <div className="flex items-center text-[11px] text-slate-400">
                       <Calendar size={12} className="mr-1" />
-                      {new Date(token.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {new Date(token.date || token.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center ${getStatusColor(token.status)}`}>

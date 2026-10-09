@@ -2,17 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  ArrowLeft, Star, MessageSquare, Building2, 
-  Calendar, CheckCircle2, Clock 
-} from 'lucide-react';
+import { ArrowLeft, Star, Building2, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { CitizenFeedback, ApiResponse } from '@/types/citizen';
 
 export default function FeedbackHistoryPage() {
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<CitizenFeedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,14 +18,14 @@ export default function FeedbackHistoryPage() {
       try {
         setLoading(true);
         const res = await fetch('/api/citizen/feedback');
-        const json = await res.json();
+        const json: ApiResponse<CitizenFeedback[]> = await res.json();
         if (json.success) {
           setHistory(json.data || []);
         } else {
           setError(json.message || 'Failed to load feedback');
         }
-      } catch (err: any) {
-        setError(err.message || 'Network error');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Network error');
       } finally {
         setLoading(false);
       }
@@ -70,19 +67,26 @@ export default function FeedbackHistoryPage() {
         />
       ) : (
         <div className="space-y-4">
-          {history.map((item) => (
-            <Card key={item._id} className="border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardContent className="p-5 space-y-3 text-xs">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">
-                      {item.serviceId?.name || (item.tokenId ? `Token ${item.tokenId.tokenNumber}` : 'General Visit')}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 flex items-center mt-0.5">
-                      <Building2 size={12} className="mr-1 text-slate-400" />
-                      {item.officeId?.name || 'Government Office'}
-                    </p>
-                  </div>
+          {history.map((item) => {
+            const serviceTitle = typeof item.serviceId === 'object' && item.serviceId !== null ? item.serviceId.name : item.serviceName;
+            const officeTitle = typeof item.officeId === 'object' && item.officeId !== null ? item.officeId.name : (item.officeName || 'Office');
+            const tokenTitle = typeof item.tokenId === 'object' && item.tokenId !== null && 'tokenNumber' in item.tokenId 
+              ? `Token ${(item.tokenId as { tokenNumber: string }).tokenNumber}` 
+              : 'General Visit';
+
+            return (
+              <Card key={item._id} className="border-slate-200 shadow-sm overflow-hidden bg-white">
+                <CardContent className="p-5 space-y-3 text-xs">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">
+                        {serviceTitle || tokenTitle}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 flex items-center mt-0.5">
+                        <Building2 size={12} className="mr-1 text-slate-400" />
+                        {officeTitle}
+                      </p>
+                    </div>
                   <div className="flex text-amber-400">
                     {[...Array(item.rating || 5)].map((_, i) => (
                       <Star key={i} size={14} className="fill-amber-400" />
@@ -94,7 +98,7 @@ export default function FeedbackHistoryPage() {
                 {item.comment && (
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                     <p className="text-[10px] text-slate-400 uppercase font-semibold mb-1">Your Submission</p>
-                    <p className="text-slate-700 italic leading-relaxed">"{item.comment}"</p>
+                    <p className="text-slate-700 italic leading-relaxed">&ldquo;{item.comment}&rdquo;</p>
                   </div>
                 )}
 
@@ -122,7 +126,8 @@ export default function FeedbackHistoryPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>

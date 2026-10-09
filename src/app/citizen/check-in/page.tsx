@@ -10,11 +10,12 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CitizenToken, ApiResponse, CitizenQueueSummary } from '@/types/citizen';
 
 export default function CheckIn() {
   const router = useRouter();
   const [tokenInput, setTokenInput] = useState('');
-  const [activeToken, setActiveToken] = useState<any>(null);
+  const [activeToken, setActiveToken] = useState<CitizenToken | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export default function CheckIn() {
   useEffect(() => {
     // Check if user already has an active token to prefill
     fetch('/api/citizen/queue')
-      .then(r => r.json())
+      .then(r => r.json() as Promise<ApiResponse<CitizenQueueSummary>>)
       .then(res => {
         if (res.success && res.data?.token) {
           setActiveToken(res.data.token);
@@ -71,8 +72,8 @@ export default function CheckIn() {
       } else {
         setError(json.message || 'Check-in validation failed');
       }
-    } catch (err: any) {
-      setError(err.message || 'Network error during check-in');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error during check-in');
     } finally {
       setSubmitting(false);
       setIsScanning(false);
@@ -187,7 +188,7 @@ export default function CheckIn() {
               </label>
               <Input
                 id="token"
-                placeholder="e.g. A-001"
+                placeholder="Enter token number"
                 value={tokenInput}
                 onChange={(e) => setTokenInput(e.target.value)}
                 className="h-11 uppercase text-sm font-bold tracking-wider"

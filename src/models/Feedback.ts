@@ -19,7 +19,7 @@ export interface IFeedback extends Document {
 const FeedbackSchema: Schema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    tokenId: { type: Schema.Types.ObjectId, ref: 'Token', index: true },
+    tokenId: { type: Schema.Types.ObjectId, ref: 'Token' },
     officeId: { type: Schema.Types.ObjectId, ref: 'Office', required: true, index: true },
     serviceId: { type: Schema.Types.ObjectId, ref: 'Service' },
     rating: { type: Number, required: true, min: 1, max: 5 },
@@ -39,5 +39,7 @@ const FeedbackSchema: Schema = new Schema(
     timestamps: true,
   }
 );
+
+FeedbackSchema.index({ tokenId: 1 }, { unique: true, sparse: true });
 
 export const Feedback = mongoose.models.Feedback || mongoose.model<IFeedback>('Feedback', FeedbackSchema);

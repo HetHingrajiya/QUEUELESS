@@ -33,7 +33,7 @@ export default function SessionExpiredStatusPage() {
           Queue State Preserved
         </p>
         <p className="text-[11px] leading-relaxed">
-          Don't worry: your active virtual token in the queue has <strong>not</strong> been cancelled. Re-signing in will restore your real-time tracking dashboard immediately.
+          Don&apos;t worry: your active virtual token in the queue has <strong>not</strong> been cancelled. Re-signing in will restore your real-time tracking dashboard immediately.
         </p>
       </div>
 

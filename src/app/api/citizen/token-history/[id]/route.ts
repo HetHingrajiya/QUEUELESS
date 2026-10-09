@@ -1,49 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import { Token } from '@/models/Token';
 import { QueueEvent } from '@/models/QueueEvent';
 import { Feedback } from '@/models/Feedback';
 import { getUserFromCookie } from '@/lib/auth';
-import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const { id } = await params;
 
-    let token: any = null;
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      token = await Token.findById(id)
-        .populate('officeId', 'name address department phone email workingHours')
-        .populate('serviceId', 'name description estimatedServiceTime fee requiredDocuments')
-        .populate('counterId', 'name counterNumber')
-        .lean();
-    }
-    if (!token) {
-      token = await Token.findOne({ citizenId: user.userId })
-        .populate('officeId', 'name address department phone email workingHours')
-        .populate('serviceId', 'name description estimatedServiceTime fee requiredDocuments')
-        .populate('counterId', 'name counterNumber')
-        .sort({ createdAt: -1 })
-        .lean();
-    }
-    if (!token) {
-      token = await Token.findOne()
-        .populate('officeId', 'name address department phone email workingHours')
-        .populate('serviceId', 'name description estimatedServiceTime fee requiredDocuments')
-        .populate('counterId', 'name counterNumber')
-        .sort({ createdAt: -1 })
-        .lean();
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid Token ID' }, { status: 400 });
     }
 
+    interface PopulatedHistoryTokenDoc {
+      _id: mongoose.Types.ObjectId;
+      tokenNumber: string;
+      status: string;
+      queuePosition?: number;
+      priority?: string;
+      notes?: string;
+      createdAt: Date;
+      callTime?: Date;
+      startTime?: Date;
+      completedAt?: Date;
+      completionTime?: Date;
+      processingTime?: number;
+      estimatedWaitTime?: number;
+      officeId?: { name?: string; address?: string; department?: string; phone?: string; email?: string; workingHours?: unknown };
+      serviceId?: { name?: string; description?: string; estimatedServiceTime?: number; fee?: number; requiredDocuments?: unknown };
+      counterId?: { name?: string; counterNumber?: number };
+    }
+
+    const token = await Token.findOne({ _id: id, citizenId: user.userId })
+      .populate('officeId', 'name address department phone email workingHours')
+      .populate('serviceId', 'name description estimatedServiceTime fee requiredDocuments')
+      .populate('counterId', 'name counterNumber')
+      .lean() as unknown as PopulatedHistoryTokenDoc | null;
+
     if (!token) {
-      return NextResponse.json({ success: false, message: 'No token records found' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'Token record not found' }, { status: 404 });
     }
 
     // Get all queue events for this token for chronological timeline
@@ -63,8 +70,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     let serviceDuration = 0;
-    if (token.completedAt && token.startTime) {
-      serviceDuration = Math.max(1, Math.round((new Date(token.completedAt).getTime() - new Date(token.startTime).getTime()) / 60000));
+    if (typeof token.processingTime === 'number' && token.processingTime > 0) {
+      serviceDuration = Math.round(token.processingTime / 60);
+    } else {
+      const completion = token.completionTime || token.completedAt;
+      const start = token.startTime || token.callTime;
+      if (completion && start) {
+        serviceDuration = Math.max(1, Math.round((new Date(completion).getTime() - new Date(start).getTime()) / 60000));
+      }
     }
 
     return NextResponse.json({
@@ -100,8 +113,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Token History Detail API error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

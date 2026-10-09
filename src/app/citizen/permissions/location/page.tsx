@@ -79,7 +79,7 @@ export default function LocationPermissionPage() {
               <Compass size={16} />
             </div>
             <div>
-              <p className="font-bold text-slate-900">"When Should I Leave" Departure Alerts</p>
+              <p className="font-bold text-slate-900">&ldquo;When Should I Leave&rdquo; Departure Alerts</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Calculates live driving/transit times from your current location so you arrive right when called.
               </p>

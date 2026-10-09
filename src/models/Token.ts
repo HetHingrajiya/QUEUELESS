@@ -27,6 +27,10 @@ export interface IToken extends Document {
   completionTime?: Date;
   processingTime?: number; // in seconds
   queuePosition?: number;
+  endTime?: Date;
+  cancellationReason?: string;
+  notes?: string;
+  cancelledAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +57,10 @@ const TokenSchema: Schema = new Schema(
     completionTime: { type: Date },
     processingTime: { type: Number },
     queuePosition: { type: Number },
+    endTime: { type: Date },
+    cancellationReason: { type: String },
+    notes: { type: String },
+    cancelledAt: { type: Date },
   },
   {
     timestamps: true,

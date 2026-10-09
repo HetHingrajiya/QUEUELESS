@@ -318,7 +318,7 @@ export default function StaffDashboard() {
                       <td className="px-6 py-4">
                         <Button 
                           onClick={() => {
-                            if (!data?.currentToken) handleAction('CALL_NEXT');
+                            if (!data?.currentToken) handleAction('CALL_NEXT', item._id);
                           }}
                           variant="outline" size="sm" disabled={i !== 0 || actionLoading || !!data?.currentToken} className={i === 0 && !data?.currentToken ? 'text-blue-600 border-blue-200 bg-blue-50' : ''}>
                           Call Next

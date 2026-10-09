@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import { Token } from '@/models/Token';
 import { getUserFromCookie } from '@/lib/auth';
@@ -8,14 +9,34 @@ export async function GET(req: NextRequest) {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
     const statusParam = searchParams.get('status');
 
-    const filter: any = { citizenId: user.userId };
+    interface PopulatedHistoryTokenDoc {
+      _id: mongoose.Types.ObjectId;
+      tokenNumber: string;
+      status: string;
+      officeId?: { name?: string; address?: string; department?: string };
+      serviceId?: { name?: string; estimatedServiceTime?: number; fee?: number };
+      counterId?: { name?: string; counterNumber?: number };
+      createdAt: Date;
+      callTime?: Date;
+      startTime?: Date;
+      completedAt?: Date;
+      completionTime?: Date;
+      processingTime?: number;
+      estimatedWaitTime?: number;
+      notes?: string;
+    }
+
+    const filter: Record<string, unknown> = { citizenId: user.userId };
     if (statusParam && statusParam !== 'ALL') {
       filter.status = statusParam.toUpperCase();
     }
@@ -26,9 +47,9 @@ export async function GET(req: NextRequest) {
       .populate('serviceId', 'name estimatedServiceTime fee')
       .populate('counterId', 'name counterNumber')
       .sort({ createdAt: -1 })
-      .lean();
+      .lean() as unknown as PopulatedHistoryTokenDoc[];
 
-    const history = tokens.map(t => {
+    const history = tokens.map((t) => {
       // Calculate wait duration if called/completed
       let waitMinutes = 0;
       if (t.callTime && t.createdAt) {
@@ -38,19 +59,25 @@ export async function GET(req: NextRequest) {
       }
 
       let serviceDuration = 0;
-      if (t.completedAt && t.startTime) {
-        serviceDuration = Math.max(1, Math.round((new Date(t.completedAt).getTime() - new Date(t.startTime).getTime()) / 60000));
+      if (typeof t.processingTime === 'number' && t.processingTime > 0) {
+        serviceDuration = Math.round(t.processingTime / 60);
+      } else {
+        const completion = t.completionTime || t.completedAt;
+        const start = t.startTime || t.callTime;
+        if (completion && start) {
+          serviceDuration = Math.max(1, Math.round((new Date(completion).getTime() - new Date(start).getTime()) / 60000));
+        }
       }
 
       return {
         _id: t._id,
         tokenNumber: t.tokenNumber,
         status: t.status,
-        officeName: (t.officeId as any)?.name || 'Government Office',
-        officeAddress: (t.officeId as any)?.address || '',
-        officeDepartment: (t.officeId as any)?.department || '',
-        serviceName: (t.serviceId as any)?.name || 'Service',
-        counterName: (t.counterId as any)?.name || (t.counterId as any)?.counterNumber ? `Counter ${(t.counterId as any).counterNumber}` : null,
+        officeName: t.officeId?.name || 'Government Office',
+        officeAddress: t.officeId?.address || '',
+        officeDepartment: t.officeId?.department || '',
+        serviceName: t.serviceId?.name || 'Service',
+        counterName: t.counterId?.name || (t.counterId?.counterNumber ? `Counter ${t.counterId.counterNumber}` : null),
         date: t.createdAt,
         callTime: t.callTime || null,
         startTime: t.startTime || null,
@@ -66,8 +93,8 @@ export async function GET(req: NextRequest) {
       data: history
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Token History API error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

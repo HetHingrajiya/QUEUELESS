@@ -1,48 +1,67 @@
 "use client";
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, useCallback, use } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, Users, Activity, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSocket } from '@/lib/socketClient';
+import { CitizenQueueSummary, ApiResponse } from '@/types/citizen';
 
 export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId: string }> }) {
   const router = useRouter();
   const unwrappedParams = use(params);
   const tokenId = unwrappedParams.tokenId;
   
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchQueueData = async () => {
+  const fetchQueueData = useCallback(async () => {
     try {
       const res = await fetch(`/api/citizen/queue/${tokenId}`);
-      const json = await res.json();
-      if (json.success) {
+      const json: ApiResponse<CitizenQueueSummary> = await res.json();
+      if (json.success && json.data) {
         setData(json.data);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [tokenId]);
 
   useEffect(() => {
-    fetchQueueData();
+    const timer = setTimeout(() => fetchQueueData(), 0);
     
     const socket = getSocket();
-    socket.on('queue:updated', fetchQueueData);
-    socket.on('token:called', fetchQueueData);
-    socket.on('token:completed', fetchQueueData);
+    socket.emit('join-token', tokenId);
+    const events = [
+      'queue:updated', 'QUEUE_UPDATED',
+      'queue:action', 'QUEUE_ACTION',
+      'token:called', 'TOKEN_CALLED',
+      'token:checked_in', 'TOKEN_CHECKED_IN',
+      'token:serving', 'TOKEN_SERVICE_STARTED',
+      'token:completed', 'TOKEN_SERVICE_COMPLETED',
+      'token:cancelled', 'TOKEN_CANCELLED',
+      'token:no_show', 'TOKEN_SKIPPED',
+      'counter:updated', 'COUNTER_UPDATED',
+      'connect'
+    ];
+    events.forEach(ev => socket.on(ev, fetchQueueData));
+
+    const fallbackPoll = setInterval(() => { if (!socket.connected) fetchQueueData(); }, 10000);
+    // Token-scoped listeners active
     
     return () => {
-      socket.off('queue:updated');
-      socket.off('token:called');
-      socket.off('token:completed');
+      clearTimeout(timer);
+      socket.emit('leave-token', tokenId);
+      clearInterval(fallbackPoll);
+      events.forEach(ev => socket.off(ev, fetchQueueData));
+
+      // Listeners removed
+      // Rooms unmounted
     };
-  }, [tokenId]);
+  }, [tokenId, fetchQueueData]);
 
   if (loading) {
     return (
@@ -129,7 +148,11 @@ export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId
                 <Activity className="text-amber-500 mr-3" size={20} />
                 <div>
                   <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Now Serving</p>
-                  <p className="font-bold text-slate-900">{nowServing || 'None'}</p>
+                  <p className="font-bold text-slate-900">
+                    {typeof nowServing === 'object' && nowServing !== null 
+                      ? `${nowServing.tokenNumber} (${nowServing.counterName})` 
+                      : (nowServing || 'None')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -141,11 +164,14 @@ export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId
                   Next in Queue
                 </h3>
                 <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
-                  {nextTokens && nextTokens.length > 0 ? nextTokens.map((t: string, i: number) => (
-                    <div key={i} className={`flex-shrink-0 px-3 py-1.5 rounded-lg border text-sm font-medium ${i === 0 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-                      {t}
-                    </div>
-                  )) : (
+                  {nextTokens && nextTokens.length > 0 ? nextTokens.map((t, i: number) => {
+                    const label = typeof t === 'object' && t !== null ? t.tokenNumber : t;
+                    return (
+                      <div key={i} className={`flex-shrink-0 px-3 py-1.5 rounded-lg border text-sm font-medium ${i === 0 ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                        {label}
+                      </div>
+                    );
+                  }) : (
                     <p className="text-sm text-slate-500">Queue is empty</p>
                   )}
                 </div>
@@ -154,7 +180,7 @@ export default function CitizenLiveQueue({ params }: { params: Promise<{ tokenId
             
             <div className="mt-6 flex justify-center items-center text-xs text-slate-500 bg-blue-50/50 rounded-lg p-3 border border-blue-100/50">
               <Sparkles size={14} className="mr-1.5 text-blue-500" />
-              AI Confidence: <span className="font-bold text-slate-700 ml-1">{aiConfidence}%</span>
+              AI Confidence: <span className="font-bold text-slate-700 ml-1">{aiConfidence && Number(aiConfidence) > 0 ? `${Math.round(Number(aiConfidence) <= 1 ? Number(aiConfidence) * 100 : Number(aiConfidence))}%` : 'Not available'}</span>
             </div>
           </>
         )}

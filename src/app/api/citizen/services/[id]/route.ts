@@ -1,50 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import { Service } from '@/models/Service';
 import { Office } from '@/models/Office';
-import { Token } from '@/models/Token';
 import { getUserFromCookie } from '@/lib/auth';
-import mongoose from 'mongoose';
+import { QueueMetricsService } from '@/lib/queue';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const { id } = await params;
 
-    let service: any = null;
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      service = await Service.findById(id).lean();
-    }
-    if (!service) {
-      service = await Service.findOne({ isActive: true }).lean();
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid Service ID' }, { status: 400 });
     }
 
+    const service = await Service.findOne({ _id: id, status: 'ACTIVE' }).lean();
     if (!service) {
       return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
     }
 
-    const office = await Office.findById(service.officeId).lean();
+    const office = await Office.findOne({ _id: service.officeId, status: 'ACTIVE' }).lean();
 
-    // Get live stats
-    const waitingCount = await Token.countDocuments({
-      serviceId: id,
-      status: { $in: ['WAITING', 'CHECKED_IN'] }
-    });
+    // Get live queue metrics using QueueMetricsService
+    const metrics = await QueueMetricsService.getServiceMetrics(service.officeId, id);
     
-    // Determine active counters for this service (approx for MVP)
-    const activeCounters = office?.counters?.filter((c: any) => c.status === 'ACTIVE').length || 1;
-    const averageServiceTime = service.averageServiceTime || 5;
-    
-    // ML Wait Time Prediction Integration
-    const { predictWaitTime } = await import('@/lib/ml');
-    const mlPrediction = await predictWaitTime(id, office?._id.toString() || '', 'NORMAL');
-    const estimatedTime = mlPrediction.estimated_wait_time_mins;
+    // Comprehensive AI Analytics Integration
+    const { getComprehensiveQueueAnalytics } = await import('@/lib/ml');
+    const analytics = await getComprehensiveQueueAnalytics(
+      id, 
+      office?._id?.toString() || '', 
+      'NORMAL',
+      metrics.waitingCount,
+      15,
+      metrics.estimatedWaitMinutes
+    );
+    const estimatedTime = (analytics.wait_time_prediction && analytics.wait_time_prediction.prediction_source === 'ML_MODEL')
+      ? analytics.wait_time_prediction.estimated_wait_time_mins
+      : metrics.estimatedWaitMinutes;
 
     return NextResponse.json({
       success: true,
@@ -53,23 +55,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           _id: service._id,
           name: service.name,
           description: service.description,
-          averageServiceTime
+          averageServiceTime: metrics.averageServiceTimeMinutes
         },
         office: {
           _id: office?._id,
           name: office?.name
         },
         stats: {
-          waitingCount,
+          waitingCount: metrics.waitingCount,
           estimatedTime,
-          activeCounters
+          activeCounters: metrics.activeCountersCount,
+          queueLoad: metrics.queueLoad.level,
+          throughputPerHour: metrics.throughputPerHour
         },
-        mlData: mlPrediction // pass to frontend if needed
+        mlData: analytics
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Service Details API error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

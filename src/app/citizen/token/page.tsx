@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Loader2, MapPin, Briefcase } from 'lucide-react';
-import Link from 'next/link';
+// (Link import removed)
 import { useRouter } from 'next/navigation';
 
 interface OfficeOption {
@@ -110,7 +110,7 @@ export default function CitizenTokenGeneration() {
             
             <div className="space-y-3">
               <label className="text-sm font-medium text-slate-700 flex items-center">
-                <MapPin size={16} className="mr-2 text-blue-500" /> Government Office
+                <MapPin size={16} className="mr-2 text-blue-500" /> Select Office
               </label>
               <Select value={selectedOffice} onValueChange={(val) => { if (val) handleOfficeChange(val); }}>
                 <SelectTrigger className="h-12 border-slate-200">

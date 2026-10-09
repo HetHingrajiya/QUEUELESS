@@ -14,11 +14,12 @@ import { PushNotificationManager } from '@/components/common/PushNotificationMan
 import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { CitizenOffice, CitizenToken, ApiResponse } from '@/types/citizen';
 
 export default function CitizenHome() {
   const router = useRouter();
-  const [offices, setOffices] = useState<any[]>([]);
-  const [activeToken, setActiveToken] = useState<any>(null);
+  const [offices, setOffices] = useState<CitizenOffice[]>([]);
+  const [activeToken, setActiveToken] = useState<CitizenToken | null>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,12 +41,12 @@ export default function CitizenHome() {
     const fetchHomeData = async () => {
       try {
         const res = await fetch('/api/citizen/home');
-        const json = await res.json();
-        if (json.success) {
+        const json: ApiResponse<{ offices: CitizenOffice[]; activeToken: CitizenToken | null }> = await res.json();
+        if (json.success && json.data) {
           setOffices(json.data.offices || []);
           setActiveToken(json.data.activeToken);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Failed to load home data', error);
       } finally {
         setLoading(false);
@@ -98,7 +99,7 @@ export default function CitizenHome() {
             GovTech Smart Queuing
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold mt-3 mb-2 tracking-tight">
-            Don't wait in line.<br />Arrive when it's your turn.
+            Don&apos;t wait in line.<br />Arrive when it&apos;s your turn.
           </h1>
           <p className="text-blue-100 text-xs sm:text-sm mb-6 leading-relaxed">
             Take virtual tokens remotely, monitor queue progress in real-time, and get AI departure alerts.
@@ -204,7 +205,7 @@ export default function CitizenHome() {
         
         {offices.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {processedOffices.slice(0, 4).map((office: any) => (
+            {processedOffices.slice(0, 4).map((office) => (
               <Link key={office._id} href={`/citizen/offices/${office._id}`} className="block transition-transform hover:-translate-y-0.5">
                 <Card className="hover:shadow-xs transition-shadow border-slate-200 bg-white">
                   <CardContent className="p-4 space-y-2">

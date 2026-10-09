@@ -159,7 +159,7 @@ export default function CitizenOfficesPage() {
           </div>
           <h3 className="text-lg font-bold text-slate-800 mb-2">No offices found</h3>
           <p className="text-slate-500 max-w-sm mx-auto">
-            We couldn't find any offices matching your search. Try different keywords.
+            We couldn&apos;t find any offices matching your search. Try different keywords.
           </p>
         </div>
       )}

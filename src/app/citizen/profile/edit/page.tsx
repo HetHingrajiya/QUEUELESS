@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, User, Mail, Phone, MapPin, 
-  CheckCircle2, AlertCircle 
+  ArrowLeft, CheckCircle2, AlertCircle 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,8 +69,8 @@ export default function EditProfilePage() {
       } else {
         setError(json.message || 'Failed to update profile');
       }
-    } catch (err: any) {
-      setError(err.message || 'Update error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Update error');
     } finally {
       setSaving(false);
     }

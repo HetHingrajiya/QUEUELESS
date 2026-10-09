@@ -1,25 +1,28 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
-  User, Mail, Phone, Edit3, Settings, Shield, 
+  Mail, Phone, Edit3, Settings, Shield, 
   LogOut, Heart, Clock, HelpCircle, MessageSquare, 
   Bell, ChevronRight, Lock 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { CitizenProfile, ApiResponse } from '@/types/citizen';
 
 export default function CitizenProfilePage() {
-  const [profile, setProfile] = useState<any>(null);
+  const router = useRouter();
+  const [profile, setProfile] = useState<CitizenProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await fetch('/api/citizen/profile');
-        const json = await res.json();
+        const json: ApiResponse<CitizenProfile> = await res.json();
         if (json.success && json.data) {
           setProfile(json.data);
         } else {
@@ -30,7 +33,7 @@ export default function CitizenProfilePage() {
             setProfile(meJson.data.user);
           }
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Failed to load profile', error);
       } finally {
         setLoading(false);
@@ -43,10 +46,10 @@ export default function CitizenProfilePage() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/login';
+      router.push('/login');
     } catch (e) {
       console.error(e);
-      window.location.href = '/login';
+      router.push('/login');
     }
   };
 
@@ -58,9 +61,9 @@ export default function CitizenProfilePage() {
     );
   }
 
-  const citizenName = profile?.name || profile?.fullName || 'Citizen User';
-  const citizenEmail = profile?.email || 'citizen@queueless.gov';
-  const citizenPhone = profile?.phone || profile?.mobile || 'Not registered';
+  const citizenName = profile?.name || profile?.fullName || 'Citizen';
+  const citizenEmail = profile?.email || 'Not available';
+  const citizenPhone = profile?.phone || profile?.mobile || 'Not available';
 
   const menuItems = [
     { label: 'Edit Profile', href: '/citizen/profile/edit', icon: <Edit3 size={18} className="text-blue-600" /> },

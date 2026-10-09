@@ -23,17 +23,14 @@ export async function GET(
        return NextResponse.json({ success: false, message: 'Staff user or office not found' }, { status: 404 });
     }
 
-    const counter = await Counter.findOne({ staffId: staffUser._id }).lean();
+    let counter = await Counter.findOne({ staffId: staffUser._id }).lean();
     if (!counter) {
-      return NextResponse.json({ success: false, message: 'No counter assigned to this staff member' }, { status: 404 });
+      counter = await Counter.findOne({ officeId: staffUser.officeId }).lean();
     }
-    
-    const serviceIdsArray = counter.serviceIds || [];
 
     const token = await Token.findOne({
       _id: id,
-      officeId: counter.officeId,
-      serviceId: { $in: serviceIdsArray.map((s: any) => s._id) }
+      officeId: staffUser.officeId,
     })
     .populate('serviceId', 'name')
     .populate('citizenId', 'fullName email mobile')

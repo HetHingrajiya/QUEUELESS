@@ -6,9 +6,10 @@ import { Building2, MapPin, ArrowRight, Heart, Users, Clock } from 'lucide-react
 import Link from 'next/link';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { CitizenFavorite, CitizenOffice, ApiResponse } from '@/types/citizen';
 
 export default function CitizenFavoritesPage() {
-  const [favorites, setFavorites] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<CitizenFavorite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,21 +18,24 @@ export default function CitizenFavoritesPage() {
       setLoading(true);
       setError(null);
       const res = await fetch('/api/citizen/favorites');
-      const json = await res.json();
+      const json: ApiResponse<CitizenFavorite[]> = await res.json();
       if (json.success) {
         setFavorites(json.data || []);
       } else {
         setError(json.message || 'Failed to fetch favorites');
       }
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchFavorites();
+    const timer = setTimeout(() => {
+      fetchFavorites();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const removeFavorite = async (officeId: string, e: React.MouseEvent) => {
@@ -71,7 +75,7 @@ export default function CitizenFavoritesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {favorites.map((fav) => {
-            const office = fav.office || fav;
+            const office: CitizenOffice = fav.office || fav.officeId;
             return (
               <Link 
                 key={fav._id} 
@@ -93,7 +97,7 @@ export default function CitizenFavoritesPage() {
                       </div>
                       <div className="min-w-0 pr-8">
                         <h3 className="font-bold text-base text-slate-900 truncate">{office.name}</h3>
-                        <p className="text-xs text-slate-400 truncate">{office.department || 'Government Office'}</p>
+                        <p className="text-xs text-slate-400 truncate">{office.department || 'Office'}</p>
                       </div>
                     </div>
                     

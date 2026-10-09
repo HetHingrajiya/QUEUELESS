@@ -2,17 +2,14 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  ArrowLeft, Star, Send, CheckCircle2, 
-  MessageSquare, Building2 
-} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, Star, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { CitizenOffice, ApiResponse } from '@/types/citizen';
 
 function ServiceRatingContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const tokenId = searchParams ? searchParams.get('tokenId') || '' : '';
   const officeIdParam = searchParams ? searchParams.get('officeId') || '' : '';
@@ -22,7 +19,7 @@ function ServiceRatingContent() {
   const [error, setError] = useState<string | null>(null);
 
   const [officeId, setOfficeId] = useState(officeIdParam);
-  const [offices, setOffices] = useState<any[]>([]);
+  const [offices, setOffices] = useState<CitizenOffice[]>([]);
 
   const [ratings, setRatings] = useState({
     courtesy: 5,
@@ -35,9 +32,9 @@ function ServiceRatingContent() {
   useEffect(() => {
     if (!officeIdParam) {
       fetch('/api/citizen/offices')
-        .then(r => r.json())
+        .then(r => r.json() as Promise<ApiResponse<CitizenOffice[]>>)
         .then(res => {
-          if (res.success && res.data.length > 0) {
+          if (res.success && res.data && res.data.length > 0) {
             setOffices(res.data);
             setOfficeId(res.data[0]._id);
           }
@@ -74,8 +71,8 @@ function ServiceRatingContent() {
       } else {
         setError(json.message || 'Failed to submit rating');
       }
-    } catch (err: any) {
-      setError(err.message || 'Submission error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Submission error');
     } finally {
       setSubmitting(false);
     }
@@ -93,7 +90,7 @@ function ServiceRatingContent() {
           </span>
           <h2 className="text-2xl font-black text-slate-900 mt-2">Thank You for Your Rating!</h2>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Your detailed service review has been stored in MongoDB and forwarded to office quality assurance.
+            Your detailed service review has been submitted and forwarded to office quality assurance.
           </p>
         </div>
 
@@ -140,7 +137,7 @@ function ServiceRatingContent() {
         <CardContent className="p-6">
           {!officeIdParam && offices.length > 0 && (
             <div className="mb-4">
-              <Label className="text-xs font-semibold text-slate-600 mb-1 block">Government Office</Label>
+              <Label className="text-xs font-semibold text-slate-600 mb-1 block">Office</Label>
               <select
                 value={officeId}
                 onChange={(e) => setOfficeId(e.target.value)}

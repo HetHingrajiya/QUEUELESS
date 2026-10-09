@@ -20,26 +20,29 @@ export async function GET(req: NextRequest) {
     }
 
     // Get the counter assigned to this staff member
-    const counter = await Counter.findOne({ staffId: staffUser._id }).lean();
+    let counter = await Counter.findOne({ staffId: staffUser._id }).lean();
     if (!counter) {
-      return NextResponse.json({ success: false, message: 'No counter assigned to this staff member' }, { status: 404 });
+      counter = await Counter.findOne({ officeId: staffUser.officeId }).lean();
     }
     
-    const serviceIdsArray = counter.serviceIds || [];
+    const serviceIdsArray = counter?.serviceIds || [];
+    const serviceFilter = serviceIdsArray.length > 0
+      ? { serviceId: { $in: serviceIdsArray.map((s: any) => s._id || s) } }
+      : {};
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Get waiting tokens (only for services this counter handles)
+    // Get waiting tokens (for services this counter handles or office queue)
     const tokens = await Token.find({
-      officeId: counter.officeId,
-      serviceId: { $in: serviceIdsArray.map((s: any) => s._id) },
+      officeId: counter?.officeId || staffUser.officeId,
       status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-      createdAt: { $gte: startOfDay, $lte: endOfDay }
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+      ...serviceFilter
     })
-    .sort({ createdAt: 1 })
+    .sort({ priority: -1, createdAt: 1 })
     .populate('serviceId', 'name')
     .populate('citizenId', 'fullName')
     .lean();
@@ -49,6 +52,7 @@ export async function GET(req: NextRequest) {
       tokenNumber: t.tokenNumber,
       citizenName: (t.citizenId as any)?.fullName || 'Walk-in',
       serviceName: (t.serviceId as any)?.name,
+      priority: t.priority === 'HIGH',
       status: t.status,
       createdAt: t.createdAt
     }));

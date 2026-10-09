@@ -4,12 +4,13 @@ import { ArrowLeft, Clock, Users, Briefcase, Loader2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CitizenService, CitizenOffice, QueueMetrics, ApiResponse } from '@/types/citizen';
 
 export default function ServiceDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   
-  const [data, setData] = useState<{ service: any, office: any, stats: any } | null>(null);
+  const [data, setData] = useState<{ service: CitizenService, office: CitizenOffice, stats: QueueMetrics } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -18,14 +19,14 @@ export default function ServiceDetails({ params }: { params: Promise<{ id: strin
     const fetchServiceDetails = async () => {
       try {
         const res = await fetch(`/api/citizen/services/${id}`);
-        const json = await res.json();
+        const json: ApiResponse<{ service: CitizenService, office: CitizenOffice, stats: QueueMetrics }> = await res.json();
         
-        if (json.success) {
+        if (json.success && json.data) {
           setData(json.data);
         } else {
           setError(json.message || 'Failed to load service details');
         }
-      } catch (err) {
+      } catch (err: unknown) {
         setError('An error occurred. Please try again.');
       } finally {
         setLoading(false);

@@ -7,12 +7,13 @@ import { CheckCircle2, QrCode, ArrowRight, Clock, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { CitizenQueueSummary, ApiResponse } from '@/types/citizen';
 
 function TokenConfirmationContent() {
   const searchParams = useSearchParams();
   const tokenIdParam = searchParams ? searchParams.get('tokenId') : null;
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,7 +22,7 @@ function TokenConfirmationContent() {
         setLoading(true);
         if (tokenIdParam) {
           const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
-          const json = await res.json();
+          const json: ApiResponse<CitizenQueueSummary> = await res.json();
           if (json.success && json.data) {
             setData(json.data);
             return;
@@ -29,11 +30,11 @@ function TokenConfirmationContent() {
         }
 
         const res = await fetch('/api/citizen/queue');
-        const json = await res.json();
+        const json: ApiResponse<CitizenQueueSummary> = await res.json();
         if (json.success && json.data) {
           setData(json.data);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error(err);
       } finally {
         setLoading(false);
@@ -51,13 +52,13 @@ function TokenConfirmationContent() {
     );
   }
 
-  const token = data?.token || {};
-  const tokenNumber = token.tokenNumber || 'A-001';
-  const serviceName = token.serviceName || 'Government Service';
-  const officeName = token.officeName || 'Government Office';
+  const token = data?.token;
+  const tokenNumber = token?.tokenNumber || 'Data unavailable';
+  const serviceName = token?.serviceName || 'Data unavailable';
+  const officeName = token?.officeName || 'Data unavailable';
   const peopleAhead = data?.peopleAhead ?? 0;
-  const estimatedWaitMin = data?.estimatedWaitMin ?? 15;
-  const tokenId = token._id || tokenIdParam || '';
+  const estimatedWaitMin = data?.estimatedWaitMin ?? 0;
+  const tokenId = token?._id || tokenIdParam || '';
 
   return (
     <div className="space-y-6 pb-20 flex flex-col items-center pt-4 max-w-md mx-auto">
@@ -89,7 +90,7 @@ function TokenConfirmationContent() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400">Status:</span>
-              <span className="font-bold text-emerald-600">WAITING IN QUEUE</span>
+              <span className="font-bold text-emerald-600">{token?.status || 'WAITING'}</span>
             </div>
           </div>
 
@@ -122,7 +123,7 @@ function TokenConfirmationContent() {
             Go to Live Queue Tracker <ArrowRight size={14} className="ml-1.5" />
           </Button>
         </Link>
-        <Link href="/citizen/queue/qr" className="block w-full">
+        <Link href={`/citizen/queue/qr${tokenId ? `?tokenId=${tokenId}` : ''}`} className="block w-full">
           <Button variant="outline" className="w-full h-11 text-xs font-bold border-slate-200">
             View Full Screen Digital Pass
           </Button>

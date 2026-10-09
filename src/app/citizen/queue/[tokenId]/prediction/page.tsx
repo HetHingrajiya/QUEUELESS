@@ -4,24 +4,25 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, BrainCircuit, Clock, Zap, Target, Activity } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { AIPrediction, ApiResponse } from '@/types/citizen';
 
 export default function PredictionInsightPage({ params }: { params: Promise<{ tokenId: string }> }) {
   const router = useRouter();
   const unwrappedParams = use(params);
   const tokenId = unwrappedParams.tokenId;
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AIPrediction | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPrediction = async () => {
       try {
         const res = await fetch(`/api/citizen/queue/${tokenId}/prediction`);
-        const json = await res.json();
-        if (json.success) {
+        const json: ApiResponse<AIPrediction> = await res.json();
+        if (json.success && json.data) {
           setData(json.data);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Failed to load prediction", err);
       } finally {
         setLoading(false);
@@ -78,7 +79,7 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
           </div>
           <div>
             <p className="text-xs font-medium text-slate-500">Confidence</p>
-            <p className="text-lg font-bold text-slate-900">{data.confidence}%</p>
+            <p className="text-lg font-bold text-slate-900">{data.confidence && Number(data.confidence) > 0 ? `${Math.round(Number(data.confidence) <= 1 ? Number(data.confidence) * 100 : Number(data.confidence))}%` : 'Not available'}</p>
           </div>
         </div>
         <div className="bg-white border border-slate-200 p-4 rounded-xl flex items-center space-x-3 shadow-sm">
@@ -99,7 +100,7 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
             Prediction Factors
           </h3>
           <div className="space-y-4">
-            {Object.entries(data.factors).map(([factor, impact]: any, i) => (
+            {data.factors && typeof data.factors === 'object' && Object.entries(data.factors as Record<string, string>).map(([factor, impact], i) => (
               <div key={i} className="flex justify-between items-center border-b border-slate-100 pb-2 last:border-0 last:pb-0">
                 <span className="text-sm font-medium text-slate-700 flex items-center">
                   <Clock size={14} className="mr-2 text-slate-400" />
@@ -110,7 +111,7 @@ export default function PredictionInsightPage({ params }: { params: Promise<{ to
                   impact === 'Medium Impact' ? 'bg-amber-100 text-amber-700' :
                   'bg-emerald-100 text-emerald-700'
                 }`}>
-                  {impact}
+                  {String(impact)}
                 </span>
               </div>
             ))}

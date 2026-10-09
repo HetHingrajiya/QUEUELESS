@@ -9,9 +9,10 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { CitizenToken, ApiResponse } from '@/types/citizen';
 
 export default function CompletedServicesPage() {
-  const [completedList, setCompletedList] = useState<any[]>([]);
+  const [completedList, setCompletedList] = useState<CitizenToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,14 +21,14 @@ export default function CompletedServicesPage() {
       try {
         setLoading(true);
         const res = await fetch('/api/citizen/token-history?status=COMPLETED');
-        const json = await res.json();
+        const json: ApiResponse<CitizenToken[]> = await res.json();
         if (json.success) {
           setCompletedList(json.data || []);
         } else {
           setError(json.message || 'Failed to load completed services');
         }
-      } catch (err: any) {
-        setError(err.message || 'Network error');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Network error');
       } finally {
         setLoading(false);
       }
@@ -95,9 +96,9 @@ export default function CompletedServicesPage() {
                     <div className="flex items-center space-x-3">
                       <span className="flex items-center">
                         <Calendar size={13} className="mr-1 text-slate-400" />
-                        {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(item.date || item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                      {item.serviceDuration > 0 && (
+                      {Number(item.serviceDuration) > 0 && (
                         <span className="flex items-center text-emerald-700 font-medium">
                           <Clock size={13} className="mr-1" /> {item.serviceDuration}m
                         </span>

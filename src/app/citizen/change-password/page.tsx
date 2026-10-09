@@ -36,8 +36,8 @@ export default function CitizenChangePasswordPage() {
       setStatus({ type: 'error', message: 'Please enter your current password.' });
       return;
     }
-    if (newPassword.length < 6) {
-      setStatus({ type: 'error', message: 'New password must be at least 6 characters long.' });
+    if (newPassword.length < 8) {
+      setStatus({ type: 'error', message: 'New password must be at least 8 characters long.' });
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -50,7 +50,7 @@ export default function CitizenChangePasswordPage() {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
       });
       const data = await res.json();
       if (data.success) {
@@ -61,12 +61,8 @@ export default function CitizenChangePasswordPage() {
       } else {
         setStatus({ type: 'error', message: data.message || 'Failed to update password. Verify current password.' });
       }
-    } catch {
-      // Fallback success simulation for preview
-      setStatus({ type: 'success', message: 'Password changed successfully!' });
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+    } catch (err: unknown) {
+      setStatus({ type: 'error', message: err instanceof Error ? err.message : 'Network error occurred while updating password. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -143,7 +139,7 @@ export default function CitizenChangePasswordPage() {
               <div className="relative mt-1">
                 <Input
                   type={showNew ? 'text' : 'password'}
-                  placeholder="At least 6 characters"
+                  placeholder="At least 8 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="pr-10"

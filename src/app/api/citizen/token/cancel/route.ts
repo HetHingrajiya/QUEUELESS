@@ -1,23 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
 import { QueueEvent } from '@/models/QueueEvent';
 import { getUserFromCookie } from '@/lib/auth';
+import { createAuditLog } from '@/lib/auditLogger';
+import { canCancel, QueueEventTypes } from '@/lib/queue';
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json();
     const { tokenId, reason } = body;
 
-    if (!tokenId) {
-      return NextResponse.json({ success: false, message: 'Token ID is required' }, { status: 400 });
+    if (!tokenId || !mongoose.Types.ObjectId.isValid(tokenId)) {
+      return NextResponse.json({ success: false, message: 'Valid Token ID is required' }, { status: 400 });
     }
 
     const token = await Token.findById(tokenId);
@@ -30,25 +36,67 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Forbidden: You can only cancel your own token' }, { status: 403 });
     }
 
-    // Only waiting, checked_in, or called tokens can be cancelled
-    if ([TokenStatus.COMPLETED, TokenStatus.CANCELLED, TokenStatus.NO_SHOW].includes(token.status as any)) {
+    // Validate transition
+    const cancelValidation = canCancel(token.status);
+    if (!cancelValidation.allowed) {
       return NextResponse.json({ 
         success: false, 
-        message: `Token cannot be cancelled because it is already ${token.status}` 
+        message: cancelValidation.reason || 'Token cannot be cancelled' 
       }, { status: 400 });
     }
 
     token.status = TokenStatus.CANCELLED;
-    token.notes = reason || 'Cancelled by citizen';
+    const cancelReason = typeof reason === 'string' && reason.trim() ? reason.trim() : 'Cancelled by citizen';
+    token.notes = cancelReason;
+    token.cancellationReason = cancelReason;
+    token.cancelledAt = new Date();
+    token.endTime = new Date();
     await token.save();
 
     await QueueEvent.create({
       tokenId: token._id,
       officeId: token.officeId,
       serviceId: token.serviceId,
-      eventType: 'CANCELLED',
-      details: { reason: reason || 'Cancelled by citizen', cancelledBy: 'CITIZEN' }
+      eventType: QueueEventTypes.CANCELLED,
+      details: { reason: token.notes, cancelledBy: 'CITIZEN' }
     });
+
+    await createAuditLog({
+      action: 'CANCEL_TOKEN',
+      module: 'QUEUE',
+      description: `Citizen cancelled token ${token.tokenNumber}`,
+      entityType: 'Token',
+      entityId: token._id.toString(),
+      userId: user.userId,
+      userRole: user.role,
+      officeId: token.officeId?.toString(),
+      request: req
+    });
+
+    try {
+      const { getSocket } = await import('@/lib/socketClient');
+      const socket = getSocket();
+      const officeIdStr = token.officeId?.toString();
+      const tokenIdStr = token._id.toString();
+
+      socket.emit('queue:action', { 
+        action: 'CANCEL', 
+        officeId: officeIdStr, 
+        tokenId: tokenIdStr, 
+        status: token.status 
+      });
+      socket.emit('queue:updated', { 
+        officeId: officeIdStr, 
+        serviceId: token.serviceId?.toString() 
+      });
+      socket.emit('token:cancelled', { 
+        tokenId: tokenIdStr, 
+        tokenNumber: token.tokenNumber,
+        officeId: officeIdStr 
+      });
+    } catch {
+      // socket broadcast optional
+    }
 
     return NextResponse.json({
       success: true,
@@ -60,8 +108,8 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Cancel Token API Error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

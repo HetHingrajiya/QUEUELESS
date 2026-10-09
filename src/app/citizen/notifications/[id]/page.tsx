@@ -3,34 +3,34 @@
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, Bell, Volume2, ArrowRight 
-} from 'lucide-react';
+import { ArrowLeft, Bell, Volume2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { CitizenNotification, ApiResponse } from '@/types/citizen';
 
 export default function NotificationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
-  const [notification, setNotification] = useState<any>(null);
+  const [notification, setNotification] = useState<CitizenNotification | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/citizen/notifications')
-      .then(r => r.json())
+    fetch(`/api/citizen/notifications/${id}`)
+      .then(r => r.json() as Promise<ApiResponse<CitizenNotification>>)
       .then(res => {
-        if (res.success && res.data?.notifications) {
-          const match = res.data.notifications.find((n: any) => n._id === id);
-          if (match) {
-            setNotification(match);
-          } else if (res.data.notifications.length > 0) {
-            setNotification(res.data.notifications[0]);
-          }
+        if (res.success && res.data) {
+          setNotification(res.data);
+        } else {
+          setError(res.message || 'Notification not found');
         }
       })
-      .catch(console.error)
+      .catch((err: unknown) => {
+        console.error(err);
+        setError('Failed to load notification');
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -42,11 +42,22 @@ export default function NotificationDetailPage({ params }: { params: Promise<{ i
     );
   }
 
+  if (error || !notification) {
+    return (
+      <div className="max-w-md mx-auto pt-6 text-center">
+        <p className="text-red-600 font-medium">{error || 'Notification not found'}</p>
+        <Link href="/citizen/notifications" className="text-blue-600 font-semibold text-sm mt-3 inline-block">
+          Return to Notifications
+        </Link>
+      </div>
+    );
+  }
+
   const title = notification?.title || 'Notification Alert';
   const body = notification?.message || 'Details for this system notification.';
   const type = notification?.type || 'SYSTEM';
-  const date = notification?.createdAt ? new Date(notification.createdAt).toLocaleString() : new Date().toLocaleString();
-  const officeName = notification?.officeId?.name || 'QueueLess Smart System';
+  const date = notification?.createdAt ? new Date(notification.createdAt).toLocaleString() : 'Not available';
+  const officeName = (typeof notification?.officeId === 'object' && notification.officeId !== null ? notification.officeId.name : notification?.officeName) || 'Smart Queue System';
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">

@@ -20,7 +20,7 @@ export default function NotificationPermissionPage() {
 
     try {
       const permission = await Notification.requestPermission();
-      setStatus(permission as any);
+      setStatus(permission);
       if (permission === 'granted') {
         new Notification("QueueLess Live Chime", {
           body: "Notifications enabled! You will be alerted the second your token is called.",
@@ -83,7 +83,7 @@ export default function NotificationPermissionPage() {
             <div>
               <p className="font-bold text-slate-900">Smart Departure Nudge</p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                Receive proactive reminders: "Leave in 10 minutes to arrive in time for Counter 4".
+                Receive proactive reminders: &ldquo;Leave in 10 minutes to arrive in time for your turn&rdquo;.
               </p>
             </div>
           </div>

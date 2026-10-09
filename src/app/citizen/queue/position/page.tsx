@@ -1,41 +1,98 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  ArrowLeft, Users, Clock, CheckCircle2, 
-  ArrowRight, Activity, Building2 
-} from 'lucide-react';
+import { ArrowLeft, Users, ArrowRight, Activity } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { getSocket } from '@/lib/socketClient';
+import { CitizenQueueSummary, ApiResponse } from '@/types/citizen';
 
 export default function QueuePositionPage() {
-  const [queueData, setQueueData] = useState<any>(null);
+  const [queueData, setQueueData] = useState<CitizenQueueSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPosition = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/citizen/queue');
-        const json = await res.json();
-        if (json.success && json.data) {
-          setQueueData(json.data);
-        } else {
-          setError(json.message || 'No active queue token found');
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load position');
-      } finally {
-        setLoading(false);
+  const fetchPosition = useCallback(async (isInitial = false) => {
+    try {
+      if (isInitial) setLoading(true);
+      const res = await fetch('/api/citizen/queue');
+      const json: ApiResponse<CitizenQueueSummary> = await res.json();
+      if (json.success && json.data) {
+        setQueueData(json.data);
+        setError(null);
+      } else {
+        setError(json.message || 'No active queue token found');
       }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load position');
+    } finally {
+      if (isInitial) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchPosition(true);
+    }, 0);
+
+    const socket = getSocket();
+
+    const handleUpdate = () => {
+      fetchPosition(false);
     };
 
-    fetchPosition();
-  }, []);
+    const events = [
+      'queue:updated', 'QUEUE_UPDATED',
+      'queue:action', 'QUEUE_ACTION',
+      'token:called', 'TOKEN_CALLED',
+      'token:checked_in', 'TOKEN_CHECKED_IN',
+      'token:serving', 'TOKEN_SERVICE_STARTED',
+      'token:completed', 'TOKEN_SERVICE_COMPLETED',
+      'token:cancelled', 'TOKEN_CANCELLED',
+      'token:no_show', 'TOKEN_SKIPPED',
+      'counter:updated', 'COUNTER_UPDATED',
+      'connect'
+    ];
+    events.forEach(ev => socket.on(ev, handleUpdate));
+
+    const fallbackPoll = setInterval(() => {
+      if (!socket.connected) {
+        fetchPosition(false);
+      }
+    }, 10000);
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach(ev => socket.off(ev, handleUpdate));
+      clearInterval(fallbackPoll);
+    };
+  }, [fetchPosition]);
+
+  // Join token-specific and office-specific rooms when active token is loaded
+  useEffect(() => {
+    if (!queueData?.token?._id) return;
+
+    const socket = getSocket();
+    const tokenId = queueData.token._id;
+    const officeId = typeof queueData.token.officeId === 'object' && queueData.token.officeId !== null 
+      ? queueData.token.officeId._id 
+      : queueData.token.officeId;
+
+    socket.emit('join-token', tokenId);
+    if (officeId) {
+      socket.emit('join-office', officeId);
+    }
+
+    return () => {
+      socket.emit('leave-token', tokenId);
+      if (officeId) {
+        socket.emit('leave-office', officeId);
+      }
+    };
+  }, [queueData?.token?._id, queueData?.token?.officeId]);
 
   if (loading) {
     return (
@@ -107,7 +164,9 @@ export default function QueuePositionPage() {
                 <div className="w-px h-8 bg-white/20" />
                 <div>
                   <p className="text-blue-200 text-[10px] uppercase font-bold">Now Serving</p>
-                  <p className="text-xl font-black">{nowServing}</p>
+                  <p className="text-xl font-black">
+                    {typeof nowServing === 'object' && nowServing !== null ? nowServing.tokenNumber : nowServing}
+                  </p>
                 </div>
               </>
             )}
@@ -129,7 +188,9 @@ export default function QueuePositionPage() {
               <div className="flex items-center space-x-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                 <div>
-                  <p className="font-mono font-bold text-emerald-900 text-sm">{nowServing}</p>
+                  <p className="font-mono font-bold text-emerald-900 text-sm">
+                    {typeof nowServing === 'object' && nowServing !== null ? nowServing.tokenNumber : nowServing}
+                  </p>
                   <p className="text-[10px] text-emerald-700">Currently At Counter</p>
                 </div>
               </div>
@@ -154,7 +215,8 @@ export default function QueuePositionPage() {
           </div>
 
           {/* Tokens following */}
-          {nextTokens && nextTokens.length > 0 && nextTokens.map((num: string, idx: number) => {
+          {nextTokens && nextTokens.length > 0 && nextTokens.map((item, idx: number) => {
+            const num = typeof item === 'object' && item !== null ? item.tokenNumber : item;
             if (num === token.tokenNumber) return null;
             return (
               <div key={idx} className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs text-slate-600">

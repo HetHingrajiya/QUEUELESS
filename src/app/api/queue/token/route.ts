@@ -1,85 +1,97 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { getUserFromCookie } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
-import { User, UserRole } from '@/models/User';
+import { UserRole } from '@/models/User';
 import { Service } from '@/models/Service';
-import { Counter } from '@/models/Counter';
+import { Office } from '@/models/Office';
+import { QueueEvent } from '@/models/QueueEvent';
 import { SystemSettings } from '@/models/SystemSettings';
-import mongoose from 'mongoose';
+import { createAuditLog } from '@/lib/auditLogger';
+import {
+  ACTIVE_TOKEN_STATUSES,
+  WAITING_TOKEN_STATUSES,
+  QueueEventTypes,
+  QueueMetricsService
+} from '@/lib/queue';
 
 export async function POST(request: Request) {
   try {
     await dbConnect();
-    
+
     const user = await getUserFromCookie();
-    const userId = user?.userId;
-    
-    if (!userId) {
+    if (!user || !user.userId) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
+    if (user.role !== UserRole.CITIZEN) {
+      return NextResponse.json({ success: false, message: 'Forbidden. Citizen role required.' }, { status: 403 });
+    }
+    const userId = user.userId;
 
     const body = await request.json();
     const { officeId, serviceId } = body;
-
-    if (!mongoose.Types.ObjectId.isValid(officeId) || !mongoose.Types.ObjectId.isValid(serviceId)) {
-      return NextResponse.json({ success: false, message: 'Invalid office or service ID' }, { status: 400 });
-    }
 
     if (!officeId || !serviceId) {
       return NextResponse.json({ success: false, message: 'Office ID and Service ID are required' }, { status: 400 });
     }
 
-    // Rule 1: A citizen cannot have multiple active tokens for the same service.
+    if (!mongoose.Types.ObjectId.isValid(officeId) || !mongoose.Types.ObjectId.isValid(serviceId)) {
+      return NextResponse.json({ success: false, message: 'Invalid office or service ID format' }, { status: 400 });
+    }
+
+    const office = await Office.findOne({ _id: officeId, status: 'ACTIVE' }).lean();
+    if (!office) {
+      return NextResponse.json({ success: false, message: 'Office not found or currently inactive' }, { status: 404 });
+    }
+
+    const service = await Service.findOne({ _id: serviceId, status: 'ACTIVE' }).lean();
+    if (!service) {
+      return NextResponse.json({ success: false, message: 'Service not found or currently inactive' }, { status: 404 });
+    }
+
+    if (service.officeId?.toString() !== office._id.toString()) {
+      return NextResponse.json({ success: false, message: 'The requested service does not belong to the selected office.' }, { status: 400 });
+    }
+
+    if (office.organizationId && service.organizationId && office.organizationId.toString() !== service.organizationId.toString()) {
+      return NextResponse.json({ success: false, message: 'Invalid organization relationship between office and service.' }, { status: 400 });
+    }
+
+    // A citizen cannot have multiple active tokens for the same office/service
     const existingActiveToken = await Token.findOne({
       citizenId: userId,
-      serviceId,
-      status: { $in: [TokenStatus.WAITING, TokenStatus.CALLED, TokenStatus.CHECKED_IN] }
+      officeId: office._id,
+      status: { $in: ACTIVE_TOKEN_STATUSES }
     });
 
     if (existingActiveToken) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'You already have an active token for this service',
-        errorCode: 'ACTIVE_TOKEN_EXISTS'
+      return NextResponse.json({
+        success: false,
+        message: `You already have an active token (${existingActiveToken.tokenNumber}) for this office. Please complete or cancel it first.`,
+        errorCode: 'ACTIVE_TOKEN_EXISTS',
+        data: { activeTokenId: existingActiveToken._id }
       }, { status: 400 });
     }
 
-    // Generate Token Number logic (simplified for demo)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    const tokenCount = await Token.countDocuments({ 
-      officeId, 
-      serviceId,
-      createdAt: { $gte: today } 
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const tokenCount = await Token.countDocuments({
+      officeId,
+      createdAt: { $gte: today, $lte: endOfDay }
     });
 
-    // E.g., A-1, A-2... (Would use Service Code in reality, like DL-145)
-    const service = await Service.findById(serviceId).lean();
-    if (!service) {
-      return NextResponse.json({ success: false, message: 'Service not found' }, { status: 404 });
-    }
+    const prefix = service.code ? service.code.substring(0, 1).toUpperCase() : 'A';
+    const tokenNumber = `${prefix}-${(tokenCount + 1).toString().padStart(3, '0')}`;
 
-    const { Office } = await import('@/models/Office');
-    const office = await Office.findById(officeId).lean();
-    if (!office) {
-      return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
-    }
-    if (service.officeId?.toString() !== officeId) {
-      return NextResponse.json({ success: false, message: 'Service does not belong to this office' }, { status: 403 });
-    }
-    if (user?.role !== UserRole.CITIZEN) {
-      return NextResponse.json({ success: false, message: 'Only citizens can create citizen queue tokens' }, { status: 403 });
-    }
-
-    const tokenNumber = `${service.code}-${(tokenCount + 1).toString().padStart(3, '0')}`;
-
-    // AI Prediction simple logic
     const waitingTokensCount = await Token.countDocuments({
       officeId,
       serviceId,
-      status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] }
+      status: { $in: WAITING_TOKEN_STATUSES },
+      createdAt: { $gte: today, $lte: endOfDay }
     });
 
     const settings = await SystemSettings.findOne();
@@ -87,47 +99,52 @@ export async function POST(request: Request) {
     const checkInBuffer = settings?.checkInBuffer || 15;
 
     if (waitingTokensCount >= maxQueueSize) {
-      return NextResponse.json({ 
-        success: false, 
+      return NextResponse.json({
+        success: false,
         message: 'The queue for this service is currently full. Please try again later.',
         errorCode: 'QUEUE_FULL'
       }, { status: 400 });
     }
 
+    const activeCounters = await QueueMetricsService.getActiveCountersCount(officeId, serviceId);
+    const averageServiceTime = await QueueMetricsService.getAverageServiceTime(officeId, serviceId);
 
-    const activeCounters = await Counter.countDocuments({
-      officeId,
-      serviceId,
-      status: 'ACTIVE'
-    });
+    const estimatedWaitTime = QueueMetricsService.calculateEstimatedWaitTime(
+      waitingTokensCount,
+      averageServiceTime,
+      activeCounters
+    );
 
-    const divisor = activeCounters > 0 ? activeCounters : 1;
-    const estimatedWaitTime = Math.ceil((waitingTokensCount * service.averageServiceTime) / divisor);
+    const recommendedArrivalTime = QueueMetricsService.calculateRecommendedArrivalTime(estimatedWaitTime, checkInBuffer);
 
-    const recommendedArrivalTime = new Date(Date.now() + (estimatedWaitTime * 60000) - (checkInBuffer * 60000)); 
-
-    const { createAuditLog } = await import('@/lib/auditLogger');
-    
     const newToken = await Token.create({
       tokenNumber,
       citizenId: userId,
-      officeId,
+      officeId: office._id,
       organizationId: office.organizationId,
-      serviceId,
+      serviceId: service._id,
       status: TokenStatus.WAITING,
       estimatedWaitTime,
       recommendedArrivalTime,
       queuePosition: waitingTokensCount + 1,
     });
 
+    await QueueEvent.create({
+      tokenId: newToken._id,
+      officeId: office._id,
+      serviceId: service._id,
+      eventType: QueueEventTypes.CREATED
+    });
+
     await createAuditLog({
-      action: 'CREATE',
+      action: 'CREATE_TOKEN',
       module: 'Queue',
       description: `Token ${tokenNumber} generated for citizen ${userId}`,
       entityType: 'Token',
       entityId: newToken._id.toString(),
-      newData: newToken.toObject(),
-      status: 'SUCCESS',
+      userId,
+      userRole: user.role,
+      officeId: office._id.toString(),
       request,
     });
 

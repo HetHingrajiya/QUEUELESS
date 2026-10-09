@@ -1,40 +1,90 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  ArrowLeft, BrainCircuit, Clock, Zap, Target, 
-  Activity, TrendingDown, Users, ShieldCheck, Sparkles 
+  ArrowLeft, BrainCircuit, Zap, 
+  Activity, Sparkles 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AIPrediction, ApiResponse, CitizenQueueSummary } from '@/types/citizen';
 
 export default function AIWaitPredictionScreen() {
-  const [modelStats] = useState({
-    tokenNumber: "A-145",
-    serviceName: "Driving Licence Renewal",
-    officeName: "Regional Transport Office (RTO)",
-    predictedWaitTime: 14,
-    historicalAverage: 26,
-    confidence: 94,
-    activeCounters: 4,
-    avgServicePace: "3.2 min / citizen",
-    timeSavedMinutes: 12,
+  const [modelStats, setModelStats] = useState({
+    tokenNumber: "Data unavailable",
+    serviceName: "Data unavailable",
+    officeName: "Office",
+    predictedWaitTime: 0,
+    historicalAverage: 0,
+    confidence: 0,
+    activeCounters: 1,
+    avgServicePace: "Calculating...",
+    timeSavedMinutes: 0,
     factors: [
-      { name: "Counter Staff Velocity", impact: "High Impact", desc: "4 active tellers operating at optimal pace", positive: true },
-      { name: "Time of Day (Off-Peak)", impact: "Medium Impact", desc: "Morning rush has cleared; mid-day window", positive: true },
-      { name: "Document Complexity", impact: "Low Impact", desc: "Digital verification requires minimal manual scans", positive: true },
-      { name: "Walk-in Priority Quota", impact: "Low Impact", desc: "Senior citizen lane handling 2 urgent cases", positive: false }
+      { name: "Counter Staff Velocity", impact: "High Impact", desc: "Active counters operating at monitored pace", positive: true },
+      { name: "Time of Day", impact: "Medium Impact", desc: "Operating window calculations based on real token volume", positive: true },
+      { name: "Queue Backlog", impact: "High Impact", desc: "Real-time count of citizens ahead in this queue", positive: true },
+      { name: "Service Average", impact: "Low Impact", desc: "Derived from historical service completion times", positive: true }
     ],
     hourlyTrends: [
-      { hour: "9 AM", wait: 35, current: false },
-      { hour: "10 AM", wait: 28, current: false },
+      { hour: "9 AM", wait: 25, current: false },
+      { hour: "10 AM", wait: 20, current: false },
       { hour: "11 AM", wait: 14, current: true },
       { hour: "12 PM", wait: 18, current: false },
-      { hour: "2 PM", wait: 40, current: false },
-      { hour: "4 PM", wait: 22, current: false },
+      { hour: "2 PM", wait: 22, current: false },
+      { hour: "4 PM", wait: 15, current: false },
     ]
   });
+
+  useEffect(() => {
+    async function loadRealPrediction() {
+      try {
+        const queueRes = await fetch('/api/citizen/queue');
+        const queueJson: ApiResponse<CitizenQueueSummary> = await queueRes.json();
+        if (queueJson.success && queueJson.data?.token?._id) {
+          const tokenId = queueJson.data.token._id;
+          const predRes = await fetch(`/api/citizen/queue/${tokenId}/prediction`);
+          const predJson: ApiResponse<AIPrediction> = await predRes.json();
+          if (predJson.success && predJson.data) {
+            const pred = predJson.data;
+            setModelStats(prev => {
+              const hourlyRaw = pred.crowdPrediction?.hourly_trends as Array<{ hour: string; wait: number; current?: boolean }> | undefined;
+              const trends = hourlyRaw?.map((t) => ({
+                hour: t.hour,
+                wait: t.wait,
+                current: Boolean(t.current)
+              })) || prev.hourlyTrends;
+
+              const factorsList = [
+                { name: "People Ahead", impact: "High Impact", desc: `${pred.waitingAhead ?? 0} citizens currently waiting ahead in this service`, positive: true },
+                { name: "Active Counters", impact: "High Impact", desc: `${pred.activeCounters ?? 1} tellers serving this counter line`, positive: true },
+                { name: "Queue Health", impact: "Medium Impact", desc: `Operational state is ${pred.queueHealth?.status || 'HEALTHY'} (${pred.queueHealth?.score ?? 80}/100)`, positive: true },
+                { name: "Predicted Service Pace", impact: "Medium Impact", desc: `Expected counter duration: ~${pred.serviceTimePrediction?.predicted_service_time_mins ?? 10} mins`, positive: true },
+                { name: "Optimal Visit Window", impact: "Low Impact", desc: `${pred.bestTimeToVisit?.best_window ?? '11 AM - 12 PM'} has lowest historical wait`, positive: true },
+                { name: "Prediction Source", impact: "Low Impact", desc: `${pred.predictionSource || 'QueueMetrics Engine'} (${pred.modelVersion || 'rf-v2.1.0'})`, positive: true }
+              ];
+
+              return {
+                ...prev,
+                tokenNumber: pred.tokenNumber || (queueJson.data?.token?.tokenNumber ?? prev.tokenNumber),
+                serviceName: pred.serviceName || (queueJson.data?.token?.serviceName ?? prev.serviceName),
+                officeName: queueJson.data?.token?.officeName || prev.officeName,
+                predictedWaitTime: pred.predictedWaitTime ?? (queueJson.data?.estimatedWaitMin ?? prev.predictedWaitTime),
+                confidence: (pred.confidence && Number(pred.confidence) > 0) ? Math.round(Number(pred.confidence) <= 1 ? Number(pred.confidence) * 100 : Number(pred.confidence)) : 0,
+                activeCounters: pred.activeCounters || prev.activeCounters,
+                hourlyTrends: trends,
+                factors: factorsList
+              };
+            });
+          }
+        }
+      } catch (err: unknown) {
+        console.error('Failed to load active prediction', err);
+      }
+    }
+    loadRealPrediction();
+  }, []);
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
@@ -77,11 +127,11 @@ export default function AIWaitPredictionScreen() {
           <div className="bg-white/10 rounded-2xl p-3.5 backdrop-blur-md border border-white/20 mt-5 grid grid-cols-2 gap-3 text-left">
             <div>
               <p className="text-[10px] text-purple-200 uppercase font-semibold">Model Confidence</p>
-              <p className="text-lg font-bold text-emerald-300">{modelStats.confidence}% High</p>
+              <p className="text-lg font-bold text-emerald-300">{modelStats.confidence > 0 ? `${modelStats.confidence}% High` : 'Not available'}</p>
             </div>
             <div>
               <p className="text-[10px] text-purple-200 uppercase font-semibold">Time Saved vs Avg</p>
-              <p className="text-lg font-bold text-amber-300">-{modelStats.timeSavedMinutes} mins</p>
+              <p className="text-lg font-bold text-amber-300">{modelStats.timeSavedMinutes > 0 ? `-${modelStats.timeSavedMinutes} mins` : 'Normal'}</p>
             </div>
           </div>
         </CardContent>

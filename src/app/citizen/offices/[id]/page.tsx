@@ -4,27 +4,29 @@ import { use, useEffect, useState } from 'react';
 import { MapPin, Clock, Users, ArrowLeft, ArrowRight, CheckCircle2, Loader2, Info, Heart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
-import { Button } from '@/components/ui/button';
+import { CitizenOffice, CitizenService, ApiResponse } from '@/types/citizen';
 
 export default function OfficeDetails({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [data, setData] = useState<{ office: any, services: any[] } | null>(null);
+  const [data, setData] = useState<{ office: CitizenOffice, services: CitizenService[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userLocation, setUserLocation] = useState<{lat: number, lon: number} | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [togglingFav, setTogglingFav] = useState(false);
 
   useEffect(() => {
     const fetchOfficeDetails = async () => {
       try {
         const res = await fetch(`/api/citizen/offices/${id}`);
-        const json = await res.json();
+        const json: ApiResponse<{ office: CitizenOffice; services: CitizenService[] }> = await res.json();
         
-        if (json.success) {
+        if (json.success && json.data) {
           setData(json.data);
         } else {
           setError(json.message || 'Failed to load office details');
         }
-      } catch (err) {
+      } catch (err: unknown) {
         setError('An error occurred. Please try again.');
       } finally {
         setLoading(false);
@@ -46,6 +48,18 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
       );
     }
 
+    const checkFavoriteStatus = async () => {
+      try {
+        const res = await fetch(`/api/citizen/favorites?officeId=${id}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setIsFavorite(!!json.data.isFavorite);
+        }
+      } catch (e) {
+        console.error('Failed to check favorite status', e);
+      }
+    };
+    checkFavoriteStatus();
   }, [id]);
 
   if (loading) {
@@ -79,35 +93,30 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
     distStr = formatDistance(calculateDistanceKm(userLocation.lat, userLocation.lon, office.latitude, office.longitude));
   }
 
-  const totalWaiting = services.reduce((acc, curr) => acc + curr.waitingCount, 0);
+  const totalWaiting = services.reduce((acc, curr) => acc + (curr.waitingCount || 0), 0);
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
+    if (togglingFav) return;
+    setTogglingFav(true);
+    const nextState = !isFavorite;
+    setIsFavorite(nextState);
     try {
-      const stored = localStorage.getItem('queueless_favorites');
-      let favs = stored ? JSON.parse(stored) : [];
-      const isFav = favs.some((f: any) => f._id === office._id);
-      
-      if (isFav) {
-        favs = favs.filter((f: any) => f._id !== office._id);
+      if (!nextState) {
+        await fetch(`/api/citizen/favorites?officeId=${office._id}`, { method: 'DELETE' });
       } else {
-        favs.push(office);
+        await fetch('/api/citizen/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ officeId: office._id })
+        });
       }
-      localStorage.setItem('queueless_favorites', JSON.stringify(favs));
-      // Optionally could add state to toggle UI immediately, but reloading works for MVP or we just let it be stateless visually
-      window.location.reload(); 
     } catch (e) {
-      console.error(e);
+      console.error('Failed to toggle favorite', e);
+      setIsFavorite(!nextState);
+    } finally {
+      setTogglingFav(false);
     }
   };
-
-  // Determine if it's currently a favorite
-  let isFavorite = false;
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('queueless_favorites');
-    if (stored) {
-      isFavorite = JSON.parse(stored).some((f: any) => f._id === office._id);
-    }
-  }
 
   return (
     <div className="space-y-6 pb-12">

@@ -1,11 +1,15 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
+import pymongo
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="../.env.local")
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
+if os.path.exists(env_path):
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()
 
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/queueless")
-# Extract DB name from URI or default to 'queueless'
 DB_NAME = MONGO_URI.split("/")[-1].split("?")[0] if "/" in MONGO_URI else "queueless"
 
 class Database:
@@ -27,3 +31,7 @@ async def close_mongo_connection():
 
 def get_db():
     return db_config.db
+
+def get_sync_db():
+    sync_client = pymongo.MongoClient(MONGO_URI)
+    return sync_client[DB_NAME]

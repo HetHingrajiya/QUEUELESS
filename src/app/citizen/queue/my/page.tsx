@@ -1,43 +1,79 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, Clock, Users, Building2, QrCode, 
-  ArrowRight, AlertCircle, RefreshCw, XCircle 
+  ArrowRight, RefreshCw, XCircle 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { getSocket } from '@/lib/socketClient';
+import { CitizenToken, ApiResponse } from '@/types/citizen';
 
 export default function MyQueuePage() {
-  const [activeQueues, setActiveQueues] = useState<any[]>([]);
+  const [activeQueues, setActiveQueues] = useState<CitizenToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActiveQueues = async () => {
+  const fetchActiveQueues = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       setError(null);
       const res = await fetch('/api/citizen/queue/my');
-      const json = await res.json();
-      if (json.success) {
-        setActiveQueues(json.data || []);
+      const json: ApiResponse<CitizenToken[]> = await res.json();
+      if (json.success && json.data) {
+        setActiveQueues(json.data);
       } else {
         setError(json.message || 'Failed to fetch active queues');
       }
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchActiveQueues();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchActiveQueues(true);
+    }, 0);
+
+    const socket = getSocket();
+
+    const handleUpdate = () => {
+      fetchActiveQueues(false);
+    };
+
+    const events = [
+      'queue:updated', 'QUEUE_UPDATED',
+      'queue:action', 'QUEUE_ACTION',
+      'token:called', 'TOKEN_CALLED',
+      'token:checked_in', 'TOKEN_CHECKED_IN',
+      'token:serving', 'TOKEN_SERVICE_STARTED',
+      'token:completed', 'TOKEN_SERVICE_COMPLETED',
+      'token:cancelled', 'TOKEN_CANCELLED',
+      'token:no_show', 'TOKEN_SKIPPED',
+      'counter:updated', 'COUNTER_UPDATED',
+      'connect'
+    ];
+    events.forEach(ev => socket.on(ev, handleUpdate));
+
+    const fallbackPoll = setInterval(() => {
+      if (!socket.connected) {
+        fetchActiveQueues(false);
+      }
+    }, 10000);
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach(ev => socket.off(ev, handleUpdate));
+      clearInterval(fallbackPoll);
+    };
+  }, [fetchActiveQueues]);
 
   const handleCancelToken = async (tokenId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -79,7 +115,7 @@ export default function MyQueuePage() {
           </div>
         </div>
         <button
-          onClick={fetchActiveQueues}
+          onClick={() => fetchActiveQueues(true)}
           className="p-2 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition-colors"
           title="Refresh Queue"
         >

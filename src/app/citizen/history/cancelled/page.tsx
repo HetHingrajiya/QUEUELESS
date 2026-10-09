@@ -9,9 +9,10 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { EmptyState } from '@/components/common/EmptyState';
+import { CitizenToken, ApiResponse } from '@/types/citizen';
 
 export default function CancelledTokensHistoryPage() {
-  const [cancelledList, setCancelledList] = useState<any[]>([]);
+  const [cancelledList, setCancelledList] = useState<CitizenToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,14 +21,14 @@ export default function CancelledTokensHistoryPage() {
       try {
         setLoading(true);
         const res = await fetch('/api/citizen/token-history?status=CANCELLED');
-        const json = await res.json();
+        const json: ApiResponse<CitizenToken[]> = await res.json();
         if (json.success) {
           setCancelledList(json.data || []);
         } else {
           setError(json.message || 'Failed to load cancelled tokens');
         }
-      } catch (err: any) {
-        setError(err.message || 'Network error');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Network error');
       } finally {
         setLoading(false);
       }
@@ -97,7 +98,7 @@ export default function CancelledTokensHistoryPage() {
                 <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-slate-400 flex items-center">
                     <Calendar size={13} className="mr-1 text-slate-400" />
-                    {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(item.date || item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                   <Link href="/citizen/offices">
                     <span className="text-blue-600 font-bold hover:underline flex items-center">

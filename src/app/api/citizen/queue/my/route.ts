@@ -1,16 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
-import { Token, TokenStatus } from '@/models/Token';
-import { Counter } from '@/models/Counter';
+import { Token } from '@/models/Token';
 import { getUserFromCookie } from '@/lib/auth';
+import { ACTIVE_TOKEN_STATUSES, QueueMetricsService } from '@/lib/queue';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
+    if (!user || !user.userId) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const startOfDay = new Date();
@@ -18,42 +22,35 @@ export async function GET(req: NextRequest) {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
+    interface PopulatedTokenDoc {
+      _id: mongoose.Types.ObjectId;
+      tokenNumber: string;
+      status: string;
+      serviceId?: { name?: string; averageServiceTime?: number };
+      officeId?: { name?: string; address?: string; latitude?: number; longitude?: number };
+      counterId?: { name?: string; number?: number };
+      createdAt: Date;
+      checkInTime?: Date;
+      callTime?: Date;
+    }
+
     const activeTokens = await Token.find({
       citizenId: user.userId,
-      status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN, TokenStatus.CALLED, TokenStatus.SERVING] }
+      status: { $in: ACTIVE_TOKEN_STATUSES }
     })
     .populate('officeId', 'name address latitude longitude')
     .populate('serviceId', 'name averageServiceTime')
     .populate('counterId', 'name number')
     .sort({ createdAt: -1 })
-    .lean();
+    .lean() as unknown as PopulatedTokenDoc[];
 
     const results = await Promise.all(
-      activeTokens.map(async (tok: any) => {
-        const officeId = tok.officeId?._id;
-        const serviceId = tok.serviceId?._id;
+      activeTokens.map(async (tok) => {
+        const metrics = await QueueMetricsService.getTokenPositionMetrics(tok._id, user.userId);
 
-        // Current now serving
-        const servingToken = await Token.findOne({
-          officeId,
-          serviceId,
-          status: { $in: [TokenStatus.SERVING, TokenStatus.CALLED] },
-          createdAt: { $gte: startOfDay, $lte: endOfDay }
-        }).sort({ callTime: -1 }).lean();
-
-        // People ahead
-        let peopleAhead = 0;
-        if (tok.status === TokenStatus.WAITING || tok.status === TokenStatus.CHECKED_IN) {
-          peopleAhead = await Token.countDocuments({
-            officeId,
-            serviceId,
-            status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] },
-            createdAt: { $gte: startOfDay, $lt: tok.createdAt }
-          });
-        }
-
-        const avgTime = tok.serviceId?.averageServiceTime || 10;
-        const estimatedWaitMin = Math.max(0, peopleAhead * avgTime);
+        const peopleAhead = metrics?.peopleAhead ?? 0;
+        const estimatedWaitMin = metrics?.estimatedWaitMinutes ?? 0;
+        const nowServing = metrics?.nowServing || 'None';
 
         return {
           id: tok._id,
@@ -64,18 +61,19 @@ export async function GET(req: NextRequest) {
           status: tok.status,
           peopleAhead,
           estimatedWaitMin,
-          nowServing: servingToken?.tokenNumber || 'None',
-          counterNumber: tok.counterId ? tok.counterId.name : (servingToken?.counterId ? 'Assigned' : 'Unassigned'),
+          nowServing,
+          counterNumber: tok.counterId ? tok.counterId.name : 'Unassigned',
           date: new Date(tok.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
           checkInTime: tok.checkInTime,
-          callTime: tok.callTime
+          callTime: tok.callTime,
+          queueLoad: metrics?.queueLoad.level || 'LOW'
         };
       })
     );
 
     return NextResponse.json({ success: true, data: results });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen My Queue GET error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

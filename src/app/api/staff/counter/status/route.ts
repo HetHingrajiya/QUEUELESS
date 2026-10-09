@@ -24,10 +24,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Find the counter assigned to this staff member
-    const counter = await Counter.findOne({ staffId: userId });
+    let counter = await Counter.findOne({ staffId: userId });
+    if (!counter) {
+      const staffUser = await User.findById(userId).lean();
+      if (staffUser?.officeId) {
+        counter = await Counter.findOne({ officeId: staffUser.officeId });
+        if (counter) {
+          counter.staffId = userId;
+        }
+      }
+    }
     
     if (!counter) {
-      return NextResponse.json({ success: false, message: 'No counter assigned to you' }, { status: 404 });
+      return NextResponse.json({ success: false, message: 'No counter available in your office' }, { status: 404 });
     }
 
     counter.status = status;

@@ -38,15 +38,18 @@ export default function CitizenNotificationsPage() {
       } else {
         setError(json.message || 'Failed to load notifications');
       }
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
+    const timer = setTimeout(() => {
+      fetchNotifications();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [filter]);
 
   const markAllRead = async () => {

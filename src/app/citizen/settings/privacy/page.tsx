@@ -58,8 +58,8 @@ export default function PrivacySettingsPage() {
       } else {
         setError(json.message || 'Failed to update privacy preferences');
       }
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setSaving(false);
     }

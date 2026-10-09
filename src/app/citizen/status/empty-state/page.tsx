@@ -32,14 +32,14 @@ export default function EmptyStateShowcasePage() {
       {/* Variation Switcher Tabs */}
       <div className="flex space-x-1.5 overflow-x-auto pb-1 scrollbar-hide">
         {[
-          { key: 'tokens', label: 'No Active Tokens' },
-          { key: 'search', label: 'No Search Results' },
-          { key: 'favorites', label: 'No Saved Favorites' },
-          { key: 'history', label: 'No Past History' }
+          { key: 'tokens' as const, label: 'No Active Tokens' },
+          { key: 'search' as const, label: 'No Search Results' },
+          { key: 'favorites' as const, label: 'No Saved Favorites' },
+          { key: 'history' as const, label: 'No Past History' }
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
+            onClick={() => setActiveTab(tab.key)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
               activeTab === tab.key
                 ? 'bg-blue-600 text-white shadow-xs'
@@ -61,7 +61,7 @@ export default function EmptyStateShowcasePage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900">No Active Tokens</h3>
               <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-                You haven't joined any office queue today. Pick an office and generate a virtual token to skip physical lines.
+                You haven&apos;t joined any office queue today. Pick an office and generate a virtual token to skip physical lines.
               </p>
               <div className="pt-4">
                 <Link href="/citizen/token">
@@ -80,7 +80,7 @@ export default function EmptyStateShowcasePage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900">No Matching Results</h3>
               <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-                We couldn't find any government offices or services matching your query. Check spelling or try nearby locations.
+                We couldn&apos;t find any government offices or services matching your query. Check spelling or try nearby locations.
               </p>
               <div className="pt-4">
                 <Link href="/citizen/offices">

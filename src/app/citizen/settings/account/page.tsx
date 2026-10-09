@@ -60,8 +60,8 @@ export default function AccountSettingsPage() {
       } else {
         setError(json.message || 'Failed to save settings');
       }
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setSaving(false);
     }
@@ -75,7 +75,7 @@ export default function AccountSettingsPage() {
       const json = await res.json();
       if (json.success) {
         alert("Your account has been deactivated.");
-        window.location.href = '/login';
+        router.push('/login');
       } else {
         alert(json.message || "Failed to deactivate account.");
       }

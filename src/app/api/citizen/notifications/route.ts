@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import { Notification } from '@/models/Notification';
 import { getUserFromCookie } from '@/lib/auth';
@@ -8,14 +9,17 @@ export async function GET(req: NextRequest) {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category'); // QUEUE, TOKEN, OFFICE, SYSTEM, ALL
 
-    const filter: any = { userId: user.userId };
+    const filter: Record<string, unknown> = { userId: user.userId };
     if (category && category !== 'ALL') {
       filter.type = category.toUpperCase();
     }
@@ -37,9 +41,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Notifications API GET error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -48,8 +52,11 @@ export async function PATCH(req: NextRequest) {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -60,8 +67,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'All notifications marked as read' });
     }
 
-    if (!notificationId) {
-      return NextResponse.json({ success: false, message: 'Notification ID required' }, { status: 400 });
+    if (!notificationId || !mongoose.Types.ObjectId.isValid(notificationId)) {
+      return NextResponse.json({ success: false, message: 'Valid Notification ID required' }, { status: 400 });
     }
 
     const updated = await Notification.findOneAndUpdate(
@@ -76,9 +83,9 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Notification marked as read', data: updated });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Notifications API PATCH error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -87,15 +94,18 @@ export async function DELETE(req: NextRequest) {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json({ success: false, message: 'Notification ID required' }, { status: 400 });
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Valid Notification ID required' }, { status: 400 });
     }
 
     const deleted = await Notification.findOneAndDelete({ _id: id, userId: user.userId });
@@ -105,8 +115,8 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Notification deleted' });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Notifications API DELETE error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

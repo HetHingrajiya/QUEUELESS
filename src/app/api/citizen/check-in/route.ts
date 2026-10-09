@@ -1,37 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
 import { QueueEvent } from '@/models/QueueEvent';
-import { Office } from '@/models/Office';
 import { getUserFromCookie } from '@/lib/auth';
 import { calculateDistanceKm } from '@/lib/geo/distance';
+import { createAuditLog } from '@/lib/auditLogger';
+import { canCheckIn, QueueEventTypes } from '@/lib/queue';
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
+    if (!user || !user.userId) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json();
-    const { tokenId, tokenNumber, officeId, lat, lon } = body;
+    const { tokenId, tokenNumber, lat, lon } = body;
 
     let token = null;
     if (tokenId) {
+      if (!mongoose.Types.ObjectId.isValid(tokenId)) {
+        return NextResponse.json({ success: false, message: 'Invalid token ID' }, { status: 400 });
+      }
       token = await Token.findById(tokenId).populate('officeId').populate('serviceId');
-    } else if (tokenNumber) {
+    } else if (tokenNumber && typeof tokenNumber === 'string') {
       token = await Token.findOne({
         tokenNumber: tokenNumber.toUpperCase().trim(),
         citizenId: user.userId,
-        status: { $in: [TokenStatus.WAITING, TokenStatus.CHECKED_IN] }
+        status: { $in: [TokenStatus.WAITING, TokenStatus.CALLED, TokenStatus.CHECKED_IN] }
       }).populate('officeId').populate('serviceId');
     } else {
-      // Find current active waiting token for this citizen
+      // Find current active waiting or called token for this authenticated citizen
       token = await Token.findOne({
         citizenId: user.userId,
-        status: TokenStatus.WAITING
+        status: { $in: [TokenStatus.WAITING, TokenStatus.CALLED] }
       }).populate('officeId').populate('serviceId').sort({ createdAt: -1 });
     }
 
@@ -43,7 +51,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Forbidden: You do not own this token' }, { status: 403 });
     }
 
-    if (token.status === TokenStatus.CHECKED_IN) {
+    const checkInValidation = canCheckIn(token.status);
+    if (!checkInValidation.allowed) {
+      return NextResponse.json({
+        success: false,
+        message: checkInValidation.reason || 'Token cannot be checked in'
+      }, { status: 400 });
+    }
+
+    if (checkInValidation.isIdempotent) {
       return NextResponse.json({
         success: true,
         message: 'Token is already checked in',
@@ -77,8 +93,45 @@ export async function POST(req: NextRequest) {
       tokenId: token._id,
       officeId: token.officeId?._id,
       serviceId: token.serviceId?._id,
-      eventType: 'CHECKED_IN'
+      eventType: QueueEventTypes.CHECKED_IN
     });
+
+    await createAuditLog({
+      action: 'CHECK_IN',
+      module: 'CITIZEN_QUEUE',
+      description: `Citizen checked in for token ${token.tokenNumber}`,
+      entityType: 'Token',
+      entityId: token._id.toString(),
+      userId: user.userId,
+      userRole: user.role,
+      officeId: token.officeId?._id?.toString(),
+      request: req
+    });
+
+    try {
+      const { getSocket } = await import('@/lib/socketClient');
+      const socket = getSocket();
+      const officeIdStr = token.officeId?._id?.toString();
+      const tokenIdStr = token._id.toString();
+
+      socket.emit('queue:action', { 
+        action: 'CHECK_IN', 
+        officeId: officeIdStr, 
+        tokenId: tokenIdStr, 
+        status: token.status 
+      });
+      socket.emit('queue:updated', { 
+        officeId: officeIdStr, 
+        serviceId: token.serviceId?._id?.toString() 
+      });
+      socket.emit('token:checked_in', { 
+        tokenId: tokenIdStr, 
+        tokenNumber: token.tokenNumber,
+        officeId: officeIdStr 
+      });
+    } catch {
+      // socket broadcast optional
+    }
 
     return NextResponse.json({
       success: true,
@@ -92,8 +145,8 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Check-In API error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

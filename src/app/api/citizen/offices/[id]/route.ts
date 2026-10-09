@@ -1,36 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import { Office } from '@/models/Office';
 import { Service } from '@/models/Service';
-import { Token } from '@/models/Token';
+import { Counter } from '@/models/Counter';
 import { getUserFromCookie } from '@/lib/auth';
-import mongoose from 'mongoose';
+import { QueueMetricsService } from '@/lib/queue';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await dbConnect();
     const user = await getUserFromCookie();
 
-    if (!user || user.role !== 'CITIZEN') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
+    if (!user || !user.userId) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+    if (user.role !== 'CITIZEN') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
     const { id } = await params;
 
-    let office: any = null;
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      office = await Office.findById(id).lean();
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'Invalid Office ID' }, { status: 400 });
     }
-    if (!office) {
-      office = await Office.findOne({ isActive: true }).lean();
-    }
-    
+
+    const office = await Office.findOne({ _id: id, status: 'ACTIVE' }).lean();
     if (!office) {
       return NextResponse.json({ success: false, message: 'Office not found' }, { status: 404 });
     }
 
     // Get active counters for this office
-    const { Counter } = await import('@/models/Counter');
     const activeCounters = await Counter.find({ officeId: id, status: 'ACTIVE' }).lean();
     
     // Collect all serviceIds from active counters
@@ -42,24 +42,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     let services = await Service.find({ officeId: id, status: 'ACTIVE' }).lean();
     services = services.filter(service => activeServiceIds.has(service._id.toString()));
 
-    // Map services with live stats
+    // Map services with live stats using QueueMetricsService
     const servicesWithStats = await Promise.all(services.map(async (service) => {
-      // Find total active tokens for this service
-      const waitingCount = await Token.countDocuments({
-        serviceId: service._id,
-        status: { $in: ['WAITING', 'CHECKED_IN'] }
-      });
-      
-      // Simulate estimated time based on average service time
-      const estimatedTime = waitingCount * (service.averageServiceTime || 5);
-
+      const metrics = await QueueMetricsService.getServiceMetrics(id, service._id);
       return {
         _id: service._id,
         name: service.name,
         description: service.description,
-        averageServiceTime: service.averageServiceTime,
-        waitingCount,
-        estimatedTime
+        averageServiceTime: metrics.averageServiceTimeMinutes,
+        waitingCount: metrics.waitingCount,
+        estimatedTime: metrics.estimatedWaitMinutes,
+        activeCounters: metrics.activeCountersCount,
+        queueLoad: metrics.queueLoad.level
       };
     }));
 
@@ -81,8 +75,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Citizen Office Details API error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

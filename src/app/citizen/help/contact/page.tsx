@@ -11,6 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SupportTicket, ApiResponse } from '@/types/citizen';
 
 export default function ContactSupportPage() {
   const router = useRouter();
@@ -18,24 +19,27 @@ export default function ContactSupportPage() {
   const [category, setCategory] = useState('General Inquiry');
   const [ticketMessage, setTicketMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submittedTicket, setSubmittedTicket] = useState<any>(null);
-  const [existingTickets, setExistingTickets] = useState<any[]>([]);
+  const [submittedTicket, setSubmittedTicket] = useState<SupportTicket | null>(null);
+  const [existingTickets, setExistingTickets] = useState<SupportTicket[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTickets = async () => {
     try {
       const res = await fetch('/api/citizen/support');
-      const json = await res.json();
-      if (json.success) {
-        setExistingTickets(json.data || []);
+      const json: ApiResponse<SupportTicket[]> = await res.json();
+      if (json.success && json.data) {
+        setExistingTickets(json.data);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
     }
   };
 
   useEffect(() => {
-    fetchTickets();
+    const timer = setTimeout(() => {
+      fetchTickets();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,8 +56,8 @@ export default function ContactSupportPage() {
           message: ticketMessage
         })
       });
-      const json = await res.json();
-      if (json.success) {
+      const json: ApiResponse<SupportTicket> = await res.json();
+      if (json.success && json.data) {
         setSubmittedTicket(json.data);
         setTicketSubject('');
         setTicketMessage('');
@@ -61,8 +65,8 @@ export default function ContactSupportPage() {
       } else {
         setError(json.message || 'Failed to submit ticket');
       }
-    } catch (err: any) {
-      setError(err.message || 'Submission error');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Submission error');
     } finally {
       setSubmitting(false);
     }

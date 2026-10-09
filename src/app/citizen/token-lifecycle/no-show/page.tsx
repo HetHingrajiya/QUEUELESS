@@ -1,30 +1,49 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { 
-  AlertTriangle, RefreshCw, ArrowRight, HelpCircle 
-} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CitizenToken, ApiResponse, CitizenQueueSummary } from '@/types/citizen';
 
-export default function TokenNoShowPage() {
-  const [tokenData, setTokenData] = useState<any>(null);
+function TokenNoShowContent() {
+  const searchParams = useSearchParams();
+  const tokenIdParam = searchParams ? searchParams.get('tokenId') : null;
+
+  const [tokenData, setTokenData] = useState<CitizenToken | null>(null);
 
   useEffect(() => {
-    fetch('/api/citizen/token-history?status=NO_SHOW')
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.data && res.data.length > 0) {
-          setTokenData(res.data[0]);
+    const fetchNoShowToken = async () => {
+      try {
+        if (tokenIdParam) {
+          const res = await fetch(`/api/citizen/queue/${tokenIdParam}`);
+          const json: ApiResponse<CitizenQueueSummary> = await res.json();
+          if (json.success && json.data?.token) {
+            setTokenData(json.data.token);
+            return;
+          }
         }
-      })
-      .catch(() => {});
-  }, []);
 
-  const tokenNumber = tokenData?.tokenNumber || 'A-001';
-  const serviceName = tokenData?.serviceName || 'Government Service';
-  const officeName = tokenData?.officeName || 'Government Office';
+        const histRes = await fetch('/api/citizen/token-history?status=NO_SHOW');
+        const histJson: ApiResponse<CitizenToken[]> = await histRes.json();
+        if (histJson.success && histJson.data && histJson.data.length > 0) {
+          setTokenData(histJson.data[0]);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchNoShowToken();
+  }, [tokenIdParam]);
+
+  const tokenNumber = tokenData?.tokenNumber || 'Data unavailable';
+  const serviceName = tokenData?.serviceName || 'Data unavailable';
+  const officeName = tokenData?.officeName || 'Data unavailable';
+  const actualStatus = tokenData?.status || 'NO_SHOW';
+  const recordedTime = tokenData?.endTime || tokenData?.callTime || tokenData?.updatedAt;
 
   return (
     <div className="space-y-6 pb-20 max-w-md mx-auto pt-6 text-center">
@@ -37,9 +56,11 @@ export default function TokenNoShowPage() {
         <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
           Screen 30 • Token Lifecycle
         </span>
-        <h1 className="text-2xl font-black text-slate-900 mt-2">Token Marked as No-Show</h1>
+        <h1 className="text-2xl font-black text-slate-900 mt-2">
+          {actualStatus === 'SKIPPED' ? 'Token Skipped' : 'Token Marked as No-Show'}
+        </h1>
         <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-          The reporting grace period expired before you reported to the assigned counter.
+          The reporting window passed before check-in was registered at the assigned counter.
         </p>
       </div>
 
@@ -54,7 +75,7 @@ export default function TokenNoShowPage() {
               <p className="text-xs font-semibold text-slate-600">{serviceName}</p>
             </div>
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 uppercase">
-              No Show
+              {actualStatus}
             </span>
           </div>
 
@@ -63,6 +84,23 @@ export default function TokenNoShowPage() {
               <span className="text-slate-400">Office:</span>
               <span className="font-semibold text-slate-800">{officeName}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Actual Status:</span>
+              <span className="font-bold text-amber-700">{actualStatus}</span>
+            </div>
+            {recordedTime && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Timestamp:</span>
+                <span className="font-medium text-slate-800">
+                  {new Date(recordedTime).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Re-Entry Policy:</span>
               <span className="font-bold text-emerald-600">Re-book allowed immediately</span>
@@ -85,5 +123,13 @@ export default function TokenNoShowPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function TokenNoShowPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading token details...</div>}>
+      <TokenNoShowContent />
+    </Suspense>
   );
 }
