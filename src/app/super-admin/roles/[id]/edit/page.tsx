@@ -4,11 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Type, AlignLeft, Shield, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 const editRoleSchema = z.object({
@@ -87,63 +83,136 @@ export default function EditRole({ params }: { params: Promise<{ id: string }> }
   if (isFetching) {
     return (
       <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+        <div className="w-16 h-16 rounded-2xl bg-background shadow-neu flex items-center justify-center">
+          <Loader2 className="animate-spin text-primary" size={24} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto pb-12 p-6">
-      <div className="flex items-center mb-6">
-        <Link href="/super-admin/roles" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-          <ArrowLeft size={20} />
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex items-center mb-8 px-4 sm:px-6 lg:px-8">
+        <Link href="/super-admin/roles">
+          <button className="w-12 h-12 mr-4 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-full transition-all text-muted-foreground hover:text-foreground shrink-0 border-0">
+            <ArrowLeft size={20} />
+          </button>
         </Link>
-        <h2 className="text-2xl font-bold text-slate-800">Edit Custom Role</h2>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{isSystem ? 'View System Role' : 'Edit Custom Role'}</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold">{isSystem ? 'System roles cannot be modified.' : 'Update custom access role.'}</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Role Details</CardTitle>
-          <CardDescription>Update custom access role.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isSystem && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg">
-              This is a system-defined role. You cannot modify it.
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 px-4 sm:px-6 lg:px-8">
+        
+        {/* Left Column: Context Graphic */}
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-10 text-center border-0 flex flex-col items-center justify-center min-h-[400px]">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8">System Access</p>
+            
+            <div className="w-32 h-32 rounded-[2rem] bg-background shadow-neu-inset flex items-center justify-center mb-8 relative">
+              <div className="absolute inset-0 bg-primary/10 rounded-[2rem] blur-xl" />
+              <Shield size={48} className="text-primary relative z-10" />
             </div>
-          )}
-          
-          <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); if(!isSystem) handleSubmit(onSubmit)(e); }}>
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-                {error}
+
+            <h3 className="text-xl font-black text-foreground mb-3">Role Profile</h3>
+            <p className="text-sm font-semibold text-muted-foreground">
+              {isSystem ? 'Review the properties of this system-defined role.' : 'Modify the properties of this custom access role.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Right Column: Form */}
+        <div className="lg:col-span-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+            {isSystem && (
+              <div className="mb-8 p-4 bg-background shadow-neu-inset border-0 rounded-2xl flex items-center gap-3">
+                <AlertTriangle size={20} className="text-blue-500" />
+                <p className="text-sm font-bold text-blue-500">This is a system-defined role. You cannot modify it.</p>
               </div>
             )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="name">Role Name</Label>
-              <Input id="name" {...register('name')} disabled={isSystem} className="uppercase" />
-              {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input id="description" {...register('description')} disabled={isSystem} />
-            </div>
-
-            <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
-              <Link href="/super-admin/roles">
-                <Button variant="outline" type="button">Cancel</Button>
-              </Link>
-              {!isSystem && (
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving...</> : 'Save Changes'}
-                </Button>
+          
+            <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); if(!isSystem) handleSubmit(onSubmit)(e); }}>
+              
+              {error && (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-bold flex items-center justify-center">
+                  {error}
+                </div>
               )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              
+              <div className="grid grid-cols-1 gap-8">
+                {/* Role Name */}
+                <div className="space-y-3">
+                  <label htmlFor="name" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-2">
+                    Role Name
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Type size={18} className="text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    </div>
+                    <input 
+                      id="name" 
+                      {...register('name')} 
+                      disabled={isSystem}
+                      className="w-full h-14 pl-12 pr-4 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border-0 placeholder:text-muted-foreground/50 uppercase disabled:opacity-70 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  {errors.name && <p className="text-xs font-bold text-red-500 ml-2">{errors.name.message}</p>}
+                </div>
+
+                {/* Description */}
+                <div className="space-y-3">
+                  <label htmlFor="description" className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-2">
+                    Description
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <AlignLeft size={18} className="text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    </div>
+                    <input 
+                      id="description" 
+                      {...register('description')} 
+                      disabled={isSystem}
+                      className="w-full h-14 pl-12 pr-4 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border-0 placeholder:text-muted-foreground/50 disabled:opacity-70 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-8">
+                <Link href="/super-admin/roles" className="w-full sm:w-auto">
+                  <button type="button" className="w-full sm:w-auto h-14 px-8 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-sm font-black tracking-widest text-slate-500 hover:text-foreground transition-all border-0">
+                    {isSystem ? 'BACK TO ROLES' : 'CANCEL'}
+                  </button>
+                </Link>
+                {!isSystem && (
+                  <button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="w-full sm:w-auto h-14 px-8 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-sm font-black tracking-widest text-primary flex items-center justify-center transition-all border-0 disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="animate-spin w-5 h-5" />
+                    ) : (
+                      <>
+                        <Save size={18} className="mr-2" />
+                        SAVE CHANGES
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

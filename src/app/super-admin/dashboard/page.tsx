@@ -59,7 +59,6 @@ async function getDashboardStats() {
     ]),
   ]);
 
-  // Calculate average waiting time for completed tokens today
   const completedDocs = await Token.find({ 
     createdAt: { $gte: today }, 
     status: TokenStatus.COMPLETED,
@@ -109,28 +108,38 @@ export default async function SuperAdminDashboard() {
   const stats = await getDashboardStats();
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        {/* Row 1: System Stats */}
-        <StatCard title="Organizations" value={stats.totalOrgs} icon={<Building2 size={20} className="text-blue-500" />} />
-        <StatCard title="Offices" value={stats.totalOffices} icon={<MapPin size={20} className="text-green-500" />} />
-        <StatCard title="Admins" value={stats.totalAdmins} icon={<UserCog size={20} className="text-purple-500" />} />
-        <StatCard title="Staff" value={stats.totalStaff} icon={<Users size={20} className="text-orange-500" />} />
-        <StatCard title="Citizens" value={stats.totalCitizens} icon={<User size={20} className="text-pink-500" />} />
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Dashboard Overview</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">Real-time statistics across the Queueless platform.</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        {/* Row 2: Today's Queue Stats */}
-        <StatCard title="Today's Tokens" value={stats.todaysTokens} icon={<Ticket size={20} className="text-blue-600" />} />
-        <StatCard title="Completed" value={stats.completedTokens} icon={<CheckCircle2 size={20} className="text-emerald-500" />} />
-        <StatCard title="Waiting" value={stats.waitingTokens} icon={<Clock size={20} className="text-amber-500" />} />
-        <StatCard title="Avg Wait Time" value={`${stats.avgWaitTimeMinutes} min`} icon={<Timer size={20} className="text-indigo-500" />} />
-        <StatCard title="No-Show Rate" value={`${stats.noShowRate}%`} icon={<XCircle size={20} className="text-red-500" />} />
-      </div>
+      <div className="px-4 sm:px-6 lg:px-8 space-y-6 lg:space-y-8">
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {/* Row 1: System Stats */}
+            <StatCard title="Organizations" value={stats.totalOrgs} icon={<Building2 size={20} className="text-blue-500" />} />
+            <StatCard title="Offices" value={stats.totalOffices} icon={<MapPin size={20} className="text-green-500" />} />
+            <StatCard title="Admins" value={stats.totalAdmins} icon={<UserCog size={20} className="text-purple-500" />} />
+            <StatCard title="Staff" value={stats.totalStaff} icon={<Users size={20} className="text-orange-500" />} />
+            <StatCard title="Citizens" value={stats.totalCitizens} icon={<User size={20} className="text-pink-500" />} />
+         </div>
 
-      {/* Charts Section */}
-      <DashboardCharts hourlyData={stats.hourlyData} serviceData={stats.serviceData} />
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {/* Row 2: Today's Queue Stats */}
+            <StatCard title="Today's Tokens" value={stats.todaysTokens} icon={<Ticket size={20} className="text-blue-600" />} />
+            <StatCard title="Completed" value={stats.completedTokens} icon={<CheckCircle2 size={20} className="text-emerald-500" />} />
+            <StatCard title="Waiting" value={stats.waitingTokens} icon={<Clock size={20} className="text-amber-500" />} />
+            <StatCard title="Avg Wait Time" value={`${stats.avgWaitTimeMinutes} min`} icon={<Timer size={20} className="text-indigo-500" />} />
+            <StatCard title="No-Show Rate" value={`${stats.noShowRate}%`} icon={<XCircle size={20} className="text-red-500" />} />
+         </div>
+
+         {/* Charts Section */}
+         <DashboardCharts hourlyData={stats.hourlyData} serviceData={stats.serviceData} />
+      </div>
     </div>
   );
 }
-

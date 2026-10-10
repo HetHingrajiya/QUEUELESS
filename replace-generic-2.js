@@ -1,4 +1,7 @@
-"use client";
+const fs = require('fs');
+const path = require('path');
+
+const template = `"use client";
 import { useState, useEffect } from 'react';
 import { Loader2, Activity } from 'lucide-react';
 
@@ -45,3 +48,32 @@ export default function GenericGeneratedPage() {
     </div>
   );
 }
+`;
+
+function walkDir(dir) {
+  let results = [];
+  const list = fs.readdirSync(dir);
+  list.forEach(function(file) {
+    file = path.join(dir, file);
+    const stat = fs.statSync(file);
+    if (stat && stat.isDirectory()) { 
+      results = results.concat(walkDir(file));
+    } else {
+      if (file.endsWith('page.tsx')) {
+        results.push(file);
+      }
+    }
+  });
+  return results;
+}
+
+const srcDir = path.join(__dirname, 'src', 'app', 'super-admin');
+const files = walkDir(srcDir);
+
+files.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  if (content.includes('export default function GenericGeneratedPage')) {
+    console.log('Updating:', file);
+    fs.writeFileSync(file, template, 'utf8');
+  }
+});

@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, BarChart3, PieChart as PieChartIcon, Building2, Activity, Users, Clock, Ticket, AlertTriangle, ServerCog } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import { Token, TokenStatus } from '@/models/Token';
@@ -119,68 +118,211 @@ async function getAnalyticsData() {
 }
 
 function Metric({ title, value, note, icon }: { title: string; value: string | number; note: string; icon: React.ReactNode }) {
-  return <Card><CardContent className="flex items-start gap-3 p-5"><div className="rounded-xl bg-blue-50 p-3 text-blue-600">{icon}</div><div className="min-w-0"><p className="text-sm text-slate-500">{title}</p><p className="mt-1 text-2xl font-bold text-slate-900">{value}</p><p className="mt-1 text-xs text-slate-400">{note}</p></div></CardContent></Card>;
+  return (
+    <div className="bg-background shadow-neu rounded-[2rem] p-6 flex items-start gap-4 h-full border-0">
+      <div className="w-12 h-12 rounded-xl bg-background shadow-neu-inset flex items-center justify-center text-primary shrink-0">
+         {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{title}</p>
+         <p className="mt-1 text-2xl font-black text-foreground truncate">{value}</p>
+         <p className="mt-1 text-[11px] font-bold text-slate-400 truncate">{note}</p>
+      </div>
+    </div>
+  );
 }
 
 function Breakdown({ rows, total, empty, columns = false }: { rows: { name: string; total?: number; completed?: number; noShow?: number; count?: number }[]; total?: number; empty: string; columns?: boolean }) {
-  if (!rows.length) return <div className="flex h-32 items-center justify-center text-sm text-slate-500">{empty}</div>;
+  if (!rows.length) return <div className="flex h-32 items-center justify-center text-xs font-bold text-slate-500 bg-background shadow-neu-inset rounded-2xl">{empty}</div>;
   const max = Math.max(1, ...rows.map((row) => row.total ?? row.count ?? 0));
-  return <div className="space-y-4">{rows.map((row) => {
-    const value = row.total ?? row.count ?? 0;
-    return <div key={row.name} className="space-y-1.5">
-      <div className="flex items-center justify-between gap-3 text-sm"><span className="truncate font-medium text-slate-700">{row.name}</span><span className="shrink-0 text-slate-500">{value.toLocaleString()} tokens{total ? ` · ${((value / total) * 100).toFixed(1)}%` : ''}</span></div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-blue-500" style={{ width: `${(value / max) * 100}%` }} /></div>
-      {columns && <div className="flex gap-4 text-xs text-slate-500"><span>Completed: {row.completed ?? 0}</span><span>No-show: {row.noShow ?? 0}</span></div>}
-    </div>;
-  })}</div>;
+  return (
+    <div className="space-y-6">
+      {rows.map((row) => {
+         const value = row.total ?? row.count ?? 0;
+         return (
+            <div key={row.name} className="space-y-2">
+               <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="truncate font-bold text-foreground text-xs">{row.name}</span>
+                  <span className="shrink-0 text-xs font-black text-slate-500">{value.toLocaleString()} tokens{total ? ` · ${((value / total) * 100).toFixed(1)}%` : ''}</span>
+               </div>
+               <div className="h-3 overflow-hidden rounded-full bg-background shadow-neu-inset p-0.5">
+                  <div className="h-full rounded-full bg-primary shadow-sm transition-all" style={{ width: `${(value / max) * 100}%` }} />
+               </div>
+               {columns && (
+                  <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                     <span className="text-emerald-500">Completed: {row.completed ?? 0}</span>
+                     <span className="text-red-400">No-show: {row.noShow ?? 0}</span>
+                  </div>
+               )}
+            </div>
+         );
+      })}
+    </div>
+  );
 }
 
 export default async function AnalyticsPage() {
   const data = await getAnalyticsData();
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-900">System Analytics</h1><p className="text-sm text-slate-500">Platform-wide operational insights calculated from stored SamaySetu records.</p></div>
-        <Link href="/super-admin/reports" className="inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"><Download size={16} className="mr-2" /> Generate / View Reports</Link>
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">System Analytics</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">Platform-wide operational insights.</p>
+        </div>
+        
+        <Link href="/super-admin/reports">
+          <button className="h-12 px-6 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all border-0">
+            <Download size={16} className="mr-2" /> GENERATE REPORTS
+          </button>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric title="Total Tokens" value={data.totalTokens.toLocaleString()} note="All stored token records" icon={<Ticket size={20} />} />
-        <Metric title="Completion Rate" value={`${data.completionRate.toFixed(1)}%`} note={`${data.completedCount.toLocaleString()} completed`} icon={<Activity size={20} />} />
-        <Metric title="Average Wait" value={data.avgWait === null ? '—' : `${data.avgWait.toFixed(1)} min`} note="Only valid recorded timestamps" icon={<Clock size={20} />} />
-        <Metric title="No-show Rate" value={`${data.noShowRate.toFixed(1)}%`} note={`${data.noShowCount.toLocaleString()} no-show tokens`} icon={<AlertTriangle size={20} />} />
-        <Metric title="Organizations" value={data.organizations.toLocaleString()} note="Registered organizations" icon={<Building2 size={20} />} />
-        <Metric title="Active Offices" value={`${data.activeOffices} / ${data.offices}`} note="Active vs total offices" icon={<Building2 size={20} />} />
-        <Metric title="Active Counters" value={data.activeCounters.toLocaleString()} note="Counters currently marked active" icon={<ServerCog size={20} />} />
-        <Metric title="Active Workforce" value={(data.totalAdmins + data.totalStaff).toLocaleString()} note={`${data.totalAdmins} admins · ${data.totalStaff} staff`} icon={<Users size={20} />} />
+      <div className="px-4 sm:px-6 lg:px-8 space-y-6 lg:space-y-8">
+         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <Metric title="Total Tokens" value={data.totalTokens.toLocaleString()} note="All stored token records" icon={<Ticket size={20} />} />
+            <Metric title="Completion Rate" value={`${data.completionRate.toFixed(1)}%`} note={`${data.completedCount.toLocaleString()} completed`} icon={<Activity size={20} />} />
+            <Metric title="Average Wait" value={data.avgWait === null ? '—' : `${data.avgWait.toFixed(1)} min`} note="Only valid recorded timestamps" icon={<Clock size={20} />} />
+            <Metric title="No-show Rate" value={`${data.noShowRate.toFixed(1)}%`} note={`${data.noShowCount.toLocaleString()} no-show tokens`} icon={<AlertTriangle size={20} />} />
+            <Metric title="Organizations" value={data.organizations.toLocaleString()} note="Registered organizations" icon={<Building2 size={20} />} />
+            <Metric title="Active Offices" value={`${data.activeOffices} / ${data.offices}`} note="Active vs total offices" icon={<Building2 size={20} />} />
+            <Metric title="Active Counters" value={data.activeCounters.toLocaleString()} note="Counters currently marked active" icon={<ServerCog size={20} />} />
+            <Metric title="Active Workforce" value={(data.totalAdmins + data.totalStaff).toLocaleString()} note={`${data.totalAdmins} admins · ${data.totalStaff} staff`} icon={<Users size={20} />} />
+         </div>
+
+         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0 flex flex-col h-full">
+               <div className="flex items-center justify-between mb-8">
+                  <div>
+                     <h2 className="text-lg font-black text-foreground">7-Day Token Trend</h2>
+                     <p className="text-xs font-bold text-muted-foreground mt-1">Daily tokens created and completed</p>
+                  </div>
+                  <BarChart3 className="text-slate-300 shrink-0" size={24} />
+               </div>
+               
+               {data.days.every((item) => item.count === 0) ? (
+                  <div className="flex flex-1 items-center justify-center text-xs font-bold text-slate-500 bg-background shadow-neu-inset rounded-[1.5rem] min-h-[200px]">
+                     No token activity in the last seven days.
+                  </div>
+               ) : (
+                  <div className="flex-1 bg-background shadow-neu-inset rounded-[1.5rem] p-6 flex flex-col justify-end">
+                     <div className="flex h-48 items-end gap-2 md:gap-4 border-b-2 border-primary/5 pb-2">
+                        {data.days.map((item) => (
+                           <div key={item.key} title={`${item.label}: ${item.count} created, ${item.completed} completed`} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2 group">
+                              <span className="text-[10px] font-black text-slate-400 group-hover:text-primary transition-colors">{item.count || ''}</span>
+                              <div className="flex h-full w-full items-end justify-center gap-0.5 md:gap-1">
+                                 <div className="w-1/2 rounded-t-md bg-blue-400 transition-all group-hover:bg-blue-500" style={{ height: item.count ? `${Math.max(4, item.count / data.maxDailyCount * 85)}%` : '0%' }} />
+                                 <div className="w-1/2 rounded-t-md bg-emerald-400 transition-all group-hover:bg-emerald-500" style={{ height: item.completed ? `${Math.max(4, item.completed / data.maxDailyCount * 85)}%` : '0%' }} />
+                              </div>
+                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-foreground transition-colors">{item.label}</span>
+                           </div>
+                        ))}
+                     </div>
+                     <div className="mt-6 flex justify-center gap-6 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <span className="flex items-center"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-blue-500" />Created</span>
+                        <span className="flex items-center"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-500" />Completed</span>
+                     </div>
+                  </div>
+               )}
+            </div>
+
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0 flex flex-col h-full">
+               <div className="flex items-center justify-between mb-8">
+                  <div>
+                     <h2 className="text-lg font-black text-foreground">Today's Peak Hours</h2>
+                     <p className="text-xs font-bold text-muted-foreground mt-1">Token creation counts grouped by hour</p>
+                  </div>
+                  <BarChart3 className="text-slate-300 shrink-0" size={24} />
+               </div>
+               
+               {data.hours.every((item) => item.count === 0) ? (
+                  <div className="flex flex-1 items-center justify-center text-xs font-bold text-slate-500 bg-background shadow-neu-inset rounded-[1.5rem] min-h-[200px]">
+                     No token activity today.
+                  </div>
+               ) : (
+                  <div className="flex-1 bg-background shadow-neu-inset rounded-[1.5rem] p-4 flex flex-col justify-end overflow-x-auto custom-scrollbar">
+                     <div className="flex h-48 items-end gap-1 min-w-[500px] border-b-2 border-primary/5 pb-2">
+                        {data.hours.map((item) => (
+                           <div key={item.hour} title={`${item.label}: ${item.count} tokens`} className="flex h-full min-w-3 flex-1 flex-col items-center justify-end gap-1 group">
+                              <span className="text-[9px] font-black text-slate-300 group-hover:text-primary transition-colors">{item.count || ''}</span>
+                              <div className="w-full rounded-t-sm bg-indigo-300 transition-all group-hover:bg-indigo-500" style={{ height: item.count ? `${Math.max(4, item.count / data.maxHourlyCount * 85)}%` : '0%' }} />
+                              {item.hour % 3 === 0 ? <span className="whitespace-nowrap text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-foreground">{item.label}</span> : <span className="text-[9px] text-transparent leading-none">.</span>}
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+               )}
+            </div>
+
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+               <div className="flex items-center justify-between mb-8">
+                  <div>
+                     <h2 className="text-lg font-black text-foreground">Queue Status Breakdown</h2>
+                     <p className="text-xs font-bold text-muted-foreground mt-1">Current stored token statuses</p>
+                  </div>
+                  <PieChartIcon className="text-slate-300 shrink-0" size={24} />
+               </div>
+               
+               {data.statusCounts.length === 0 ? (
+                  <div className="flex h-32 items-center justify-center text-xs font-bold text-slate-500 bg-background shadow-neu-inset rounded-[1.5rem]">
+                     No token status records available.
+                  </div>
+               ) : (
+                  <div className="space-y-6">
+                     {data.statusCounts.map((item) => (
+                        <div key={item.name} className="space-y-2">
+                           <div className="flex justify-between gap-3 text-sm">
+                              <span className="font-bold text-foreground text-xs uppercase tracking-wider">{item.name.replaceAll('_', ' ')}</span>
+                              <span className="text-xs font-black text-slate-500">{item.count.toLocaleString()} · {data.totalTokens ? ((item.count / data.totalTokens) * 100).toFixed(1) : '0.0'}%</span>
+                           </div>
+                           <div className="h-3 rounded-full bg-background shadow-neu-inset p-0.5">
+                              <div className="h-full rounded-full bg-teal-400 transition-all" style={{ width: `${data.totalTokens ? item.count / data.totalTokens * 100 : 0}%` }} />
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               )}
+            </div>
+
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+               <h2 className="text-lg font-black text-foreground mb-1">Service Distribution</h2>
+               <p className="text-xs font-bold text-muted-foreground mb-8">Top services by total volume</p>
+               <Breakdown rows={data.serviceCounts} total={data.totalTokens} empty="No service-linked token data available." />
+            </div>
+
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+               <h2 className="text-lg font-black text-foreground mb-1">Office Performance</h2>
+               <p className="text-xs font-bold text-muted-foreground mb-8">Top offices by token volume</p>
+               <Breakdown rows={data.officeCounts} columns empty="No office-linked token data available." />
+            </div>
+
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+               <h2 className="text-lg font-black text-foreground mb-1">Organization Performance</h2>
+               <p className="text-xs font-bold text-muted-foreground mb-8">Platform-wide volume grouped by organization</p>
+               <Breakdown rows={data.orgCounts} columns empty="No organization-linked token data available." />
+            </div>
+         </div>
+
+         <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+            <h2 className="text-lg font-black text-foreground mb-6">Operational Notes</h2>
+            <div className="grid grid-cols-1 gap-6 text-sm text-foreground md:grid-cols-3">
+               <div className="rounded-[1.5rem] bg-background shadow-neu-inset p-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Live queue snapshot</p>
+                  <p className="font-bold text-slate-500">Waiting: <span className="text-foreground">{data.waitingCount.toLocaleString()}</span> · In service/called: <span className="text-foreground">{data.servingCount.toLocaleString()}</span> · Cancelled: <span className="text-foreground">{data.cancelledCount.toLocaleString()}</span></p>
+               </div>
+               <div className="rounded-[1.5rem] bg-background shadow-neu-inset p-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Service duration</p>
+                  <p className="font-bold text-slate-500">{data.avgService === null ? 'No valid service duration has been recorded yet.' : `Average recorded service duration: `}<span className="text-foreground">{data.avgService !== null && data.avgService.toFixed(1)}</span> {data.avgService !== null && 'minutes'}</p>
+               </div>
+               <div className="rounded-[1.5rem] bg-background shadow-neu-inset p-6">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Data transparency</p>
+                  <p className="font-bold text-slate-500">Charts use database records only. Missing timestamps or empty datasets are not replaced with sample values.</p>
+               </div>
+            </div>
+         </div>
       </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card><CardHeader><div className="flex items-center justify-between"><CardTitle>7-Day Token Trend</CardTitle><BarChart3 className="text-slate-400" size={20} /></div><p className="text-sm text-slate-500">Daily tokens created and completed, based on their stored timestamps.</p></CardHeader><CardContent>
-          {data.days.every((item) => item.count === 0) ? <div className="flex h-56 items-center justify-center text-sm text-slate-500">No token activity in the last seven days.</div> : <div className="flex h-64 items-end gap-3 border-b border-slate-100 px-1 pt-4">{data.days.map((item) => <div key={item.key} title={`${item.label}: ${item.count} created, ${item.completed} completed`} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2"><span className="text-xs text-slate-500">{item.count || ''}</span><div className="flex h-full w-full items-end justify-center gap-1"><div className="w-1/2 rounded-t bg-blue-500" style={{ height: item.count ? `${Math.max(4, item.count / data.maxDailyCount * 80)}%` : '0%' }} /><div className="w-1/2 rounded-t bg-emerald-500" style={{ height: item.completed ? `${Math.max(4, item.completed / data.maxDailyCount * 80)}%` : '0%' }} /></div><span className="text-[11px] text-slate-500">{item.label}</span></div>)}</div>}
-          <div className="mt-4 flex gap-4 text-xs text-slate-500"><span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-blue-500" />Created</span><span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-emerald-500" />Completed</span></div>
-        </CardContent></Card>
-
-        <Card><CardHeader><div className="flex items-center justify-between"><CardTitle>Today’s Peak Hours</CardTitle><BarChart3 className="text-slate-400" size={20} /></div><p className="text-sm text-slate-500">Token creation counts grouped by the hour recorded in MongoDB.</p></CardHeader><CardContent>
-          {data.hours.every((item) => item.count === 0) ? <div className="flex h-56 items-center justify-center text-sm text-slate-500">No token activity today.</div> : <div className="flex h-56 items-end gap-1 overflow-x-auto px-1 pt-3">{data.hours.map((item) => <div key={item.hour} title={`${item.label}: ${item.count} tokens`} className="flex h-full min-w-3 flex-1 flex-col items-center justify-end gap-1"><span className="text-[10px] text-slate-500">{item.count || ''}</span><div className="w-full rounded-t bg-indigo-500" style={{ height: item.count ? `${Math.max(4, item.count / data.maxHourlyCount * 75)}%` : '0%' }} />{item.hour % 3 === 0 ? <span className="whitespace-nowrap text-[10px] text-slate-500">{item.label}</span> : <span className="text-[10px] text-transparent">.</span>}</div>)}</div>}
-        </CardContent></Card>
-
-        <Card><CardHeader><div className="flex items-center justify-between"><CardTitle>Queue Status Breakdown</CardTitle><PieChartIcon className="text-slate-400" size={20} /></div><p className="text-sm text-slate-500">Current stored token statuses across the platform.</p></CardHeader><CardContent>
-          {data.statusCounts.length === 0 ? <div className="flex h-32 items-center justify-center text-sm text-slate-500">No token status records available.</div> : <div className="space-y-4">{data.statusCounts.map((item) => <div key={item.name} className="space-y-1"><div className="flex justify-between gap-3 text-sm"><span className="font-medium text-slate-700">{item.name.replaceAll('_', ' ')}</span><span className="text-slate-500">{item.count.toLocaleString()} · {data.totalTokens ? ((item.count / data.totalTokens) * 100).toFixed(1) : '0.0'}%</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-teal-500" style={{ width: `${data.totalTokens ? item.count / data.totalTokens * 100 : 0}%` }} /></div></div>)}</div>}
-        </CardContent></Card>
-
-        <Card><CardHeader><CardTitle>Service Distribution</CardTitle><p className="text-sm text-slate-500">Top services by total token volume.</p></CardHeader><CardContent><Breakdown rows={data.serviceCounts} total={data.totalTokens} empty="No service-linked token data available." /></CardContent></Card>
-
-        <Card><CardHeader><CardTitle>Office Performance</CardTitle><p className="text-sm text-slate-500">Top offices by token volume, including completed and no-show counts.</p></CardHeader><CardContent><Breakdown rows={data.officeCounts} columns empty="No office-linked token data available." /></CardContent></Card>
-
-        <Card><CardHeader><CardTitle>Organization Performance</CardTitle><p className="text-sm text-slate-500">Platform-wide token volume grouped by the office’s organization.</p></CardHeader><CardContent><Breakdown rows={data.orgCounts} columns empty="No organization-linked token data available." /></CardContent></Card>
-      </div>
-
-      <Card><CardHeader><CardTitle>Operational Notes</CardTitle><p className="text-sm text-slate-500">Interpretation and data-quality context.</p></CardHeader><CardContent className="grid grid-cols-1 gap-4 text-sm text-slate-600 md:grid-cols-3">
-        <div className="rounded-lg bg-slate-50 p-4"><p className="font-semibold text-slate-800">Live queue snapshot</p><p className="mt-1">Waiting: {data.waitingCount.toLocaleString()} · In service/called: {data.servingCount.toLocaleString()} · Cancelled: {data.cancelledCount.toLocaleString()}</p></div>
-        <div className="rounded-lg bg-slate-50 p-4"><p className="font-semibold text-slate-800">Service duration</p><p className="mt-1">{data.avgService === null ? 'No valid service duration has been recorded yet.' : `Average recorded service duration: ${data.avgService.toFixed(1)} minutes.`}</p></div>
-        <div className="rounded-lg bg-slate-50 p-4"><p className="font-semibold text-slate-800">Data transparency</p><p className="mt-1">Charts use database records only. Missing timestamps or empty datasets are not replaced with sample values.</p></div>
-      </CardContent></Card>
     </div>
   );
 }

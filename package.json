@@ -17,6 +17,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "firebase-admin": "^14.5.0",
+    "glob": "^13.0.6",
     "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.51.0",

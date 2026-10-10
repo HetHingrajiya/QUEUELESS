@@ -43,10 +43,10 @@ export default function OrganizationTypes() {
   };
 
   return (
-    <div className="space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Organization Types</h1>
           <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">Manage all available organization classifications.</p>
@@ -58,7 +58,8 @@ export default function OrganizationTypes() {
         </Link>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block px-4 sm:px-6 lg:px-8">
         <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
           
           {loading ? (
@@ -122,7 +123,6 @@ export default function OrganizationTypes() {
                               <Edit size={16} />
                             </button>
                           </Link>
-                          
                           <button 
                             className="w-10 h-10 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl transition-all border-0 text-red-400 hover:text-red-500" 
                             title="Delete"
@@ -138,9 +138,76 @@ export default function OrganizationTypes() {
               </table>
             </div>
           )}
-          
         </div>
       </div>
+
+      {/* Mobile/Tablet Card View */}
+      <div className="lg:hidden px-4 sm:px-6 w-full">
+        {loading ? (
+          <div className="flex justify-center items-center h-48 w-full">
+            <div className="w-16 h-16 rounded-2xl bg-background shadow-neu flex items-center justify-center">
+              <Loader2 className="animate-spin text-primary" size={24} />
+            </div>
+          </div>
+        ) : types.length === 0 ? (
+          <div className="bg-background shadow-neu-inset rounded-[2rem] p-10 flex flex-col items-center justify-center text-center w-full">
+            <div className="w-16 h-16 bg-background shadow-neu rounded-full flex items-center justify-center text-muted-foreground mb-4">
+              <ServerCog size={24} />
+            </div>
+            <h3 className="text-lg font-black text-foreground mb-2">No Organization Types</h3>
+            <p className="text-xs font-semibold text-muted-foreground mb-6">You haven't created any classifications yet.</p>
+            <Link href="/super-admin/organization-types/add">
+              <button className="h-10 px-6 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-full text-[10px] font-black uppercase tracking-widest text-primary transition-all border-0">
+                Create
+              </button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+            {types.map((type) => (
+              <div key={type._id} className="bg-background shadow-neu rounded-3xl p-5 flex flex-col gap-4 border border-primary/5 relative overflow-hidden w-full">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-background shadow-neu-inset flex items-center justify-center text-indigo-500 shrink-0">
+                      <Layers size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-black text-[13px] text-foreground truncate">{type.name}</h3>
+                      <p className="text-[11px] font-bold text-muted-foreground truncate mt-0.5">{type.description || 'No description'}</p>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest bg-background shadow-neu-inset ${
+                    type.status === 'ACTIVE' ? 'text-emerald-500' : 'text-amber-500'
+                  }`}>
+                    {type.status}
+                  </span>
+                </div>
+
+                <div className="h-px w-full bg-primary/5"></div>
+
+                <div className="flex justify-end gap-3">
+                  <Link href={`/super-admin/organization-types/${type._id}/edit`}>
+                    <button 
+                      className="w-10 h-10 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl transition-all border-0 text-slate-500 hover:text-primary" 
+                      title="Edit"
+                    >
+                      <Edit size={14} />
+                    </button>
+                  </Link>
+                  <button 
+                    className="w-10 h-10 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl transition-all border-0 text-red-400 hover:text-red-500" 
+                    title="Delete"
+                    onClick={() => handleDelete(type._id)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

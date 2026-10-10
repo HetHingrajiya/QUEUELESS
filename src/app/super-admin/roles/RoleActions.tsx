@@ -1,63 +1,58 @@
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Loader2 } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
-export function RoleActions({ roleId, isSystem }: { roleId: string, isSystem: boolean }) {
+export function RoleActions({ roleId, isSystem }: { roleId: string, isSystem?: boolean }) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    if (isSystem) {
-       alert('System roles cannot be deleted.');
-       return;
+    if (!confirm('Are you sure you want to delete this custom role?')) {
+      return;
     }
-    if (!confirm('Are you sure you want to delete this role?')) return;
     
     setIsDeleting(true);
     try {
       const res = await fetch(`/api/roles/${roleId}`, {
         method: 'DELETE',
       });
-      
-      const result = await res.json();
-      if (result.success) {
+      const data = await res.json();
+      if (data.success) {
         window.location.reload();
       } else {
-        alert(result.message || 'Failed to delete role');
+        alert(data.message || 'Failed to delete role');
       }
     } catch (error) {
-      alert('An error occurred while deleting');
+      console.error(error);
+      alert('An error occurred while deleting.');
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className="flex justify-end space-x-2">
-      <Link href={isSystem ? '#' : `/super-admin/roles/${roleId}/edit`}>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="h-8 w-8 p-0" 
-          title={isSystem ? "System roles cannot be edited" : "Edit"}
-          disabled={isSystem}
+    <div className="flex justify-end gap-3">
+      <Link href={`/super-admin/roles/${roleId}/edit`}>
+        <button 
+          className="w-10 h-10 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl transition-all border-0 text-slate-500 hover:text-primary" 
+          title={isSystem ? "View System Role" : "Edit Role"}
         >
-          <Edit size={14} className="text-slate-600" />
-        </Button>
+          <Edit size={16} />
+        </button>
       </Link>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 border-red-200" 
-        title={isSystem ? "System roles cannot be deleted" : "Delete"}
-        onClick={handleDelete}
-        disabled={isDeleting || isSystem}
-      >
-        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-      </Button>
+      
+      {!isSystem && (
+        <button 
+          className="w-10 h-10 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl transition-all border-0 text-red-400 hover:text-red-500 disabled:opacity-50" 
+          title="Delete Role"
+          onClick={handleDelete}
+          disabled={isDeleting}
+        >
+          <Trash2 size={16} />
+        </button>
+      )}
     </div>
   );
 }

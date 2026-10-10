@@ -1,8 +1,7 @@
 "use client";
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, Key } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
 
@@ -62,57 +61,81 @@ export function PermissionsClient({ initialRoles }: { initialRoles: any[] }) {
     }
   };
 
-  // SUPER_ADMIN always has all permissions, CITIZEN typically has none of these backend ones
   const filteredRoles = roles.filter(r => r.name !== 'SUPER_ADMIN' && r.name !== 'CITIZEN');
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Permissions Matrix</h2>
-          <p className="text-sm text-slate-500">Configure access levels for each system role.</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Permissions Matrix</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">Configure access levels for each system role.</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
+        
+        <button 
+          onClick={handleSave} 
+          disabled={isSaving}
+          className="h-12 px-6 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all border-0 disabled:opacity-50"
+        >
+          {isSaving ? <Loader2 size={18} className="mr-2 animate-spin" /> : <Save size={18} className="mr-2" />} 
           Save Changes
-        </Button>
+        </button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-slate-600">
-              <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+          <div className="w-full overflow-x-auto custom-scrollbar pb-4">
+            <table className="w-full text-left">
+              <thead>
                 <tr>
-                  <th scope="col" className="px-6 py-4">Permission</th>
-                  <th scope="col" className="px-6 py-4 text-center">SUPER_ADMIN (Default)</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Permission</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 text-center whitespace-nowrap">SUPER_ADMIN (Default)</th>
                   {filteredRoles.map(role => (
-                    <th key={role._id} scope="col" className="px-6 py-4 text-center">{role.name}</th>
+                    <th key={role._id} className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 text-center whitespace-nowrap">
+                      {role.name}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {AVAILABLE_PERMISSIONS.map((perm) => (
-                  <tr key={perm.id} className="bg-white border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-6 py-4 font-medium text-slate-900">{perm.name}</td>
-                    <td className="px-6 py-4 text-center">
-                      <Switch checked={true} disabled />
+                  <tr key={perm.id} className="group hover:bg-primary/5 transition-colors">
+                    <td className="px-6 py-5 border-b border-primary/5 transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-background shadow-neu-inset flex items-center justify-center text-primary shrink-0">
+                          <Key size={16} />
+                        </div>
+                        <span className="font-black text-sm text-foreground whitespace-nowrap">{perm.name}</span>
+                      </div>
                     </td>
-                    {filteredRoles.map(role => (
-                      <td key={role._id} className="px-6 py-4 text-center">
-                        <Switch 
-                          checked={(role.permissions || []).includes(perm.id)} 
-                          onCheckedChange={(checked) => handleToggle(role._id, perm.id, checked)}
-                        />
-                      </td>
-                    ))}
+                    <td className="px-6 py-5 border-b border-primary/5 transition-all text-center">
+                      <div className="inline-flex items-center justify-center">
+                         <div className="w-12 h-6 bg-primary rounded-full relative shadow-neu-inset opacity-50 cursor-not-allowed">
+                            <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-md"></div>
+                         </div>
+                      </div>
+                    </td>
+                    {filteredRoles.map(role => {
+                      const isChecked = (role.permissions || []).includes(perm.id);
+                      return (
+                        <td key={role._id} className="px-6 py-5 border-b border-primary/5 transition-all text-center">
+                          <div className="inline-flex items-center justify-center cursor-pointer group" onClick={() => handleToggle(role._id, perm.id, !isChecked)}>
+                            <div className={`w-12 h-6 rounded-full relative transition-all ${isChecked ? 'bg-primary shadow-neu' : 'bg-background shadow-neu-inset'}`}>
+                              <div className={`absolute top-1 w-4 h-4 rounded-full shadow-md transition-all ${isChecked ? 'right-1 bg-white' : 'left-1 bg-muted-foreground/30'}`}></div>
+                            </div>
+                          </div>
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+      
     </div>
   );
 }
