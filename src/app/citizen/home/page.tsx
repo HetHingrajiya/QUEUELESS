@@ -41,6 +41,11 @@ export default function CitizenHome() {
     const fetchHomeData = async () => {
       try {
         const res = await fetch('/api/citizen/home');
+        if (res.status === 401) {
+          // Not authenticated, redirect to login
+          router.replace('/login');
+          return;
+        }
         const json: ApiResponse<{ offices: CitizenOffice[]; activeToken: CitizenToken | null }> = await res.json();
         if (json.success && json.data) {
           setOffices(json.data.offices || []);

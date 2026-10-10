@@ -12,7 +12,7 @@ export default async function ProfilePage() {
   
   const authUser = await getUserFromCookie();
   if (!authUser) {
-    redirect('/auth/login');
+    redirect('/login');
   }
 
   const user = await UserModel.findById(authUser.userId)

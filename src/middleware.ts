@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Exempt auth routes if any happen to fall under these paths (e.g. login)
-  if (pathname.includes('/auth/login')) {
+  if (pathname.includes('/login')) {
     return NextResponse.next();
   }
 
@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
     if (isProtectedApi) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
-    const loginUrl = new URL('/auth/login', request.url);
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', encodeURI(request.url));
     return NextResponse.redirect(loginUrl);
   }
@@ -97,7 +97,7 @@ export async function middleware(request: NextRequest) {
     if (isSuperAdminApi) {
       return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
     }
-    const loginUrl = new URL('/auth/login', request.url);
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', encodeURI(request.url));
     // Clear invalid cookie
     const response = NextResponse.redirect(loginUrl);
