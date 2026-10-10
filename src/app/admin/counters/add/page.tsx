@@ -198,13 +198,15 @@ export default function AdminAddCounter() {
             <div className="space-y-2">
               <Label htmlFor="staff">Assign Staff</Label>
               <Select 
-                value={watch('staffId') || ""} 
+                value={watch('staffId') || "none"} 
                 onValueChange={(val: any) => setValue('staffId', val as string)} 
-                disabled={!watch('officeId') || staff.length === 0}
+                disabled={!watch('officeId')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={!watch('officeId') ? "Select an office first" : (staff.length === 0 ? "No staff found" : "Select staff")}>
-                    {staff.find(s => s._id === watch('staffId'))?.fullName}
+                    {watch('staffId') === 'none' || !watch('staffId')
+                      ? "Unassigned"
+                      : (staff.find(s => s._id === watch('staffId'))?.fullName || "Unassigned")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -214,6 +216,9 @@ export default function AdminAddCounter() {
                   ))}
                 </SelectContent>
               </Select>
+              {watch('officeId') && staff.length === 0 && (
+                <p className="text-xs text-amber-600">No staff currently in this office. You can <Link href="/admin/staff/add" className="underline font-medium">add staff</Link> or assign staff to this office.</p>
+              )}
             </div>
 
             <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">

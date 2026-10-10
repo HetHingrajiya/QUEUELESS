@@ -1,10 +1,13 @@
 import jwt from 'jsonwebtoken';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import * as jose from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return secret;
 }
 
 export interface TokenPayload {
@@ -15,25 +18,39 @@ export interface TokenPayload {
 }
 
 export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '1d' });
 }
 
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as unknown as TokenPayload;
+    return jwt.verify(token, getJwtSecret()) as unknown as TokenPayload;
   } catch (error) {
     return null;
   }
 }
 
 export async function getUserFromCookie(): Promise<TokenPayload | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
+  let token: string | undefined;
+
+  try {
+    const cookieStore = await cookies();
+    token = cookieStore.get('token')?.value;
+  } catch (_) {}
+
+  if (!token) {
+    try {
+      const headerStore = await headers();
+      const authHeader = headerStore.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7).trim();
+      }
+    } catch (_) {}
+  }
 
   if (!token) return null;
 
   try {
-    const secretKey = new TextEncoder().encode(JWT_SECRET);
+    const secretKey = new TextEncoder().encode(getJwtSecret());
     const { payload } = await jose.jwtVerify(token, secretKey);
     return payload as unknown as TokenPayload; // { userId, role, organizationId, officeId }
   } catch (error) {

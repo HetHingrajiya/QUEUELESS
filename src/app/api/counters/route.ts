@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       const { User, UserRole } = await import('@/models/User');
       const staff = await User.findById(body.staffId).lean();
       if (!staff || staff.role !== UserRole.STAFF || staff.status !== 'ACTIVE' ||
-          staff.officeId?.toString() !== body.officeId.toString() ||
+          (staff.officeId && staff.officeId?.toString() !== body.officeId.toString()) ||
           staff.organizationId?.toString() !== targetOrgId.toString()) {
         return NextResponse.json({ success: false, message: 'Assigned user must be active staff in this office and organization' }, { status: 400 });
       }
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
         await Counter.findByIdAndUpdate(previousCounter._id, { $set: { staffId: null } });
       }
       
-      await User.findByIdAndUpdate(body.staffId, { $set: { counterId: newCounter._id } });
+      await User.findByIdAndUpdate(body.staffId, { $set: { counterId: newCounter._id, officeId: body.officeId } });
     }
 
     await createAuditLog({

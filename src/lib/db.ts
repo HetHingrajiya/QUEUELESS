@@ -8,8 +8,6 @@ try {
   // Ignore in restricted environments
 }
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-
 import '@/models/User';
 import '@/models/Organization';
 import '@/models/Office';
@@ -18,11 +16,6 @@ import '@/models/Counter';
 import '@/models/Token';
 import '@/models/AuditLog';
 
-if (!MONGODB_URI) {
-  throw new Error(
-    'Please define the MONGODB_URI environment variable inside .env.local'
-  );
-}
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -40,6 +33,13 @@ if (!global.mongooseCache) {
 }
 
 async function dbConnect() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error(
+      'Please define the MONGODB_URI environment variable inside .env.local or your Vercel project settings'
+    );
+  }
+
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
@@ -51,7 +51,7 @@ async function dbConnect() {
       socketTimeoutMS: 45000,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts)
+    cached.promise = mongoose.connect(uri, opts)
       .then((m) => {
         return m;
       })

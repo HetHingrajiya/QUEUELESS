@@ -75,10 +75,11 @@ export default function AdminEditStaff({ params }: { params: Promise<{ id: strin
     setError('');
     
     try {
+      const payload = { ...data, officeId: (!data.officeId || data.officeId === 'none') ? null : data.officeId };
       const res = await fetch(`/api/staff/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       
       const result = await res.json();
@@ -173,7 +174,28 @@ export default function AdminEditStaff({ params }: { params: Promise<{ id: strin
                 <Input id="password" type="password" {...register('password')} placeholder="Leave blank to keep unchanged" />
                 {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="office">Assign Office</Label>
+                <Select 
+                  value={watch('officeId') || "none"} 
+                  onValueChange={(val: any) => setValue('officeId', val === 'none' ? undefined : val as string)} 
+                  disabled={offices.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select office">
+                      {offices.find(office => office._id === watch('officeId'))?.name || "None / Unassigned"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None / Unassigned</SelectItem>
+                    {offices.map(office => (
+                      <SelectItem key={office._id} value={office._id}>{office.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.officeId && <p className="text-sm text-red-600">{errors.officeId.message}</p>}
               </div>
+            </div>
             <div className="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
               <Link href="/admin/staff">
                 <Button variant="outline" type="button">Cancel</Button>

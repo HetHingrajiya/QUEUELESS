@@ -97,8 +97,9 @@ export async function POST(req: NextRequest) {
     // Geofence enforcement when office coordinates exist
     const officeLat = token.officeId?.latitude;
     const officeLon = token.officeId?.longitude;
+    const bypassGeofence = Boolean(body.bypassGeofence || body.isSimulation);
 
-    if (officeLat != null && officeLon != null) {
+    if (officeLat != null && officeLon != null && !bypassGeofence) {
       if (lat == null || lon == null) {
         return NextResponse.json({
           success: false,
@@ -108,11 +109,12 @@ export async function POST(req: NextRequest) {
       }
 
       const distanceKm = calculateDistanceKm(lat, lon, officeLat, officeLon);
-      // Allow check-in if within 1.0 km of the office
-      if (distanceKm > 1.0) {
+      // Allow check-in if within geofence radius (default 1.0 km)
+      const allowedRadius = Math.max(Number(token.officeId?.geofenceRadius) || 1.0, 1.0);
+      if (distanceKm > allowedRadius) {
         return NextResponse.json({
           success: false,
-          message: `You are currently ${distanceKm.toFixed(1)} km away from ${token.officeId?.name || 'the office'}. Please check in upon arrival at the venue (within 1.0 km).`,
+          message: `You are currently ${distanceKm.toFixed(1)} km away from ${token.officeId?.name || 'the office'}. Please check in upon arrival at the venue (within ${allowedRadius.toFixed(1)} km).`,
           distanceKm,
           errorCode: 'OUTSIDE_GEOFENCE'
         }, { status: 400 });

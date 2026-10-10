@@ -113,9 +113,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         const expectedOffice = await Office.findById(expectedOfficeId).lean();
         const expectedOrgId = expectedOffice?.organizationId;
         
-        if (newStaff.officeId?.toString() !== expectedOfficeId?.toString() || 
-            newStaff.organizationId?.toString() !== expectedOrgId?.toString()) {
-          return NextResponse.json({ success: false, message: 'Staff office or organization mismatch' }, { status: 400 });
+        if (newStaff.organizationId?.toString() !== expectedOrgId?.toString()) {
+          return NextResponse.json({ success: false, message: 'Staff organization mismatch' }, { status: 400 });
+        }
+
+        if (newStaff.officeId && newStaff.officeId.toString() !== expectedOfficeId?.toString()) {
+          return NextResponse.json({ success: false, message: 'Staff office mismatch' }, { status: 400 });
+        }
+
+        if (!newStaff.officeId && expectedOfficeId) {
+          await User.findByIdAndUpdate(newStaffId, { $set: { officeId: expectedOfficeId } });
         }
       }
 

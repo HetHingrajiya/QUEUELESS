@@ -29,7 +29,11 @@ export async function GET(request: Request) {
     }
 
     if (officeId) {
-      query.officeId = officeId;
+      query.$or = [
+        { officeId },
+        { officeId: null },
+        { officeId: { $exists: false } }
+      ];
     }
     
     if (user.role === 'ADMIN') { const { hasPermission } = await import('@/lib/permissions'); if (!(await hasPermission(user.userId, 'MANAGE_STAFF'))) return NextResponse.json({ success: false, message: 'Forbidden: Missing MANAGE_STAFF permission' }, { status: 403 }); }
