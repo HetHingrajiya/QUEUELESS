@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Bell, Check, Loader2, Info, AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react';
 
 export interface NotificationRecord {
@@ -66,87 +64,94 @@ export default function StaffNotificationsPage() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'SUCCESS': return <CheckCircle2 className="text-emerald-500 h-6 w-6" />;
-      case 'WARNING': return <AlertTriangle className="text-amber-500 h-6 w-6" />;
-      case 'ERROR': return <XCircle className="text-red-500 h-6 w-6" />;
-      default: return <Info className="text-blue-500 h-6 w-6" />;
+      case 'SUCCESS': return <CheckCircle2 size={24} className="text-emerald-500" />;
+      case 'WARNING': return <AlertTriangle size={24} className="text-amber-500" />;
+      case 'ERROR': return <XCircle size={24} className="text-red-500" />;
+      default: return <Info size={24} className="text-primary" />;
     }
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Bell className="h-6 w-6 text-slate-700" />
-          <h2 className="text-2xl font-bold text-slate-800">Notifications</h2>
-          {unreadCount > 0 && (
-            <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-              {unreadCount} new
-            </span>
-          )}
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-4xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight flex items-center">
+            Notifications
+            {unreadCount > 0 && (
+              <span className="ml-3 px-3 py-1 bg-red-500 text-white rounded-xl text-[10px] font-black tracking-widest uppercase flex items-center">
+                {unreadCount} NEW
+              </span>
+            )}
+          </h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">Stay updated on queue and system activities.</p>
         </div>
         
         {unreadCount > 0 && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={markAllAsRead} 
+          <button 
             disabled={markLoading}
+            onClick={markAllAsRead}
+            className="h-10 px-6 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-[10px] font-black tracking-widest text-foreground disabled:opacity-50 transition-all border-0 flex items-center justify-center shrink-0"
           >
             {markLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-            Mark all as read
-          </Button>
+            MARK ALL AS READ
+          </button>
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Alerts</CardTitle>
-          <CardDescription>Stay updated on queue and system activities</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-slate-100">
+      <div className="px-4 sm:px-6 lg:px-8 space-y-6">
+         {/* Notification List */}
+         <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0 min-h-[500px]">
             {loading ? (
-              <div className="p-12 text-center text-slate-500">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-                <p>Loading notifications...</p>
+              <div className="flex flex-col items-center justify-center h-[300px]">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                <p className="text-sm font-black text-foreground">Loading notifications...</p>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-12 text-center text-slate-500">
-                <Bell className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                <p>You have no notifications yet.</p>
+              <div className="flex flex-col items-center justify-center h-[300px] text-center">
+                <div className="w-20 h-20 bg-background shadow-neu-inset rounded-[2rem] flex items-center justify-center text-muted-foreground/30 mb-6">
+                  <Bell size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-foreground mb-2">No Notifications</h3>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">You're all caught up!</p>
               </div>
             ) : (
-              notifications.map((notification) => (
-                <div 
-                  key={notification._id} 
-                  className={`p-6 flex items-start space-x-4 transition-colors ${!notification.isRead ? 'bg-blue-50/50 hover:bg-blue-50' : 'hover:bg-slate-50'}`}
-                >
-                  <div className="shrink-0 mt-1">
-                    {getIcon(notification.type)}
+              <div className="space-y-4">
+                {notifications.map((notification) => (
+                  <div 
+                    key={notification._id} 
+                    className={`p-6 rounded-[2rem] flex items-start gap-5 transition-all ${!notification.isRead ? 'bg-primary/5 shadow-none' : 'bg-background shadow-neu-inset'}`}
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${!notification.isRead ? 'bg-background shadow-neu' : 'bg-background shadow-none border border-primary/5'}`}>
+                      {getIcon(notification.type)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 pt-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className={`text-sm font-black truncate ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {notification.title}
+                        </p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0 mt-1">
+                          {timeAgo(notification.createdAt)}
+                        </p>
+                      </div>
+                      <p className={`text-xs font-semibold mt-2 leading-relaxed ${!notification.isRead ? 'text-muted-foreground' : 'text-slate-400'}`}>
+                        {notification.message}
+                      </p>
+                    </div>
+
+                    {!notification.isRead && (
+                      <div className="shrink-0 h-3 w-3 rounded-full bg-primary mt-2 shadow-lg shadow-primary/50"></div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${!notification.isRead ? 'text-slate-900' : 'text-slate-700'}`}>
-                      {notification.title}
-                    </p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-2">
-                      {timeAgo(notification.createdAt)}
-                    </p>
-                  </div>
-                  {!notification.isRead && (
-                    <div className="shrink-0 h-2 w-2 rounded-full bg-blue-600 mt-2"></div>
-                  )}
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+         </div>
+      </div>
     </div>
   );
 }

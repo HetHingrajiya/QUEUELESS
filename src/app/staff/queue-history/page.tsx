@@ -1,10 +1,6 @@
 "use client";
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { PageHeader } from '@/components/common/PageHeader';
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Search, Loader2, Eye } from 'lucide-react';
+import { Search, Filter, Loader2, Activity, Ticket, Building2, Briefcase, Hash } from 'lucide-react';
 import Link from 'next/link';
 
 export interface QueueHistoryToken {
@@ -61,124 +57,244 @@ export default function StaffQueueHistoryPage() {
     fetchHistoryData(1, searchQuery, e.target.value);
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'COMPLETED': return 'text-purple-500';
+      case 'NO_SHOW': return 'text-red-500';
+      case 'SKIPPED': return 'text-amber-500';
+      default: return 'text-slate-500';
+    }
+  };
+
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
       
-      <PageHeader 
-        title="Queue History"
-      />
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Queue History</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">View all completed, skipped, and no-show tokens.</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+            <span className="h-12 px-6 bg-background shadow-neu-inset rounded-2xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all border-0">
+               {pagination.total} RESOLVED
+            </span>
+        </div>
+      </div>
 
-
-      <Card>
-        <CardHeader>
-          <CardTitle>History</CardTitle>
-          <CardDescription>View all completed, skipped, and no-show tokens</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <form onSubmit={handleSearch} className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search token..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
+      <div className="px-4 sm:px-6 lg:px-8 space-y-6">
+         {/* Filter Bar */}
+         <div className="bg-background shadow-neu rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 border-0">
+            <form onSubmit={handleSearch} className="relative flex-1 group">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search size={18} className="text-muted-foreground group-focus-within:text-primary transition-colors" />
+               </div>
+               <input 
+                  type="text"
+                  placeholder="Search token number..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-12 pl-12 pr-4 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border-0 placeholder:text-muted-foreground/50"
+               />
             </form>
-            <div className="flex space-x-2">
-              <select 
-                value={statusFilter}
-                onChange={handleStatusChange}
-                className="border border-slate-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Resolved Statuses</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="NO_SHOW">No Show</option>
-                <option value="SKIPPED">Skipped</option>
-              </select>
+            <div className="relative group min-w-[200px]">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                  <Filter size={16} className="text-muted-foreground group-focus-within:text-primary transition-colors" />
+               </div>
+               <select 
+                 value={statusFilter}
+                 onChange={handleStatusChange}
+                 className="w-full h-12 pl-12 pr-10 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-xs uppercase font-black tracking-widest text-foreground focus:outline-none transition-all border-0 appearance-none cursor-pointer"
+               >
+                 <option value="">All Resolved</option>
+                 <option value="COMPLETED">Completed</option>
+                 <option value="NO_SHOW">No Show</option>
+                 <option value="SKIPPED">Skipped</option>
+               </select>
+               <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                     <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+               </div>
             </div>
-          </div>
-          
-          <div className="border border-slate-200 rounded-md overflow-hidden mb-4">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Token Number</th>
-                  <th className="px-4 py-3 font-medium">Citizen Name</th>
-                  <th className="px-4 py-3 font-medium">Service</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Resolved Time</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      Loading history...
-                    </td>
-                  </tr>
-                ) : tokens.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
-                      No queue history found.
-                    </td>
-                  </tr>
-                ) : (
-                  tokens.map((item) => (
-                    <tr key={item._id} className="hover:bg-slate-50 transition-colors text-slate-600">
-                      <td className="px-4 py-3 font-bold text-slate-900">{item.tokenNumber}</td>
-                      <td className="px-4 py-3 font-medium text-slate-800">{item.citizenName}</td>
-                      <td className="px-4 py-3">{item.serviceName}</td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={item.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        {item.endTime ? new Date(item.endTime).toLocaleString() : new Date(item.createdAt).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link href={`/staff/queue/${item._id}`}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600">
-                            <Eye size={16} />
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+         </div>
 
-          {!loading && pagination.pages > 1 && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-500">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
-              </span>
-              <div className="flex space-x-1">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={pagination.page === 1}
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                >
-                  Previous
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  disabled={pagination.page === pagination.pages}
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                >
-                  Next
-                </Button>
-              </div>
+         {/* Desktop Table View */}
+         <div className="hidden lg:block bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+            <div className="w-full overflow-x-auto custom-scrollbar pb-4 min-h-[400px]">
+               <table className="w-full text-left">
+                  <thead>
+                     <tr>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Token Number</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Citizen</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Service</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Status</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 text-right whitespace-nowrap">Resolved Time</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {loading ? (
+                       <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center">
+                             <div className="flex flex-col items-center justify-center">
+                                <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                                <h3 className="text-sm font-black text-foreground">Loading history...</h3>
+                             </div>
+                          </td>
+                       </tr>
+                     ) : tokens.length === 0 ? (
+                       <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                             <div className="flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 bg-background shadow-neu rounded-[2rem] flex items-center justify-center mb-4 text-slate-300">
+                                   <Activity size={24} />
+                                </div>
+                                <h3 className="text-sm font-black text-foreground">No history found</h3>
+                             </div>
+                          </td>
+                       </tr>
+                     ) : (
+                       tokens.map((token: any) => (
+                       <tr key={token._id.toString()} className="group hover:bg-primary/5 transition-colors">
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all">
+                             <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-background shadow-neu-inset flex items-center justify-center text-primary shrink-0">
+                                   <Ticket size={16} />
+                                </div>
+                                <span className="font-black text-lg text-foreground whitespace-nowrap tracking-wider">{token.tokenNumber}</span>
+                             </div>
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all font-semibold text-muted-foreground text-sm max-w-[150px] truncate">
+                             {token.citizenName}
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all font-semibold text-muted-foreground text-sm max-w-[150px] truncate">
+                             {token.serviceName}
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all">
+                             <span className={`text-[10px] font-black uppercase tracking-widest ${getStatusColor(token.status)}`}>
+                                {token.status}
+                             </span>
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all text-right">
+                             <span className="font-mono text-xs font-bold text-slate-400 bg-background shadow-neu-inset px-2 py-1 rounded-lg">
+                                {token.endTime ? new Date(token.endTime).toLocaleString() : new Date(token.createdAt).toLocaleString()}
+                             </span>
+                          </td>
+                       </tr>
+                       ))
+                     )}
+                  </tbody>
+               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            
+            {/* Pagination Desktop */}
+            {!loading && pagination.pages > 1 && (
+               <div className="flex items-center justify-between mt-8">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                     Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+                  </span>
+                  <div className="flex gap-2">
+                     <button 
+                        disabled={pagination.page === 1}
+                        onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                        className="h-10 px-4 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-[10px] font-black tracking-widest text-foreground disabled:opacity-50 transition-all border-0"
+                     >
+                        PREV
+                     </button>
+                     <button 
+                        disabled={pagination.page === pagination.pages}
+                        onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                        className="h-10 px-4 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-[10px] font-black tracking-widest text-foreground disabled:opacity-50 transition-all border-0"
+                     >
+                        NEXT
+                     </button>
+                  </div>
+               </div>
+            )}
+         </div>
+
+         {/* Mobile/Tablet Card View */}
+         <div className="lg:hidden w-full space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+               {loading ? (
+                 <div className="col-span-1 md:col-span-2 py-12 text-center text-muted-foreground font-bold text-sm bg-background shadow-neu-inset rounded-[2rem] flex flex-col items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                    <h3 className="text-sm font-black text-foreground">Loading history...</h3>
+                 </div>
+               ) : tokens.length === 0 ? (
+                 <div className="col-span-1 md:col-span-2 py-12 text-center text-muted-foreground font-bold text-sm bg-background shadow-neu-inset rounded-[2rem] flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-background shadow-neu rounded-[2rem] flex items-center justify-center mb-4 text-slate-300">
+                       <Activity size={24} />
+                    </div>
+                    <h3 className="text-sm font-black text-foreground">No history found</h3>
+                 </div>
+               ) : (
+                 tokens.map((token: any) => (
+                    <div key={token._id.toString()} className="bg-background shadow-neu rounded-3xl p-5 flex flex-col gap-4 border border-primary/5 relative overflow-hidden w-full">
+                       <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                             <div className="w-12 h-12 rounded-xl bg-background shadow-neu-inset flex items-center justify-center text-primary shrink-0">
+                                <Ticket size={20} />
+                             </div>
+                             <div className="min-w-0">
+                                <h3 className="font-black text-lg text-foreground truncate tracking-wider">{token.tokenNumber}</h3>
+                                <div className="flex items-center gap-1 mt-0.5 text-[11px] font-bold text-muted-foreground truncate">
+                                   <span className={`text-[9px] font-black uppercase tracking-widest ${getStatusColor(token.status)}`}>
+                                      {token.status}
+                                   </span>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="h-px w-full bg-primary/5"></div>
+
+                       <div className="flex flex-col gap-2 min-w-0">
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
+                             <Hash size={12} className="text-indigo-400 shrink-0" />
+                             <span className="truncate">{token.citizenName}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
+                             <Briefcase size={12} className="text-emerald-400 shrink-0" />
+                             <span className="truncate">{token.serviceName}</span>
+                          </div>
+                       </div>
+                       
+                       <div className="flex justify-between items-center pt-2 border-t border-primary/5">
+                          <span className="font-mono text-[10px] font-bold text-slate-400">
+                             {token.endTime ? new Date(token.endTime).toLocaleTimeString() : new Date(token.createdAt).toLocaleTimeString()}
+                          </span>
+                       </div>
+                    </div>
+                 ))
+               )}
+            </div>
+
+            {/* Pagination Mobile */}
+            {!loading && pagination.pages > 1 && (
+               <div className="flex flex-col items-center gap-4 mt-8 bg-background shadow-neu-inset p-4 rounded-[2rem]">
+                  <div className="flex gap-4 w-full">
+                     <button 
+                        disabled={pagination.page === 1}
+                        onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                        className="flex-1 h-12 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-[10px] font-black tracking-widest text-foreground disabled:opacity-50 transition-all border-0"
+                     >
+                        PREV
+                     </button>
+                     <button 
+                        disabled={pagination.page === pagination.pages}
+                        onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                        className="flex-1 h-12 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-[10px] font-black tracking-widest text-foreground disabled:opacity-50 transition-all border-0"
+                     >
+                        NEXT
+                     </button>
+                  </div>
+               </div>
+            )}
+         </div>
+
+      </div>
     </div>
   );
 }

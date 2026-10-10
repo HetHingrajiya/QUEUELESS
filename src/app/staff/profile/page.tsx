@@ -1,12 +1,9 @@
 "use client";
-import { PageHeader } from '@/components/common/PageHeader';
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, User, Building, Monitor, Shield, Mail, Calendar } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Loader2, User, Building2, MonitorDot, Shield, Mail } from 'lucide-react';
 
 export interface StaffProfile {
-  name: string;
+  fullName: string;
   email: string;
   role: string;
 }
@@ -42,7 +39,7 @@ export default function StaffProfilePage() {
         const authJson = await authRes.json();
         const dashJson = await dashRes.json();
 
-        if (authJson.success) setProfile(authJson.data);
+        if (authJson.success) setProfile(authJson.data.user);
         if (dashJson.success) setDashboard(dashJson.data);
       } catch (err) {
         console.error("Failed to load profile data:", err);
@@ -55,17 +52,19 @@ export default function StaffProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+      <div className="flex justify-center items-center h-[50vh] cursor-default">
+        <Loader2 className="animate-spin h-10 w-10 text-primary" />
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Profile Not Found</h2>
-        <p className="text-slate-500">Failed to load your profile information.</p>
+      <div className="flex flex-col items-center justify-center h-[50vh] cursor-default text-center">
+        <div className="bg-background shadow-neu rounded-[2.5rem] p-12">
+          <h2 className="text-xl font-black text-foreground mb-2">Profile Not Found</h2>
+          <p className="text-sm font-bold text-muted-foreground">Failed to load your profile information.</p>
+        </div>
       </div>
     );
   }
@@ -73,108 +72,111 @@ export default function StaffProfilePage() {
   const { counter, office } = dashboard || {};
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
       
-      <PageHeader 
-        title="My Profile"
-      />
-
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-6">
-          <Card className="overflow-hidden border-0 shadow-md">
-            <div className="h-24 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-            <CardContent className="p-6 relative pt-12 text-center">
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-white rounded-full p-1 shadow-md">
-                <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center">
-                  <User className="h-10 w-10 text-slate-400" />
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-slate-900">{profile.name}</h3>
-              <p className="text-sm text-slate-500 mb-4">{profile.email}</p>
-              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">{profile.role}</Badge>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-sm text-slate-500 uppercase tracking-wider">Account Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <button className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center text-sm font-medium text-slate-700">
-                  <Shield className="w-4 h-4 mr-3 text-slate-400" />
-                  Change Password
-                </div>
-              </button>
-              <button className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                <div className="flex items-center text-sm font-medium text-slate-700">
-                  <Mail className="w-4 h-4 mr-3 text-slate-400" />
-                  Update Email
-                </div>
-              </button>
-            </CardContent>
-          </Card>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">My Profile</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">Manage your account information and preferences.</p>
         </div>
+      </div>
 
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization Details</CardTitle>
-              <CardDescription>Your assigned office and counter information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-8">
-                <div>
-                  <div className="flex items-center text-lg font-medium text-slate-800 mb-4">
-                    <Building className="w-5 h-5 mr-2 text-blue-600" />
-                    Office Information
-                  </div>
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 text-sm bg-slate-50 p-4 rounded-lg">
-                    <div>
-                      <dt className="text-slate-500 font-medium">Office Name</dt>
-                      <dd className="mt-1 font-semibold text-slate-900">{office?.name || 'Not Assigned'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-slate-500 font-medium">Organization</dt>
-                      <dd className="mt-1 font-semibold text-slate-900">{office?.organizationId?.name || 'Not Assigned'}</dd>
-                    </div>
-                  </dl>
-                </div>
-
-                <hr className="border-slate-100" />
-
-                <div>
-                  <div className="flex items-center text-lg font-medium text-slate-800 mb-4">
-                    <Monitor className="w-5 h-5 mr-2 text-indigo-600" />
-                    Counter Assignment
-                  </div>
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6 text-sm bg-slate-50 p-4 rounded-lg">
-                    {counter ? (
-                      <>
-                        <div>
-                          <dt className="text-slate-500 font-medium">Counter Name</dt>
-                          <dd className="mt-1 font-semibold text-slate-900">{counter.name}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-slate-500 font-medium">Counter Number</dt>
-                          <dd className="mt-1 font-semibold text-slate-900">{counter.number}</dd>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <dt className="text-slate-500 font-medium">Handled Services</dt>
-                          <dd className="mt-1 font-semibold text-slate-900 leading-relaxed">{counter.serviceNames}</dd>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="sm:col-span-2 text-amber-600 font-medium">
-                        You are not currently assigned to any counter.
-                      </div>
-                    )}
-                  </dl>
-                </div>
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+          
+          {/* Left Column */}
+          <div className="lg:col-span-5 space-y-6 lg:space-y-8">
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-8 border-0 text-center">
+              <div className="h-28 w-28 mx-auto rounded-[2rem] bg-background shadow-neu-inset flex items-center justify-center text-primary font-black text-5xl mb-6">
+                {(profile.fullName || profile.email || '?').charAt(0).toUpperCase()}
               </div>
-            </CardContent>
-          </Card>
+              <h3 className="text-2xl font-black text-foreground">{profile.fullName}</h3>
+              <p className="text-xs font-bold text-muted-foreground mt-1 mb-6">{profile.email}</p>
+              <div className="inline-flex items-center px-4 py-2 bg-background shadow-neu-inset rounded-xl">
+                <Shield size={14} className="mr-2 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{profile.role}</span>
+              </div>
+            </div>
+
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-8 border-0">
+               <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-6">Account Settings</h3>
+               <div className="space-y-4">
+                 <button className="w-full h-14 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl flex items-center px-6 transition-all border-0">
+                    <Shield size={16} className="text-primary mr-4" />
+                    <span className="text-xs font-black uppercase tracking-widest text-foreground">Change Password</span>
+                 </button>
+                 <button className="w-full h-14 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl flex items-center px-6 transition-all border-0">
+                    <Mail size={16} className="text-primary mr-4" />
+                    <span className="text-xs font-black uppercase tracking-widest text-foreground">Update Email</span>
+                 </button>
+               </div>
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="lg:col-span-7">
+            <div className="bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0 h-full">
+              
+              <div className="flex items-center gap-4 mb-8">
+                 <div className="w-12 h-12 bg-background shadow-neu-inset rounded-2xl flex items-center justify-center text-blue-500 shrink-0">
+                    <Building2 size={20} />
+                 </div>
+                 <div>
+                    <h2 className="text-lg font-black text-foreground">Organization Details</h2>
+                    <p className="text-xs font-bold text-muted-foreground mt-1">Your assigned office and counter information</p>
+                 </div>
+              </div>
+
+              <div className="space-y-8">
+                 <div className="bg-background shadow-neu-inset rounded-[2rem] p-6 sm:p-8">
+                   <h3 className="text-sm font-black text-foreground flex items-center mb-6">
+                      <Building2 size={16} className="text-blue-500 mr-2" />
+                      Office Information
+                   </h3>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                     <div>
+                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Office Name</p>
+                       <p className="text-sm font-bold text-foreground">{office?.name || 'Not Assigned'}</p>
+                     </div>
+                     <div>
+                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Organization</p>
+                       <p className="text-sm font-bold text-foreground">{office?.organizationId?.name || 'Not Assigned'}</p>
+                     </div>
+                   </div>
+                 </div>
+
+                 <div className="bg-background shadow-neu-inset rounded-[2rem] p-6 sm:p-8">
+                   <h3 className="text-sm font-black text-foreground flex items-center mb-6">
+                      <MonitorDot size={16} className="text-indigo-500 mr-2" />
+                      Counter Assignment
+                   </h3>
+                   {counter ? (
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                       <div>
+                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Counter Name</p>
+                         <p className="text-sm font-bold text-foreground">{counter.name}</p>
+                       </div>
+                       <div>
+                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Counter Number</p>
+                         <p className="text-sm font-bold text-foreground">{counter.number}</p>
+                       </div>
+                       <div className="sm:col-span-2">
+                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Handled Services</p>
+                         <p className="text-sm font-bold text-foreground leading-relaxed">{counter.serviceNames}</p>
+                       </div>
+                     </div>
+                   ) : (
+                     <div className="flex items-center text-amber-500">
+                       <p className="text-sm font-black uppercase tracking-widest">You are not currently assigned to any counter.</p>
+                     </div>
+                   )}
+                 </div>
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

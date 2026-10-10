@@ -1,8 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Search, Filter, Loader2 } from 'lucide-react';
+import { ChevronLeft, Search, Loader2, Activity, Ticket, Building2, Briefcase, Hash, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getSocket } from '@/lib/socketClient';
 
@@ -71,82 +69,181 @@ export default function StaffQueuePage() {
   );
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <Button variant="ghost" size="sm" className="mr-2" onClick={() => router.back()}>
-            <ArrowLeft size={16} />
-          </Button>
-          <h2 className="text-2xl font-bold text-slate-800">Live Queue</h2>
+    <div className="space-y-6 lg:space-y-8 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 lg:mb-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()}
+            className="w-12 h-12 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-[1.5rem] flex items-center justify-center text-primary transition-all border-0 shrink-0"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight flex items-center gap-3">
+              Live Queue
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+            </h1>
+            <p className="text-muted-foreground text-xs sm:text-sm font-semibold mt-1">Real-time view of all tokens currently waiting for your counter.</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+            <span className="h-12 px-6 bg-background shadow-neu-inset rounded-2xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all border-0">
+               {filteredTokens.length} WAITING
+            </span>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Waiting Tokens</CardTitle>
-          <CardDescription>Real-time view of all tokens currently waiting for your counter</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search token or name..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
+      <div className="px-4 sm:px-6 lg:px-8 space-y-6">
+         {/* Filter Bar */}
+         <div className="bg-background shadow-neu rounded-[2rem] p-4 flex flex-col md:flex-row gap-4 border-0">
+            <div className="relative flex-1 group">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search size={18} className="text-muted-foreground group-focus-within:text-primary transition-colors" />
+               </div>
+               <input 
+                  type="text"
+                  placeholder="Search token or name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-12 pl-12 pr-4 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border-0 placeholder:text-muted-foreground/50"
+               />
             </div>
-          </div>
-          
-          <div className="border border-slate-200 rounded-md overflow-hidden">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Token Number</th>
-                  <th className="px-4 py-3 font-medium">Citizen Name</th>
-                  <th className="px-4 py-3 font-medium">Service</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Wait Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {loading ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      Loading queue...
-                    </td>
-                  </tr>
-                ) : filteredTokens.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
-                      No tokens waiting in the queue.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTokens.map((item) => (
-                    <tr key={item._id} className="hover:bg-slate-50 transition-colors text-slate-600">
-                      <td className="px-4 py-3 font-bold text-slate-900">{item.tokenNumber}</td>
-                      <td className="px-4 py-3 font-medium text-slate-800">{item.citizenName}</td>
-                      <td className="px-4 py-3">{item.serviceName}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.status === 'WAITING' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-slate-500">
-                        {Math.floor((Date.now() - new Date(item.createdAt).getTime()) / 60000)} mins
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+         </div>
+
+         {/* Desktop Table View */}
+         <div className="hidden lg:block bg-background shadow-neu rounded-[2.5rem] p-6 sm:p-10 border-0">
+            <div className="w-full overflow-x-auto custom-scrollbar pb-4 min-h-[400px]">
+               <table className="w-full text-left">
+                  <thead>
+                     <tr>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Token Number</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Citizen</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Service</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 whitespace-nowrap">Status</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest border-b-2 border-primary/5 text-right whitespace-nowrap">Wait Time</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {loading ? (
+                       <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center">
+                             <div className="flex flex-col items-center justify-center">
+                                <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                                <h3 className="text-sm font-black text-foreground">Loading queue...</h3>
+                             </div>
+                          </td>
+                       </tr>
+                     ) : filteredTokens.length === 0 ? (
+                       <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                             <div className="flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 bg-background shadow-neu rounded-[2rem] flex items-center justify-center mb-4 text-slate-300">
+                                   <Activity size={24} />
+                                </div>
+                                <h3 className="text-sm font-black text-foreground">No tokens waiting</h3>
+                             </div>
+                          </td>
+                       </tr>
+                     ) : (
+                       filteredTokens.map((token: any) => (
+                       <tr key={token._id.toString()} className="group hover:bg-primary/5 transition-colors">
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all">
+                             <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-background shadow-neu-inset flex items-center justify-center text-primary shrink-0">
+                                   <Ticket size={16} />
+                                </div>
+                                <span className="font-black text-lg text-foreground whitespace-nowrap tracking-wider">{token.tokenNumber}</span>
+                             </div>
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all font-semibold text-muted-foreground text-sm max-w-[150px] truncate">
+                             {token.citizenName}
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all font-semibold text-muted-foreground text-sm max-w-[150px] truncate">
+                             {token.serviceName}
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all">
+                             <span className={`text-[10px] font-black uppercase tracking-widest ${token.status === 'WAITING' ? 'text-amber-500' : 'text-blue-500'}`}>
+                                {token.status}
+                             </span>
+                          </td>
+                          <td className="px-6 py-5 border-b border-primary/5 transition-all text-right">
+                             <span className="font-mono text-xs font-bold text-slate-400 bg-background shadow-neu-inset px-2 py-1 rounded-lg inline-flex items-center">
+                                <Clock size={10} className="mr-1" />
+                                {Math.floor((Date.now() - new Date(token.createdAt).getTime()) / 60000)} mins
+                             </span>
+                          </td>
+                       </tr>
+                       ))
+                     )}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+
+         {/* Mobile/Tablet Card View */}
+         <div className="lg:hidden w-full space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+               {loading ? (
+                 <div className="col-span-1 md:col-span-2 py-12 text-center text-muted-foreground font-bold text-sm bg-background shadow-neu-inset rounded-[2rem] flex flex-col items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                    <h3 className="text-sm font-black text-foreground">Loading queue...</h3>
+                 </div>
+               ) : filteredTokens.length === 0 ? (
+                 <div className="col-span-1 md:col-span-2 py-12 text-center text-muted-foreground font-bold text-sm bg-background shadow-neu-inset rounded-[2rem] flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-background shadow-neu rounded-[2rem] flex items-center justify-center mb-4 text-slate-300">
+                       <Activity size={24} />
+                    </div>
+                    <h3 className="text-sm font-black text-foreground">No tokens waiting</h3>
+                 </div>
+               ) : (
+                 filteredTokens.map((token: any) => (
+                    <div key={token._id.toString()} className="bg-background shadow-neu rounded-3xl p-5 flex flex-col gap-4 border border-primary/5 relative overflow-hidden w-full">
+                       <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                             <div className="w-12 h-12 rounded-xl bg-background shadow-neu-inset flex items-center justify-center text-primary shrink-0">
+                                <Ticket size={20} />
+                             </div>
+                             <div className="min-w-0">
+                                <h3 className="font-black text-lg text-foreground truncate tracking-wider">{token.tokenNumber}</h3>
+                                <div className="flex items-center gap-1 mt-0.5 text-[11px] font-bold text-muted-foreground truncate">
+                                   <span className={`text-[9px] font-black uppercase tracking-widest ${token.status === 'WAITING' ? 'text-amber-500' : 'text-blue-500'}`}>
+                                      {token.status}
+                                   </span>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="h-px w-full bg-primary/5"></div>
+
+                       <div className="flex flex-col gap-2 min-w-0">
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
+                             <Hash size={12} className="text-indigo-400 shrink-0" />
+                             <span className="truncate">{token.citizenName}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
+                             <Briefcase size={12} className="text-emerald-400 shrink-0" />
+                             <span className="truncate">{token.serviceName}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
+                             <Clock size={12} className="text-amber-400 shrink-0" />
+                             <span className="truncate">Waiting: {Math.floor((Date.now() - new Date(token.createdAt).getTime()) / 60000)} mins</span>
+                          </div>
+                       </div>
+                       
+                    </div>
+                 ))
+               )}
+            </div>
+         </div>
+
+      </div>
     </div>
   );
 }
