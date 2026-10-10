@@ -100,14 +100,14 @@ export default function ContactSupportPage() {
           </Card>
         </a>
 
-        <a href="mailto:support@queueless.gov.in" className="block">
+        <a href="mailto:support@samaysetu.gov.in" className="block">
           <Card className="hover:border-emerald-300 transition-all cursor-pointer bg-white">
             <CardContent className="p-4 text-center">
               <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2">
                 <Mail size={18} />
               </div>
               <p className="font-bold text-xs text-slate-900">Email Desk</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">support@queueless.gov</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">support@samaysetu.gov</p>
             </CardContent>
           </Card>
         </a>

@@ -1,4 +1,4 @@
-# QueueLess GovCore OS - Light Neumorphism Design System
+# SamaySetu GovCore OS - Light Neumorphism Design System
 
 ## Core Aesthetic
 - **Style:** Clean, modern, minimal Light Neumorphism

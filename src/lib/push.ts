@@ -3,7 +3,7 @@ import { User } from '@/models/User';
 
 // Configure Web Push with VAPID keys
 webpush.setVapidDetails(
-  'mailto:admin@queueless.com',
+  'mailto:admin@samaysetu.com',
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string,
   process.env.VAPID_PRIVATE_KEY as string
 );

@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Star, MessageSquare, CheckCircle2, Building2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Star, MessageSquare, CheckCircle2, Building2, Send, History } from 'lucide-react';
 import Link from 'next/link';
 import { CitizenOffice, ApiResponse } from '@/types/citizen';
 
@@ -66,119 +63,170 @@ export default function CitizenFeedbackPage() {
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center px-4 max-w-lg mx-auto">
-        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-5 text-emerald-600 shadow-sm">
-          <CheckCircle2 size={36} />
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 mb-2">
-          Feedback Submitted Successfully
-        </span>
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Thank You!</h2>
-        <p className="text-slate-500 text-sm mb-6 max-w-sm">
-          Your feedback has been recorded in the public grievance & service audit ledger.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 w-full">
-          <Link href="/citizen/feedback/history" className="flex-1">
-            <Button variant="outline" className="w-full">View Feedback History</Button>
-          </Link>
-          <Link href="/citizen/home" className="flex-1">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700">Citizen Dashboard</Button>
-          </Link>
+      <div className="max-w-6xl mx-auto pt-8 flex items-center justify-center cursor-default">
+        <div className="bg-background shadow-neu rounded-[3rem] p-12 text-center max-w-lg w-full border-0 flex flex-col items-center">
+          <div className="w-24 h-24 rounded-full bg-background shadow-neu-inset text-emerald-500 flex items-center justify-center mb-8">
+            <CheckCircle2 size={48} className="drop-shadow-sm" />
+          </div>
+          
+          <h2 className="text-2xl font-black text-foreground tracking-tight mb-4">Feedback Recorded</h2>
+          <p className="text-sm font-semibold text-muted-foreground leading-relaxed mb-10 px-4">
+            Thank you! Your feedback has been securely registered in the public grievance & service audit ledger to help improve government efficiency.
+          </p>
+
+          <div className="flex flex-col gap-4 w-full">
+            <Link href="/citizen/feedback/history" className="w-full">
+              <button className="w-full h-14 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all">
+                <History size={16} className="mr-3" /> View History
+              </button>
+            </Link>
+            <Link href="/citizen/home" className="w-full">
+              <button className="w-full h-14 bg-background shadow-neu-inset rounded-2xl text-xs uppercase font-black tracking-widest text-muted-foreground hover:text-foreground flex items-center justify-center transition-all">
+                Return to Dashboard
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-20 max-w-lg mx-auto pt-2">
-      <div className="flex flex-col space-y-1">
-<h1 className="text-2xl font-extrabold text-slate-900">Provide Feedback</h1>
-        <p className="text-slate-500 text-sm">Your ratings directly evaluate staff service quality and queue efficiency.</p>
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex flex-col space-y-2 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Citizen Feedback</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm font-semibold">Your ratings directly evaluate staff service quality and queue efficiency.</p>
       </div>
 
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs">
-          {error}
-        </div>
-      )}
-
-      <Card className="border-slate-200 overflow-hidden shadow-sm bg-white">
-        <div className="bg-blue-600 h-1.5" />
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Select Office */}
-            <div className="space-y-2">
-              <Label className="font-semibold text-slate-700 text-xs flex items-center">
-                <Building2 size={14} className="mr-1.5 text-slate-400" /> Select Office
-              </Label>
-              <select
-                value={officeId}
-                onChange={(e) => setOfficeId(e.target.value)}
-                className="w-full h-11 px-3 border border-slate-200 rounded-xl bg-white text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                {offices.map((off) => (
-                  <option key={off._id} value={off._id}>
-                    {off.name} ({off.department || 'General'})
-                  </option>
-                ))}
-              </select>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        
+        {/* Left Column: Context / Instructions */}
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-10 text-center border-0">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8">Service Audit</p>
+            
+            <div className="w-32 h-32 rounded-full mx-auto bg-background shadow-neu-inset flex items-center justify-center mb-6 text-primary">
+              <Star size={48} className="text-primary opacity-80" />
             </div>
-
-            {/* Rating Stars */}
-            <div className="text-center space-y-2 pt-2">
-              <Label className="text-sm font-bold text-slate-700">How was your overall experience?</Label>
-              <div className="flex justify-center space-x-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    className="focus:outline-none transition-transform hover:scale-110 p-1"
-                  >
-                    <Star 
-                      size={36} 
-                      className={`${(hoverRating || rating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} transition-colors`} 
-                    />
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs font-semibold text-slate-500">
-                {rating === 1 && "1 Star - Poor"}
-                {rating === 2 && "2 Stars - Fair"}
-                {rating === 3 && "3 Stars - Good"}
-                {rating === 4 && "4 Stars - Very Good"}
-                {rating === 5 && "5 Stars - Excellent!"}
+            
+            <h2 className="text-xl font-black text-foreground tracking-tight mb-8">Make Your Voice Heard</h2>
+            
+            <div className="bg-background shadow-neu-inset p-5 rounded-2xl border-2 border-primary/10 text-left">
+              <MessageSquare size={24} className="text-primary mb-3" />
+              <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                By submitting honest feedback, you contribute to public performance KPIs. The administrative officers review this data to reduce wait times and improve facility conditions.
               </p>
             </div>
+          </div>
+        </div>
 
-            {/* Message input */}
-            <div className="space-y-2">
-              <Label htmlFor="comment" className="font-semibold text-slate-700 text-xs flex items-center">
-                <MessageSquare size={14} className="mr-1.5 text-slate-400" />
-                Comments / Suggestions (Optional)
-              </Label>
-              <textarea
-                id="comment"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Share your experience regarding waiting time, staff courtesy, or facilities..."
-                className="w-full h-28 p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-xs"
-              />
-            </div>
+        {/* Right Column: Feedback Form */}
+        <div className="lg:col-span-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-8 sm:p-10 border-0">
+            
+            {error && (
+              <div className="p-4 mb-8 rounded-2xl bg-background shadow-neu-inset border-2 border-red-500/20 text-red-500 text-sm font-bold flex items-center">
+                {error}
+              </div>
+            )}
 
-            <Button 
-              type="submit" 
-              className="w-full h-11 text-sm font-bold bg-blue-600 hover:bg-blue-700"
-              disabled={submitting || rating === 0 || !officeId}
-            >
-              {submitting ? 'Submitting Feedback...' : 'Submit Feedback'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              
+              {/* Select Office */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-4">Select Office</label>
+                <div className="relative">
+                  <Building2 size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary pointer-events-none" />
+                  <select
+                    value={officeId}
+                    onChange={(e) => setOfficeId(e.target.value)}
+                    className="w-full h-14 pl-14 pr-5 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground border-0 focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer"
+                    required
+                  >
+                    {offices.map((off) => (
+                      <option key={off._id} value={off._id}>
+                        {off.name} ({off.department || 'General'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Rating Component */}
+              <div className="bg-background shadow-neu-inset p-8 rounded-[2rem] text-center border-0">
+                <label className="text-sm font-black text-foreground mb-6 block">How was your overall experience?</label>
+                
+                <div className="flex justify-center gap-2 sm:gap-4 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isActive = (hoverRating || rating) >= star;
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+                          isActive 
+                            ? 'bg-background shadow-neu-inset text-amber-500' 
+                            : 'bg-background shadow-neu hover:shadow-neu-hover text-muted-foreground/30'
+                        }`}
+                      >
+                        <Star 
+                          size={24} 
+                          className={`transition-colors ${isActive ? 'fill-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]' : ''}`} 
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest h-4">
+                  {rating === 1 && "Poor Experience"}
+                  {rating === 2 && "Below Average"}
+                  {rating === 3 && "Average"}
+                  {rating === 4 && "Good Experience"}
+                  {rating === 5 && "Excellent Service!"}
+                </p>
+              </div>
+
+              {/* Comment Box */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-4">Comments & Suggestions (Optional)</label>
+                <div className="relative">
+                  <MessageSquare size={18} className="absolute left-5 top-5 text-primary pointer-events-none" />
+                  <textarea
+                    id="comment"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Share your experience regarding waiting time, staff courtesy, or facilities..."
+                    className="w-full h-32 pl-14 pr-5 py-5 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground placeholder:text-muted-foreground/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Action */}
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={submitting || rating === 0 || !officeId}
+                  className="w-full h-16 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-sm uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <span className="flex items-center"><span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-3"></span> Submitting...</span>
+                  ) : (
+                    <span className="flex items-center"><Send size={18} className="mr-3" /> Submit Feedback</span>
+                  )}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

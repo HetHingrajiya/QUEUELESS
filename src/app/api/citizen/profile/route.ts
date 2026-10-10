@@ -173,7 +173,7 @@ export async function DELETE(req: NextRequest) {
 
     // Securely deactivate citizen profile
     await User.findByIdAndUpdate(session.userId, {
-      $set: { isActive: false, email: `deleted_${Date.now()}_${session.userId}@queueless.gov` }
+      $set: { isActive: false, email: `deleted_${Date.now()}_${session.userId}@samaysetu.gov` }
     });
 
     await createAuditLog({

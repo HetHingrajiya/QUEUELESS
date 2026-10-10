@@ -140,7 +140,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div><h1 className="text-2xl font-bold text-slate-900">System Analytics</h1><p className="text-sm text-slate-500">Platform-wide operational insights calculated from stored QueueLess records.</p></div>
+        <div><h1 className="text-2xl font-bold text-slate-900">System Analytics</h1><p className="text-sm text-slate-500">Platform-wide operational insights calculated from stored SamaySetu records.</p></div>
         <Link href="/super-admin/reports" className="inline-flex h-9 items-center justify-center rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"><Download size={16} className="mr-2" /> Generate / View Reports</Link>
       </div>
 

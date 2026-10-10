@@ -76,7 +76,7 @@ export default function SystemSettingsPage() {
       
       <PageHeader 
         title="System Settings"
-        description="Configure global QueueLess parameters."
+        description="Configure global SamaySetu parameters."
       />
 
 

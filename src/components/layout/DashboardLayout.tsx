@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -66,7 +67,10 @@ export function DashboardLayout({ children, sidebarItems, role }: DashboardLayou
         } flex flex-col shrink-0 shadow-neu`}
       >
         <div className="flex items-center justify-between h-16 px-6 shrink-0">
-          <span className="text-xl font-bold text-primary transition-transform duration-300 hover:scale-105 cursor-pointer">QueueLess</span>
+          <div className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105">
+            <Image src="/assets/logo.png" alt="SamaySetu Logo" width={32} height={32} className="object-contain drop-shadow-md" />
+            <span className="text-xl font-extrabold text-primary tracking-tight">SamaySetu</span>
+          </div>
           <button 
             className="lg:hidden text-muted-foreground hover:text-foreground transition-transform duration-300 hover:scale-110 active:scale-95"
             onClick={() => setSidebarOpen(false)}

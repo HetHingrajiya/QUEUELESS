@@ -22,6 +22,11 @@ export interface IUser extends Document {
   status: 'ACTIVE' | 'INACTIVE';
   lastLogin?: Date;
   pushSubscription?: any;
+  isVerified?: boolean;
+  otp?: string;
+  otpExpiry?: Date;
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +55,11 @@ const UserSchema: Schema = new Schema(
     address: { type: String },
     dob: { type: String },
     settings: { type: Schema.Types.Mixed, default: {} },
+    isVerified: { type: Boolean, default: false },
+    otp: { type: String },
+    otpExpiry: { type: Date },
+    resetToken: { type: String },
+    resetTokenExpiry: { type: Date },
   },
   {
     timestamps: true,

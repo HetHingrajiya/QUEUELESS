@@ -1,7 +1,6 @@
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -32,22 +31,23 @@ export function AdminActions({ adminId }: { adminId: string }) {
   };
 
   return (
-    <div className="flex justify-end space-x-2">
+    <div className="flex justify-end gap-3">
       <Link href={`/super-admin/admins/${adminId}/edit`}>
-        <Button variant="outline" size="sm" className="h-8 w-8 p-0" title="Edit">
-          <Edit size={14} className="text-slate-600" />
-        </Button>
+        <button 
+          className="w-10 h-10 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl transition-all border-0 text-slate-500 hover:text-primary" 
+          title="Edit"
+        >
+          <Edit size={16} />
+        </button>
       </Link>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" 
+      <button 
+        className="w-10 h-10 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl transition-all border-0 text-red-400 hover:text-red-500 disabled:opacity-50" 
         title="Delete"
         onClick={handleDelete}
         disabled={isDeleting}
       >
-        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-      </Button>
+        {isDeleting ? <Loader2 size={16} className="animate-spin text-red-500" /> : <Trash2 size={16} />}
+      </button>
     </div>
   );
 }

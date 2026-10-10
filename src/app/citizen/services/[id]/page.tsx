@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { ArrowLeft, Clock, Users, Briefcase, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Briefcase, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -67,9 +67,11 @@ export default function ServiceDetails({ params }: { params: Promise<{ id: strin
 
   if (error || !data) {
     return (
-      <div className="py-8 space-y-4">
+      <div className="py-12 space-y-6 flex flex-col items-center">
         <ErrorState description={error || 'Service not found'} onRetry={() => setRetryCount((count) => count + 1)} />
-        <div className="text-center"><Button variant="ghost" onClick={() => router.back()} className="text-blue-600">← Go Back</Button></div>
+        <button onClick={() => router.back()} className="px-6 py-3 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset text-primary font-bold rounded-xl transition-all">
+          ← Go Back
+        </button>
       </div>
     );
   }
@@ -77,58 +79,80 @@ export default function ServiceDetails({ params }: { params: Promise<{ id: strin
   const { service, office, stats } = data;
 
   return (
-    <div className="space-y-6 pb-24">
-      <div className="flex items-center mb-6">
-        <button onClick={() => router.back()} className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+    <div className="space-y-8 pb-32 pt-2 cursor-default">
+      {/* Header */}
+      <div className="flex items-center">
+        <button onClick={() => router.back()} className="w-12 h-12 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-full transition-all text-muted-foreground hover:text-foreground shrink-0">
           <ArrowLeft size={24} />
         </button>
       </div>
 
-      <div className="text-center mb-10">
-        <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Briefcase size={36} />
+      {/* Main Title Area */}
+      <div className="text-center mb-10 pt-4">
+        <div className="w-24 h-24 rounded-3xl bg-background shadow-neu-inset text-primary flex items-center justify-center mx-auto mb-8 relative">
+          <Briefcase size={40} className="relative z-10" />
+          <div className="absolute inset-0 bg-primary/5 blur-xl rounded-full" />
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">{service.name}</h1>
-        <p className="text-slate-500">{office?.name || 'Unknown Office'}</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center shadow-sm">
-          <Users size={24} className="text-blue-500 mx-auto mb-2" />
-          <p className="text-sm text-slate-500 mb-1">People Ahead</p>
-          <p className="text-2xl font-bold text-slate-900">{stats.waitingCount}</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center shadow-sm">
-          <Clock size={24} className="text-amber-500 mx-auto mb-2" />
-          <p className="text-sm text-slate-500 mb-1">Estimated Wait</p>
-          <p className="text-2xl font-bold text-slate-900">{stats.estimatedTime}<span className="text-sm font-medium text-slate-500 ml-1">min</span></p>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 leading-tight tracking-tight px-4">{service.name}</h1>
+        <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-background shadow-neu-inset text-muted-foreground font-semibold text-sm">
+          <span>{office?.name || 'Unknown Office'}</span>
         </div>
       </div>
 
-      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4">
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-slate-500">Active Counters</span>
-          <span className="font-semibold text-slate-900">{stats.activeCounters}</span>
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 gap-5 sm:gap-8 mb-8">
+        <div className="bg-background shadow-neu rounded-3xl p-6 sm:p-8 text-center border-0 transition-all hover:-translate-y-1 hover:shadow-neu-hover">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-background shadow-neu-inset text-primary flex items-center justify-center mb-4">
+            <Users size={24} />
+          </div>
+          <p className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-2">People Ahead</p>
+          <p className="text-4xl sm:text-5xl font-black text-foreground">{stats.waitingCount}</p>
         </div>
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-slate-500">Average Service Time</span>
-          <span className="font-semibold text-slate-900">{service.averageServiceTime} minutes</span>
+
+        <div className="bg-background shadow-neu rounded-3xl p-6 sm:p-8 text-center border-0 transition-all hover:-translate-y-1 hover:shadow-neu-hover">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-background shadow-neu-inset text-primary flex items-center justify-center mb-4">
+            <Clock size={24} />
+          </div>
+          <p className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-2">Estimated Wait</p>
+          <div className="flex items-baseline justify-center gap-1">
+            <p className="text-4xl sm:text-5xl font-black text-foreground">{stats.estimatedTime}</p>
+            <span className="text-sm font-bold text-muted-foreground">min</span>
+          </div>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-200 md:static md:bg-transparent md:border-0 md:p-0 z-10">
+      {/* Service Details Inset Box */}
+      <div className="bg-background shadow-neu-inset rounded-3xl p-6 sm:p-8 space-y-5 border-0">
+        <div className="flex justify-between items-center text-sm sm:text-base border-b border-muted/10 pb-5">
+          <div className="flex items-center gap-3 text-muted-foreground font-bold">
+            <Sparkles size={18} className="text-primary" />
+            <span>Active Counters</span>
+          </div>
+          <span className="font-extrabold text-foreground bg-background shadow-neu px-3 py-1 rounded-md">{stats.activeCounters}</span>
+        </div>
+        <div className="flex justify-between items-center text-sm sm:text-base pt-1">
+          <div className="flex items-center gap-3 text-muted-foreground font-bold">
+            <Clock size={18} className="text-primary" />
+            <span>Average Service Time</span>
+          </div>
+          <span className="font-extrabold text-foreground">{service.averageServiceTime} <span className="text-xs font-semibold text-muted-foreground">min/person</span></span>
+        </div>
+      </div>
+
+      {/* Sticky Bottom Action Button */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 bg-background/80 backdrop-blur-md md:static md:bg-transparent md:backdrop-blur-none md:p-0 z-50">
         <div className="max-w-4xl mx-auto">
-          <Button 
-            className="w-full h-14 text-lg font-semibold bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all"
+          <button 
             onClick={handleTakeToken}
             disabled={generating}
+            className="w-full h-16 sm:h-20 text-lg sm:text-xl font-black text-primary bg-background shadow-neu hover:shadow-neu-hover hover:-translate-y-1 active:translate-y-0 active:shadow-neu-inset rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:pointer-events-none"
           >
             {generating ? (
-              <><Loader2 className="animate-spin mr-2" /> GENERATING...</>
+              <><Loader2 className="animate-spin" size={24} /> GENERATING PASS...</>
             ) : (
-              'TAKE VIRTUAL TOKEN'
+              'TAKE VIRTUAL PASS'
             )}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

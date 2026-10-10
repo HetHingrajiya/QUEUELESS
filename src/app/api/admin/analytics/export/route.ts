@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
     ];
 
     const csv = csvLines.join('\n');
-    const filename = `queueless-analytics-${start.toISOString().split('T')[0]}-to-${end.toISOString().split('T')[0]}.csv`;
+    const filename = `samaysetu-analytics-${start.toISOString().split('T')[0]}-to-${end.toISOString().split('T')[0]}.csv`;
 
     return new NextResponse(csv, {
       status: 200,

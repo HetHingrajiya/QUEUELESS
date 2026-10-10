@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { use, useEffect, useState } from 'react';
 import { MapPin, Clock, Users, ArrowLeft, ArrowRight, CheckCircle2, Heart } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { calculateDistanceKm, formatDistance } from '@/lib/geo/distance';
 import { CitizenOffice, CitizenService, ApiResponse } from '@/types/citizen';
 import { LoadingState } from '@/components/common/LoadingState';
@@ -72,9 +71,11 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
 
   if (error || !data) {
     return (
-      <div className="py-8 space-y-4">
+      <div className="py-12 space-y-6 flex flex-col items-center">
         <ErrorState description={error || 'Office not found'} onRetry={() => setRetryCount((count) => count + 1)} />
-        <div className="text-center"><Link href="/citizen/offices" className="text-blue-600 font-medium hover:underline">← Back to Offices</Link></div>
+        <Link href="/citizen/offices" className="px-6 py-3 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset text-primary font-bold rounded-xl transition-all">
+          ← Back to Offices
+        </Link>
       </div>
     );
   }
@@ -112,101 +113,116 @@ export default function OfficeDetails({ params }: { params: Promise<{ id: string
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-8 pb-12 cursor-default pt-2">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Link href="/citizen/offices" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/citizen/offices" className="w-12 h-12 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-full transition-all text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft size={24} />
           </Link>
-          <h1 className="text-2xl font-bold text-slate-900">{office.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground leading-tight tracking-tight">
+            {office.name}
+          </h1>
         </div>
         <button 
           onClick={toggleFavorite}
-          className={`p-2 rounded-full transition-colors ${isFavorite ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}
+          className={`w-12 h-12 flex items-center justify-center rounded-full transition-all shrink-0 ${isFavorite ? 'bg-background shadow-neu-inset text-red-500' : 'bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset text-muted-foreground hover:text-red-500'}`}
         >
-          <Heart size={24} fill={isFavorite ? 'currentColor' : 'none'} />
+          <Heart size={24} fill={isFavorite ? 'currentColor' : 'none'} className="mt-0.5" />
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
-          <div className="flex items-center text-emerald-600 mb-2">
-            <CheckCircle2 size={18} className="mr-2" />
-            <span className="font-semibold text-sm">Office Status</span>
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-background shadow-neu-inset rounded-3xl p-5 sm:p-6 border-0">
+          <div className="flex items-center text-primary mb-3">
+            <div className="p-2 rounded-xl bg-background shadow-neu mr-3">
+              <CheckCircle2 size={20} className="text-primary" />
+            </div>
+            <span className="font-extrabold text-sm sm:text-base text-foreground">Office Status</span>
           </div>
-          <p className="text-xs text-slate-600">{office.status === 'ACTIVE' ? 'Active and accepting bookings' : 'Currently unavailable'}</p>
+          <p className="text-xs sm:text-sm font-semibold text-muted-foreground">
+            {office.status === 'ACTIVE' ? 'Active & accepting bookings' : 'Currently unavailable'}
+          </p>
         </div>
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-          <div className="flex items-center text-blue-600 mb-2">
-            <Users size={18} className="mr-2" />
-            <span className="font-semibold text-sm">{totalWaiting} Waiting</span>
+        <div className="bg-background shadow-neu-inset rounded-3xl p-5 sm:p-6 border-0">
+          <div className="flex items-center text-primary mb-3">
+            <div className="p-2 rounded-xl bg-background shadow-neu mr-3">
+              <Users size={20} className="text-primary" />
+            </div>
+            <span className="font-extrabold text-sm sm:text-base text-foreground">{totalWaiting} Waiting</span>
           </div>
-          <p className="text-xs text-slate-600">Total current queue</p>
+          <p className="text-xs sm:text-sm font-semibold text-muted-foreground">Total current queue</p>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-start text-sm text-slate-600 space-x-3 mb-4">
-          <MapPin size={18} className="text-slate-400 mt-0.5 flex-shrink-0" />
-          <p>{office.address}</p>
+      {/* Details Card */}
+      <div className="bg-background shadow-neu rounded-3xl p-6 sm:p-8 border-0">
+        <div className="flex items-start text-sm sm:text-base font-semibold text-muted-foreground space-x-4 mb-6">
+          <div className="p-2 rounded-xl bg-background shadow-neu-inset shrink-0">
+            <MapPin size={20} className="text-primary" />
+          </div>
+          <p className="pt-2">{office.address || 'Address not provided'}</p>
         </div>
         
         {office.latitude != null && office.longitude != null && (
-          <div className="flex items-center text-sm text-slate-600 space-x-3 border-t border-slate-100 pt-4">
-            <MapPin size={18} className="text-blue-500 mt-0.5 flex-shrink-0" />
-            <div className="flex-1 flex items-center justify-between">
-              <span className="font-medium">{distStr || 'Distance unavailable'}</span>
-              <a 
-                href={`https://www.google.com/maps?q=${office.latitude},${office.longitude}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 font-medium hover:underline text-xs bg-blue-50 px-3 py-1.5 rounded-lg"
-              >
-                Get Directions
-              </a>
+          <div className="flex items-center justify-between text-sm sm:text-base text-muted-foreground border-t border-muted/10 pt-6 mt-2">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 rounded-xl bg-background shadow-neu-inset shrink-0">
+                <MapPin size={20} className="text-primary" />
+              </div>
+              <span className="font-extrabold text-foreground">{distStr || 'Distance unavailable'}</span>
             </div>
+            <a 
+              href={`https://www.google.com/maps?q=${office.latitude},${office.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary font-bold hover:text-primary/80 text-xs sm:text-sm bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset px-4 sm:px-6 py-2.5 rounded-xl transition-all"
+            >
+              Directions
+            </a>
           </div>
         )}
-        <div className="flex items-start text-sm text-slate-600 space-x-3 border-t border-slate-100 pt-4">
-          <Clock size={18} className="text-slate-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="mb-1"><span className="font-medium">Active Counters:</span> {office.countersCount}</p>
+        <div className="flex items-start text-sm sm:text-base text-muted-foreground space-x-4 border-t border-muted/10 pt-6 mt-6">
+          <div className="p-2 rounded-xl bg-background shadow-neu-inset shrink-0">
+            <Clock size={20} className="text-primary" />
+          </div>
+          <div className="pt-2 font-semibold">
+            <p className="mb-1"><span className="font-extrabold text-foreground">Active Counters:</span> {office.countersCount || 0}</p>
           </div>
         </div>
       </div>
 
-      <div>
-        <h2 className="text-xl font-bold text-slate-800 mb-4">Select Service</h2>
+      {/* Services List */}
+      <div className="pt-2">
+        <h2 className="text-2xl font-extrabold text-foreground mb-6">Select Service</h2>
         
         {services.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-4 sm:space-y-5">
             {services.map((service) => (
-              <Link key={service._id} href={`/citizen/services/${service._id}`} className="block transition-transform hover:scale-[1.01]">
-                <Card className="hover:border-blue-300 transition-colors">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-slate-900 mb-2">{service.name}</h3>
-                      <div className="flex items-center text-xs text-slate-500 space-x-4">
-                        <span className="flex items-center">
-                          <Users size={14} className="mr-1" /> {service.waitingCount} waiting
-                        </span>
-                        <span className="flex items-center">
-                          <Clock size={14} className="mr-1" /> ~{service.estimatedTime} min
-                        </span>
-                      </div>
+              <Link key={service._id} href={`/citizen/services/${service._id}`} className="block group">
+                <div className="bg-background shadow-neu hover:shadow-neu-hover hover:-translate-y-1 active:translate-y-0 active:shadow-neu-inset rounded-3xl p-5 sm:p-6 transition-all duration-300 border-0 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-lg sm:text-xl text-foreground mb-3 group-hover:text-primary transition-colors">{service.name}</h3>
+                    <div className="flex items-center text-xs sm:text-sm font-semibold text-muted-foreground space-x-4 sm:space-x-6">
+                      <span className="flex items-center bg-background shadow-neu-inset px-3 py-1.5 rounded-lg">
+                        <Users size={16} className="mr-2 text-primary" /> {service.waitingCount} waiting
+                      </span>
+                      <span className="flex items-center bg-background shadow-neu-inset px-3 py-1.5 rounded-lg">
+                        <Clock size={16} className="mr-2 text-primary" /> ~{service.estimatedTime} min
+                      </span>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                      <ArrowRight size={18} />
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-background shadow-neu-inset text-primary flex items-center justify-center shrink-0">
+                    <ArrowRight size={20} className="group-hover:scale-125 transition-transform duration-300" />
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <p className="text-slate-500">No services available at this office currently.</p>
+          <div className="text-center py-12 bg-background shadow-neu-inset rounded-3xl border-0">
+            <p className="text-lg font-bold text-muted-foreground">No services available at this office currently.</p>
           </div>
         )}
       </div>

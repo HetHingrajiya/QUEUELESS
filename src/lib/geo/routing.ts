@@ -65,7 +65,7 @@ export async function calculateRealTravelTime(
       signal: AbortSignal.timeout(3000), // Strict 3s timeout
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'QueueLess-Mobility-Engine/1.0'
+        'User-Agent': 'SamaySetu-Mobility-Engine/1.0'
       }
     });
 

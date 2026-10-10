@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent } from '@/components/ui/card';
 import { 
   Mail, Phone, Edit3, Settings, Shield, 
   LogOut, Heart, Clock, HelpCircle, MessageSquare, 
   Bell, ChevronRight, Lock, Info 
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { LoadingState } from '@/components/common/LoadingState';
 import { CitizenProfile, ApiResponse } from '@/types/citizen';
@@ -55,7 +53,9 @@ export default function CitizenProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto pt-4"><LoadingState label="Loading your profile..." /></div>
+      <div className="max-w-6xl mx-auto pt-4">
+        <LoadingState label="Loading your profile..." />
+      </div>
     );
   }
 
@@ -63,90 +63,114 @@ export default function CitizenProfilePage() {
   const citizenEmail = profile?.email || 'Not available';
   const citizenPhone = profile?.phone || profile?.mobile || 'Not available';
 
-  const menuItems = [
-    { label: 'Edit Profile', href: '/citizen/profile/edit', icon: <Edit3 size={18} className="text-blue-600" /> },
-    { label: 'Change Password', href: '/citizen/profile/change-password', icon: <Lock size={18} className="text-indigo-600" /> },
-    { label: 'Account Settings', href: '/citizen/settings/account', icon: <Settings size={18} className="text-slate-600" /> },
-    { label: 'Notification Settings', href: '/citizen/settings', icon: <Bell size={18} className="text-amber-600" /> },
-    { label: 'Privacy Settings', href: '/citizen/settings/privacy', icon: <Shield size={18} className="text-emerald-600" /> },
-    { label: 'Favorites', href: '/citizen/favorites', icon: <Heart size={18} className="text-rose-600" /> },
-    { label: 'Token History', href: '/citizen/token-history', icon: <Clock size={18} className="text-cyan-600" /> },
-    { label: 'Give Feedback', href: '/citizen/feedback', icon: <MessageSquare size={18} className="text-violet-600" /> },
-    { label: 'Help & FAQ', href: '/citizen/help', icon: <HelpCircle size={18} className="text-teal-600" /> },
-    { label: 'About QueueLess', href: '/citizen/about', icon: <Info size={18} className="text-blue-600" /> },
+  const menuSections = [
+    {
+      title: 'Activity & Alerts',
+      items: [
+        { label: 'Token History', href: '/citizen/token-history', icon: <Clock size={20} className="text-primary" /> },
+        { label: 'Favorite Hubs', href: '/citizen/favorites', icon: <Heart size={20} className="text-primary" /> },
+        { label: 'Notifications', href: '/citizen/notifications', icon: <Bell size={20} className="text-primary" /> },
+      ]
+    },
+    {
+      title: 'Account Settings',
+      items: [
+        { label: 'Personal Information', href: '/citizen/profile/edit', icon: <Edit3 size={20} className="text-muted-foreground" /> },
+        { label: 'Change Password', href: '/citizen/profile/change-password', icon: <Lock size={20} className="text-muted-foreground" /> },
+        { label: 'Privacy & Security', href: '/citizen/settings/privacy', icon: <Shield size={20} className="text-muted-foreground" /> },
+      ]
+    },
+    {
+      title: 'Support & Help',
+      items: [
+        { label: 'Help & FAQ', href: '/citizen/help', icon: <HelpCircle size={20} className="text-primary" /> },
+        { label: 'Give Feedback', href: '/citizen/feedback', icon: <MessageSquare size={20} className="text-primary" /> },
+        { label: 'About SamaySetu', href: '/citizen/about', icon: <Info size={20} className="text-muted-foreground" /> },
+      ]
+    }
   ];
 
   return (
-    <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
       {/* Header */}
-      <div className="flex flex-col space-y-1">
-<h1 className="text-2xl font-extrabold text-slate-900">Citizen Profile</h1>
+      <div className="flex flex-col space-y-2 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Citizen Profile</h1>
+        <p className="text-muted-foreground text-xs sm:text-sm font-semibold">Manage your account, preferences, and security.</p>
       </div>
 
-      {/* Profile Card */}
-      <Card className="border-slate-200 overflow-hidden shadow-sm bg-white">
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 h-20" />
-        <CardContent className="p-5 pt-0 relative">
-          <div className="flex justify-between items-end mb-4">
-            <div className="w-18 h-18 rounded-2xl bg-white p-1 shadow-md -mt-9 border-2 border-white">
-              <div className="w-full h-full rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 font-extrabold text-2xl">
-                {citizenName.charAt(0)}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        
+        {/* Left Column: ID Card */}
+        <div className="lg:col-span-5 space-y-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-10 text-center border-0">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8">Digital Identity</p>
+            
+            <div className="w-32 h-32 rounded-full mx-auto bg-background shadow-neu-inset flex items-center justify-center mb-6">
+              <span className="text-5xl font-black text-primary">{citizenName.charAt(0)}</span>
+            </div>
+            
+            <h2 className="text-xl font-black text-foreground tracking-tight mb-2">{citizenName}</h2>
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest bg-background shadow-neu text-emerald-500 mb-8">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              {profile?.status === 'ACTIVE' ? 'ACTIVE' : profile?.status === 'INACTIVE' ? 'INACTIVE' : 'STATUS UNKNOWN'}
+            </div>
+
+            <div className="space-y-4 text-left bg-background shadow-neu-inset p-6 rounded-3xl">
+              <div className="flex items-center text-sm">
+                <Mail size={16} className="text-primary mr-4 shrink-0" />
+                <span className="font-bold text-foreground truncate">{citizenEmail}</span>
+              </div>
+              <div className="flex items-center text-sm">
+                <Phone size={16} className="text-primary mr-4 shrink-0" />
+                <span className="font-bold text-foreground">{citizenPhone}</span>
               </div>
             </div>
-            <Link href="/citizen/profile/edit">
-              <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs">
-                <Edit3 size={13} className="mr-1.5" /> Edit Profile
-              </Button>
+
+            <Link href="/citizen/profile/edit" className="block mt-8">
+              <button className="w-full h-14 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all">
+                <Edit3 size={16} className="mr-2" /> Edit Profile
+              </button>
             </Link>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-slate-900">{citizenName}</h2>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${profile?.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                {profile?.status === 'ACTIVE' ? 'ACTIVE' : profile?.status === 'INACTIVE' ? 'INACTIVE' : 'STATUS UNKNOWN'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 flex items-center">
-              <Mail size={12} className="mr-1.5 text-slate-400" /> {citizenEmail}
-            </p>
-            <p className="text-xs text-slate-500 flex items-center">
-              <Phone size={12} className="mr-1.5 text-slate-400" /> {citizenPhone}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Menu Options */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs divide-y divide-slate-100">
-        {menuItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className="flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors"
+          <button
+            onClick={handleLogout}
+            className="w-full h-16 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-[2rem] text-sm uppercase font-black tracking-widest text-red-500 flex items-center justify-center transition-all"
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
-                {item.icon}
-              </div>
-              <span className="text-xs font-semibold text-slate-800">{item.label}</span>
-            </div>
-            <ChevronRight size={16} className="text-slate-400" />
-          </Link>
-        ))}
+            <LogOut size={20} className="mr-3" /> Sign Out
+          </button>
+        </div>
 
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-between p-3.5 text-red-600 hover:bg-red-50 transition-colors text-left"
-        >
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
-              <LogOut size={18} className="text-red-600" />
+        {/* Right Column: Menu Sections */}
+        <div className="lg:col-span-7 space-y-8">
+          {menuSections.map((section, idx) => (
+            <div key={idx} className="bg-background shadow-neu rounded-[2rem] p-6 sm:p-8">
+              <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-6 px-2">
+                {section.title}
+              </h3>
+              <div className="space-y-3">
+                {section.items.map((item, itemIdx) => (
+                  <Link
+                    key={itemIdx}
+                    href={item.href}
+                    className="flex items-center justify-between p-5 bg-background shadow-neu-inset hover:shadow-neu rounded-2xl transition-all group"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 rounded-xl bg-background shadow-neu flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+                        {item.icon}
+                      </div>
+                      <span className="text-sm font-extrabold text-foreground tracking-wide">{item.label}</span>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-background shadow-neu flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ChevronRight size={16} className="text-primary" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
-            <span className="text-xs font-semibold">Sign Out</span>
-          </div>
-          <ChevronRight size={16} className="text-red-400" />
-        </button>
+          ))}
+        </div>
+
       </div>
     </div>
   );

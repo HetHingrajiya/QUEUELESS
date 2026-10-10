@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { LoadingState } from '@/components/common/LoadingState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
-import { StatusBadge } from '@/components/common/StatusBadge';
 
 interface OfficeItem {
   _id: string;
@@ -22,6 +21,7 @@ interface OfficeItem {
   longitude?: number | null;
   status?: string;
   statusColor?: string;
+  department?: string;
 }
 
 export default function CitizenOfficesPage() {
@@ -99,65 +99,89 @@ export default function CitizenOfficesPage() {
   }
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col space-y-2">
+    <div className="space-y-8 pb-12 cursor-default pt-2">
+      <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-extrabold text-slate-800">Find an Office</h2>
-          {!userLocation && <Button variant="outline" size="sm" onClick={requestLocation}>Enable Location</Button>}
+          <h2 className="text-3xl font-extrabold text-foreground">Explore Offices</h2>
+          {!userLocation && (
+            <button 
+              onClick={requestLocation}
+              className="text-xs font-bold text-primary bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset px-4 py-2 rounded-full transition-all border-0"
+            >
+              Enable GPS
+            </button>
+          )}
         </div>
-        <p className="text-slate-500">Locate a government office to book your queue token.</p>
+        <p className="text-muted-foreground font-medium text-sm">Find and locate government offices near you to book a virtual queue pass.</p>
       </div>
 
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-slate-400" />
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-muted-foreground" />
         </div>
         <Input
           type="text"
-          placeholder="Search by name or location..."
-          className="pl-10 h-12 rounded-xl text-slate-900 border-slate-200 focus:ring-2 focus:ring-blue-500"
+          placeholder="Search by name, department, or location..."
+          className="pl-12 h-14 rounded-2xl bg-background shadow-neu-inset border-0 text-foreground font-semibold placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      {locationError && <p role="status" className="text-xs text-amber-700">{locationError}</p>}
+      {locationError && (
+        <div className="bg-background shadow-neu-inset text-destructive font-semibold px-4 py-3 rounded-xl text-sm">
+          {locationError}
+        </div>
+      )}
 
       {loading ? (
-        <LoadingState label="Loading government offices…" className="py-12" />
+        <LoadingState label="Searching offices…" className="py-12" />
       ) : loadError ? (
         <ErrorState title="Could not load offices" description={loadError} onRetry={() => { setLoading(true); setRetryCount((count) => count + 1); }} />
       ) : offices.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {processedOffices.map((office) => (
-            <Link key={office._id} href={`/citizen/offices/${office._id}`} className="block transition-transform hover:-translate-y-1">
-              <Card className="hover:shadow-lg transition-shadow border-slate-200 overflow-hidden">
-                <div className="h-24 bg-slate-100 flex items-center justify-center border-b border-slate-100">
-                  <Building2 size={32} className="text-slate-300" />
-                </div>
-                <CardContent className="p-5">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg text-slate-900 line-clamp-1">{office.name}</h3>
+            <Link key={office._id} href={`/citizen/offices/${office._id}`} className="block group">
+              <div className="bg-background rounded-3xl p-6 shadow-neu hover:shadow-neu-hover hover:-translate-y-1 active:translate-y-0 active:shadow-neu-inset transition-all duration-300 h-full flex flex-col justify-between border-0">
+                <div className="space-y-4">
+                  {/* Top section with Icon and Status */}
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-background shadow-neu-inset text-primary flex items-center justify-center shrink-0">
+                      <Building2 size={24} className="group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <div className="text-[10px] font-black px-3 py-1 rounded-full bg-background shadow-neu-inset text-primary shrink-0 uppercase tracking-widest">
+                      {office.status || 'ACTIVE'}
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2 mb-4">
-                    <p className="text-slate-500 text-sm flex items-start">
-                      <MapPin size={16} className="mr-2 text-slate-400 shrink-0 mt-0.5" /> 
-                      <span className="line-clamp-2">{office.address || 'Address not provided'}</span>
+
+                  {/* Title and Distance */}
+                  <div className="space-y-2">
+                    <h3 className="font-extrabold text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                      {office.name}
+                    </h3>
+                    <p className="text-muted-foreground font-semibold text-xs flex items-start gap-1.5 line-clamp-2">
+                      <MapPin size={14} className="shrink-0 mt-0.5" />
+                      <span>{office.address || 'Government Complex'}</span>
                     </p>
-                    <p className="text-slate-500 text-sm flex items-center">
-                      <span className="font-medium mr-2 bg-slate-100 px-2 py-0.5 rounded text-xs">{office.distanceStr || "Distance unavailable"}</span>
-                    </p>
+                    {userLocation && office.distanceStr && (
+                      <div className="inline-flex mt-1 items-center px-2.5 py-1 rounded-md bg-background shadow-neu-inset text-xs font-bold text-muted-foreground">
+                        {office.distanceStr}
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <StatusBadge status={office.status || 'UNKNOWN'} />
-                    <span className="text-sm font-medium text-blue-600 flex items-center">
-                      View Services <ArrowRight size={16} className="ml-1" />
+
+                  {/* Footer */}
+                  <div className="pt-4 mt-auto flex items-center justify-between border-t border-muted/10">
+                    <span className="text-muted-foreground font-bold text-xs uppercase tracking-wide truncate pr-2">
+                      {office.department || 'General Admin'}
+                    </span>
+                    <span className="text-primary font-bold text-xs flex items-center gap-1.5 shrink-0">
+                      <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">View Services</span>
+                      <ArrowRight size={14} />
                     </span>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </Link>
           ))}
         </div>
@@ -165,7 +189,7 @@ export default function CitizenOfficesPage() {
         <EmptyState
           title="No offices found"
           description="We couldn't find any offices matching your search. Try different keywords."
-          icon={<Search className="h-8 w-8" />}
+          icon={<Search className="h-10 w-10 text-muted-foreground/50" />}
         />
       )}
     </div>

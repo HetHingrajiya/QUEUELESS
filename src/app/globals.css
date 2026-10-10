@@ -133,6 +133,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  input, textarea {
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
   }
   html {
     @apply font-sans;

@@ -3,10 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Lock, ShieldCheck, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 export default function CitizenChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -69,147 +65,160 @@ export default function CitizenChangePasswordPage() {
   };
 
   return (
-    <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <Link href="/citizen/profile" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      
+      {/* Header */}
+      <div className="flex items-center mb-8">
+        <Link href="/citizen/profile">
+          <button className="w-12 h-12 mr-4 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-full transition-all text-muted-foreground hover:text-foreground shrink-0">
             <ArrowLeft size={20} />
-          </Link>
-          <div>
-<h1 className="text-xl font-bold text-slate-900 mt-1">Change Password</h1>
-          </div>
+          </button>
+        </Link>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Security Center</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold">Change your password and secure your account.</p>
         </div>
       </div>
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-            <Lock size={20} />
-          </div>
-          <div>
-            <h3 className="font-bold text-sm">Security & Privacy</h3>
-            <p className="text-xs text-blue-100">Ensure your new password is secure and unique</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        
+        {/* Left Column: Security Information */}
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-10 text-center border-0">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8">Data Privacy</p>
+            
+            <div className="w-32 h-32 rounded-full mx-auto bg-background shadow-neu-inset flex items-center justify-center mb-6 text-primary">
+              <Lock size={48} className="text-primary opacity-80" />
+            </div>
+            
+            <h2 className="text-xl font-black text-foreground tracking-tight mb-8">Account Security</h2>
+            
+            <div className="bg-background shadow-neu-inset p-5 rounded-2xl border-2 border-emerald-500/10">
+              <ShieldCheck size={24} className="text-emerald-500 mx-auto mb-3" />
+              <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                Passwords must contain a combination of letters, numbers, and symbols to ensure maximum security of your citizen records.
+              </p>
+            </div>
           </div>
         </div>
 
-        <CardContent className="p-6">
-          {status && (
-            <div
-              className={`p-4 rounded-xl mb-6 flex items-start text-sm ${
-                status.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'bg-red-50 text-red-800 border border-red-200'
-              }`}
-            >
-              {status.type === 'success' ? (
-                <CheckCircle2 size={18} className="mr-2 text-emerald-600 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle size={18} className="mr-2 text-red-600 shrink-0 mt-0.5" />
-              )}
-              <span>{status.message}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">Current Password</Label>
-              <div className="relative mt-1">
-                <Input
-                  type={showCurrent ? 'text' : 'password'}
-                  placeholder="Enter current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrent(!showCurrent)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+        {/* Right Column: Password Form */}
+        <div className="lg:col-span-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-8 sm:p-10 border-0">
+            
+            {status && (
+              <div className={`p-4 mb-8 rounded-2xl bg-background shadow-neu-inset border-2 text-sm font-bold flex items-center ${
+                status.type === 'success' ? 'border-emerald-500/20 text-emerald-500' : 'border-red-500/20 text-red-500'
+              }`}>
+                {status.type === 'success' ? (
+                  <CheckCircle2 size={18} className="mr-3 shrink-0" />
+                ) : (
+                  <AlertCircle size={18} className="mr-3 shrink-0" />
+                )}
+                {status.message}
               </div>
-            </div>
+            )}
 
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">New Password</Label>
-              <div className="relative mt-1">
-                <Input
-                  type={showNew ? 'text' : 'password'}
-                  placeholder="At least 8 characters"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNew(!showNew)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-
-              {/* Password strength meter */}
-              {newPassword && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex gap-1 h-1.5">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 rounded-full transition-all ${
-                          strength >= i
-                            ? strength <= 2
-                              ? 'bg-amber-400'
-                              : 'bg-emerald-500'
-                            : 'bg-slate-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    {strength <= 1 && 'Weak password'}
-                    {strength === 2 && 'Fair password'}
-                    {strength === 3 && 'Good password'}
-                    {strength === 4 && 'Strong password'}
-                  </p>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-4">Current Password</label>
+                <div className="relative">
+                  <input
+                    type={showCurrent ? 'text' : 'password'}
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full h-14 px-5 pr-14 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground placeholder:text-muted-foreground/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    placeholder="Enter current password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrent(!showCurrent)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background shadow-neu flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {showCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div>
-              <Label className="text-xs font-semibold text-slate-700">Confirm New Password</Label>
-              <Input
-                type="password"
-                placeholder="Re-enter new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1"
-              />
-            </div>
+              <div className="pt-4 border-t border-muted/10 space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-4">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showNew ? 'text' : 'password'}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full h-14 px-5 pr-14 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground placeholder:text-muted-foreground/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                    placeholder="At least 8 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew(!showNew)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background shadow-neu flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 h-11 font-semibold text-sm shadow-md"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin mr-2 h-4 w-4" /> Updating Password...
-                </>
-              ) : (
-                'Update Password'
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+                {/* Physical Password strength meter */}
+                {newPassword && (
+                  <div className="mt-4 px-4 flex items-center justify-between">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      {strength <= 1 && 'Weak'}
+                      {strength === 2 && 'Fair'}
+                      {strength === 3 && 'Good'}
+                      {strength === 4 && 'Strong'}
+                    </p>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className={`w-8 h-2 rounded-full transition-all duration-300 ${
+                            strength >= i
+                              ? strength <= 2
+                                ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                                : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                              : 'bg-background shadow-neu-inset'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
-      <div className="bg-slate-100 rounded-xl p-4 text-xs text-slate-600 flex items-start space-x-3">
-        <ShieldCheck size={18} className="text-blue-600 shrink-0 mt-0.5" />
-        <p>
-          Passwords must contain a combination of letters, numbers, and symbols to ensure maximum security of your citizen records.
-        </p>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-4">Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full h-14 px-5 bg-background shadow-neu-inset rounded-2xl text-sm font-bold text-foreground placeholder:text-muted-foreground/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  placeholder="Re-enter new password"
+                />
+              </div>
+
+              <div className="pt-6">
+                <button
+                  type="submit"
+                  disabled={loading || !currentPassword || !newPassword || !confirmPassword}
+                  className="w-full h-16 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-sm uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <span className="flex items-center"><span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-3"></span> Updating...</span>
+                  ) : (
+                    <span className="flex items-center"><Lock size={18} className="mr-3" /> Update Password</span>
+                  )}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
       </div>
     </div>
   );

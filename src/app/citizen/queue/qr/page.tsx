@@ -7,8 +7,6 @@ import {
   ArrowLeft, Ticket, Printer, Share2, Copy, 
   MapPin, Calendar, Building2 
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { getSocket } from '@/lib/socketClient';
 import { CitizenToken, ApiResponse, CitizenQueueSummary } from '@/types/citizen';
@@ -117,11 +115,11 @@ function DigitalTokenQRContent() {
   };
 
   const handleShare = async () => {
-    const passText = `QueueLess Token ${tokenNumber}\nService: ${serviceName}\nOffice: ${officeName}\nToken reference: ${tokenData?._id || ''}\n${window.location.href}`;
+    const passText = `SamaySetu Token ${tokenNumber}\nService: ${serviceName}\nOffice: ${officeName}\nToken reference: ${tokenData?._id || ''}\n${window.location.href}`;
     setShareMessage('');
     try {
       if (navigator.share) {
-        await navigator.share({ title: `QueueLess Token ${tokenNumber}`, text: passText, url: window.location.href });
+        await navigator.share({ title: `SamaySetu Token ${tokenNumber}`, text: passText, url: window.location.href });
         setShareMessage('Pass shared.');
       } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(passText);
@@ -154,15 +152,15 @@ function DigitalTokenQRContent() {
 
   if (error || !tokenData) {
     return (
-      <div className="max-w-md mx-auto pt-8 text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-          <Ticket size={32} />
+      <div className="max-w-md mx-auto pt-16 text-center space-y-6">
+        <div className="w-24 h-24 rounded-3xl bg-background shadow-neu-inset flex items-center justify-center mx-auto text-muted-foreground">
+          <Ticket size={40} />
         </div>
-        <p className="text-slate-600 text-sm font-medium">{error || 'No active token pass available'}</p>
+        <p className="text-foreground font-black text-lg">{error || 'No active token pass available'}</p>
         <Link href="/citizen/token">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-xs font-bold">
+          <button className="px-6 py-3 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset text-primary font-black rounded-xl transition-all uppercase tracking-widest text-xs">
             Get Virtual Token
-          </Button>
+          </button>
         </Link>
       </div>
     );
@@ -175,101 +173,118 @@ function DigitalTokenQRContent() {
   const status = tokenData.status || 'Data unavailable';
 
   return (
-    <div className="space-y-6 pb-20 max-w-md mx-auto pt-2">
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-4 px-2 sm:px-6 cursor-default">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-6 px-2">
         <div className="flex items-center">
           <button 
             onClick={() => router.back()}
-            className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+            className="w-12 h-12 mr-4 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-full transition-all text-muted-foreground hover:text-foreground shrink-0"
           >
             <ArrowLeft size={20} />
           </button>
-          <div>
-<h1 className="text-xl font-bold text-slate-900 mt-0.5">Digital Token Pass</h1>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Digital Token Pass</h1>
         </div>
       </div>
 
-      {/* Main Digital Pass Card */}
-      <Card className="border-slate-200 overflow-hidden shadow-lg bg-white">
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-5 text-white text-center relative">
-          <span className="text-[10px] font-extrabold uppercase tracking-widest bg-white/20 px-2.5 py-0.5 rounded-full text-blue-100">
-            OFFICIAL DIGITAL CITIZEN PASS
-          </span>
-          <h2 className="text-4xl font-black mt-2 tracking-tight">{tokenNumber}</h2>
-          <p className="text-xs text-blue-100 mt-1 font-medium">{serviceName}</p>
-          <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-            {status}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+        {/* Left Column: Main Digital Pass Card */}
+        <div className="lg:col-span-5">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-10 text-center border-0 relative overflow-hidden transition-all hover:shadow-neu-hover h-full flex flex-col justify-center">
+            
+            <p className="text-sm font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">Official Citizen Pass</p>
+            
+            <div className="w-full max-w-[240px] mx-auto bg-background shadow-neu-inset rounded-[2rem] py-8 my-8">
+               <p className="text-7xl font-black text-primary tracking-tighter drop-shadow-sm">{tokenNumber}</p>
+            </div>
+            
+            <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-background shadow-neu-inset text-foreground mb-6 mx-auto">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              {status}
+            </div>
+
+            <p className="text-base font-black text-foreground leading-snug">{serviceName}</p>
           </div>
         </div>
 
-        <CardContent className="p-6 space-y-5 text-center">
-          {/* Digital reference only: this is not a scannable QR code. */}
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center">
-            <div className="w-16 h-16 bg-blue-100 text-blue-700 rounded-2xl flex items-center justify-center mx-auto">
-              <Ticket size={30} />
+        {/* Right Column: Details and Actions */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Digital Reference Box */}
+          <div className="bg-background shadow-neu p-8 rounded-3xl text-center border-0">
+            <div className="w-20 h-20 bg-background shadow-neu-inset text-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Ticket size={32} />
             </div>
-            <p className="text-xs font-semibold text-slate-700 mt-3">Digital token reference</p>
-            <p className="font-mono text-[11px] text-slate-600 mt-2 break-all">{tokenData._id}</p>
-            <Button type="button" variant="outline" className="mt-3 h-9 text-xs" onClick={handleCopyReference}>
-              <Copy size={14} className="mr-1.5" /> Copy reference
-            </Button>
-            <p className="text-[11px] text-slate-500 mt-3">
-              This screen does not currently generate a scannable QR. Show your token number at reception or use Venue Check-In.
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-4">Digital Reference</p>
+            <div className="bg-background shadow-neu-inset px-5 py-4 rounded-xl mb-6 max-w-sm mx-auto">
+              <p className="font-mono text-xs font-bold text-foreground break-all">{tokenData._id}</p>
+            </div>
+            <button 
+              type="button" 
+              className="px-6 py-3 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center mx-auto transition-all" 
+              onClick={handleCopyReference}
+            >
+              <Copy size={16} className="mr-2" /> Copy Reference
+            </button>
+            <p className="text-xs font-semibold text-muted-foreground mt-6 leading-relaxed max-w-sm mx-auto">
+              Show your token number at reception or use Venue Check-In. (QR functionality pending).
             </p>
           </div>
 
           {/* Details Grid */}
-          <div className="space-y-2 text-xs text-left bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 flex items-center">
-                <Building2 size={13} className="mr-1.5 text-blue-500" /> Office:
+          <div className="space-y-5 text-sm text-left bg-background shadow-neu-inset p-8 rounded-3xl border-0">
+            <div className="flex justify-between items-center border-b border-muted/10 pb-4">
+              <span className="font-black text-muted-foreground uppercase tracking-widest text-xs flex items-center">
+                <Building2 size={16} className="mr-3 text-primary" /> Office
               </span>
-              <span className="font-bold text-slate-800 text-right truncate max-w-[200px]">{officeName}</span>
+              <span className="font-black text-foreground text-right truncate max-w-[220px]">{officeName}</span>
+            </div>
+            <div className="flex justify-between items-center border-b border-muted/10 pb-4">
+              <span className="font-black text-muted-foreground uppercase tracking-widest text-xs flex items-center">
+                <MapPin size={16} className="mr-3 text-primary" /> Address
+              </span>
+              <span className="font-bold text-foreground text-right truncate max-w-[220px]">{address}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400 flex items-center">
-                <MapPin size={13} className="mr-1.5 text-emerald-500" /> Address:
+              <span className="font-black text-muted-foreground uppercase tracking-widest text-xs flex items-center">
+                <Calendar size={16} className="mr-3 text-primary" /> Generated
               </span>
-              <span className="text-slate-600 text-right truncate max-w-[200px]">{address}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 flex items-center">
-                <Calendar size={13} className="mr-1.5 text-indigo-500" /> Generated:
-              </span>
-              <span className="font-medium text-slate-700">
+              <span className="font-bold text-foreground">
                 {tokenData.createdAt ? new Date(tokenData.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : 'Today'}
               </span>
             </div>
           </div>
 
           {/* Real browser print and share actions */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <Button onClick={handlePrint} variant="outline" className="h-11 text-xs font-bold border-slate-200 hover:bg-slate-50">
-              <Printer size={14} className="mr-1.5" /> Print / Save PDF
-            </Button>
-            <Button onClick={handleShare} variant="outline" className="h-11 text-xs font-bold border-slate-200 hover:bg-slate-50">
-              <Share2 size={14} className="mr-1.5" /> Share Pass
-            </Button>
+          <div className="grid grid-cols-2 gap-6">
+            <button 
+              onClick={handlePrint} 
+              className="h-14 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-xs uppercase font-black tracking-widest text-foreground flex items-center justify-center transition-all"
+            >
+              <Printer size={18} className="mr-3 text-muted-foreground" /> Print PDF
+            </button>
+            <button 
+              onClick={handleShare} 
+              className="h-14 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all"
+            >
+              <Share2 size={18} className="mr-3" /> Share Pass
+            </button>
           </div>
-          {shareMessage && <p role="status" className="text-xs text-blue-700 text-center">{shareMessage}</p>}
+          {shareMessage && <p role="status" className="text-xs font-black uppercase tracking-widest text-primary text-center bg-background shadow-neu-inset py-3 rounded-lg">{shareMessage}</p>}
 
-          <Link href={`/citizen/queue/${tokenData._id || tokenData.id || ''}`} className="block">
-            <Button className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white shadow-md">
+          <Link href={`/citizen/queue/${tokenData._id || tokenData.id || ''}`} className="block mt-8">
+            <button className="w-full h-16 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset text-primary font-black uppercase tracking-widest text-sm rounded-xl transition-all">
               View Live Queue Monitor
-            </Button>
+            </button>
           </Link>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function DigitalTokenQRPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-slate-400">Loading token pass...</div>}>
+    <Suspense fallback={<div className="p-8 text-center font-black uppercase tracking-widest text-muted-foreground text-xs">Loading token pass...</div>}>
       <DigitalTokenQRContent />
     </Suspense>
   );

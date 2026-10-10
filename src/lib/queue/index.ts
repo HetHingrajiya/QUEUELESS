@@ -1,7 +1,7 @@
 import { TokenStatus } from '@/models/Token';
 
 /**
- * Centralized definition of active token statuses for QueueLess.
+ * Centralized definition of active token statuses for SamaySetu.
  * A token in any of these statuses is considered active in the queue.
  */
 export const ACTIVE_TOKEN_STATUSES: readonly TokenStatus[] = [

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // Demo seeding previously deleted live collections and inserted fixed demo accounts.
-// Keep this endpoint disabled so it can never pollute or destroy real QueueLess data.
+// Keep this endpoint disabled so it can never pollute or destroy real SamaySetu data.
 export async function GET() {
   return NextResponse.json(
     {

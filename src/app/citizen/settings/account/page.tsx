@@ -68,7 +68,7 @@ export default function AccountSettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm("Are you sure you want to deactivate your QueueLess Citizen account? This action will invalidate active queue passes.")) return;
+    if (!confirm("Are you sure you want to deactivate your SamaySetu Citizen account? This action will invalidate active queue passes.")) return;
     try {
       setDeleting(true);
       const res = await fetch('/api/citizen/profile', { method: 'DELETE' });

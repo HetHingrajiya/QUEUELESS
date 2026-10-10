@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Bell, Smartphone, Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Bell, Smartphone, Mail, AlertCircle, CheckCircle2, ArrowLeft, Settings2, Save } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CitizenSettingsPage() {
@@ -64,105 +62,152 @@ export default function CitizenSettingsPage() {
     }
   };
 
-  return (
-    <div className="space-y-6 pb-20 max-w-lg mx-auto pt-2">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center">
-          <Link href="/citizen/profile" className="p-2 mr-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-<h1 className="text-xl font-bold text-slate-900 mt-0.5">Notification Settings</h1>
-          </div>
-        </div>
-      </div>
-
-      <Card className="border-slate-200 overflow-hidden bg-white shadow-sm">
-        <div className="bg-slate-50 px-5 py-4 border-b border-slate-100 flex items-center">
-          <Bell className="text-blue-500 mr-3" size={20} />
-          <h3 className="font-bold text-slate-800 text-sm">Delivery Channels</h3>
-        </div>
-        <CardContent className="p-0 divide-y divide-slate-100">
-          <div className="p-5 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-4">
-                <Smartphone size={18} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-800 text-sm">SMS Alerts</p>
-                <p className="text-xs text-slate-500">Receive token calls via text message</p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={preferences.sms} onChange={() => handleToggle('sms')} />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-
-          <div className="p-5 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mr-4">
-                <Mail size={18} className="text-emerald-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-800 text-sm">Email Confirmations</p>
-                <p className="text-xs text-slate-500">Receipts and completion summaries</p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={preferences.email} onChange={() => handleToggle('email')} />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-          
-          <div className="p-5 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center mr-4">
-                <AlertCircle size={18} className="text-purple-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-800 text-sm">Push Notifications</p>
-                <p className="text-xs text-slate-500">Instant sound chimes for counter call</p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={preferences.push} onChange={() => handleToggle('push')} />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Bell size={20} className="text-purple-600 shrink-0" />
-          <div>
-            <p className="text-xs font-bold text-slate-800">Browser Sound & Push Permission</p>
-            <p className="text-[10px] text-slate-500">Configure device chime audio and system alerts</p>
-          </div>
-        </div>
-        <Link
-          href="/citizen/permissions/notification"
-          className="text-xs font-bold text-purple-700 bg-white px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition-colors"
-        >
-          Manage
-        </Link>
-      </div>
-
-      <Button
-        onClick={savePreferences}
-        disabled={saving}
-        className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold text-xs"
+  const NeumorphicToggle = ({ checked, onChange }: { checked: boolean, onChange: () => void }) => (
+    <button 
+      type="button"
+      onClick={onChange}
+      className={`w-14 h-8 rounded-full transition-all duration-300 relative shrink-0 ${
+        checked ? 'bg-primary/10 shadow-neu-inset' : 'bg-background shadow-neu-inset'
+      }`}
+    >
+      <div 
+        className={`absolute top-1 w-6 h-6 rounded-full bg-background flex items-center justify-center transition-all duration-300 ${
+          checked ? 'left-7 shadow-[0_0_8px_rgba(var(--primary),0.6)]' : 'left-1 shadow-neu'
+        }`}
       >
-        {saving ? 'Saving to Database...' : 'Save Notification Preferences'}
-      </Button>
+        {checked && <div className="w-2 h-2 rounded-full bg-primary" />}
+      </div>
+    </button>
+  );
 
-      {saved && (
-        <p className="text-center text-xs text-emerald-600 font-semibold flex items-center justify-center">
-          <CheckCircle2 size={14} className="mr-1.5" /> Preferences saved in MongoDB!
-        </p>
-      )}
+  return (
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto pt-4 cursor-default">
+      {/* Header */}
+      <div className="flex items-center mb-8 px-4 sm:px-6 lg:px-8">
+        <Link href="/citizen/profile">
+          <button className="w-12 h-12 mr-4 flex items-center justify-center bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-full transition-all text-muted-foreground hover:text-foreground shrink-0 border-0">
+            <ArrowLeft size={20} />
+          </button>
+        </Link>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Notification Settings</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm font-semibold">Control how we communicate queue updates to you.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 px-4 sm:px-6 lg:px-8">
+        
+        {/* Left Column: Context */}
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-10 text-center border-0">
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-8">Alert Channels</p>
+            
+            <div className="w-32 h-32 rounded-full mx-auto bg-background shadow-neu-inset flex items-center justify-center mb-6 text-primary">
+              <Bell size={48} className="text-primary opacity-80" />
+            </div>
+            
+            <h2 className="text-xl font-black text-foreground tracking-tight mb-8">Never Miss Your Turn</h2>
+            
+            <div className="bg-background shadow-neu-inset p-5 rounded-2xl border-2 border-primary/10 text-left">
+              <Settings2 size={24} className="text-primary mb-3" />
+              <p className="text-xs font-semibold text-muted-foreground leading-relaxed">
+                Smart queue alerts ensure you arrive precisely when called. We recommend leaving Push Notifications and SMS enabled.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-background shadow-neu rounded-[2rem] p-6 text-center border-0">
+             <div className="w-14 h-14 rounded-2xl bg-background shadow-neu-inset flex items-center justify-center text-purple-500 mx-auto mb-4">
+                <Bell size={24} />
+             </div>
+             <h3 className="font-bold text-sm text-foreground mb-1">Browser Chime Permission</h3>
+             <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4">Device Audio & Push</p>
+             <Link href="/citizen/permissions/notification" className="block w-full">
+               <button className="w-full h-12 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-xl text-xs uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all border-0">
+                 Manage Device Audio
+               </button>
+             </Link>
+          </div>
+        </div>
+
+        {/* Right Column: Toggles */}
+        <div className="lg:col-span-8">
+          <div className="bg-background shadow-neu rounded-[2.5rem] p-8 sm:p-10 border-0">
+            <div className="space-y-6">
+              
+              {/* SMS Tracking */}
+              <div className="bg-background shadow-neu-inset hover:shadow-neu rounded-3xl p-6 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-0 group">
+                <div className="flex items-start gap-5">
+                  <div className="w-12 h-12 rounded-xl bg-background shadow-neu flex items-center justify-center text-primary shrink-0 transition-transform group-hover:scale-105">
+                    <Smartphone size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-foreground mb-1">SMS Alerts</h3>
+                    <p className="text-xs font-semibold text-muted-foreground leading-relaxed max-w-md">
+                      Receive critical token calls and "leave now" reminders directly via text message.
+                    </p>
+                  </div>
+                </div>
+                <NeumorphicToggle checked={preferences.sms} onChange={() => handleToggle('sms')} />
+              </div>
+
+              {/* Email */}
+              <div className="bg-background shadow-neu-inset hover:shadow-neu rounded-3xl p-6 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-0 group">
+                <div className="flex items-start gap-5">
+                  <div className="w-12 h-12 rounded-xl bg-background shadow-neu flex items-center justify-center text-emerald-500 shrink-0 transition-transform group-hover:scale-105">
+                    <Mail size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-foreground mb-1">Email Confirmations</h3>
+                    <p className="text-xs font-semibold text-muted-foreground leading-relaxed max-w-md">
+                      Get detailed digital token receipts and end-of-service completion summaries.
+                    </p>
+                  </div>
+                </div>
+                <NeumorphicToggle checked={preferences.email} onChange={() => handleToggle('email')} />
+              </div>
+
+              {/* Push Notifications */}
+              <div className="bg-background shadow-neu-inset hover:shadow-neu rounded-3xl p-6 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-0 group">
+                <div className="flex items-start gap-5">
+                  <div className="w-12 h-12 rounded-xl bg-background shadow-neu flex items-center justify-center text-purple-500 shrink-0 transition-transform group-hover:scale-105">
+                    <AlertCircle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-base text-foreground mb-1">Push & Audio Chimes</h3>
+                    <p className="text-xs font-semibold text-muted-foreground leading-relaxed max-w-md">
+                      Instant floating notifications and audio sound chimes when it is your turn at the counter.
+                    </p>
+                  </div>
+                </div>
+                <NeumorphicToggle checked={preferences.push} onChange={() => handleToggle('push')} />
+              </div>
+
+              <div className="pt-8 flex flex-col sm:flex-row items-center gap-4">
+                <button
+                  onClick={savePreferences}
+                  disabled={saving}
+                  className="w-full sm:flex-1 h-16 bg-background shadow-neu hover:shadow-neu-hover active:shadow-neu-inset rounded-2xl text-sm uppercase font-black tracking-widest text-primary flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed border-0"
+                >
+                  {saving ? (
+                    <span className="flex items-center"><span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-3"></span> Saving...</span>
+                  ) : (
+                    <span className="flex items-center"><Save size={18} className="mr-3" /> Update Preferences</span>
+                  )}
+                </button>
+                
+                {saved && (
+                  <div className="w-full sm:w-auto h-16 px-6 bg-background shadow-neu-inset rounded-2xl flex items-center justify-center border-2 border-emerald-500/20 text-emerald-500 text-xs font-black uppercase tracking-widest transition-all">
+                    <CheckCircle2 size={16} className="mr-2" /> Saved
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
-# QueueLess Government Office
+# SamaySetu Government Office
 
-QueueLess is an advanced, AI-powered digital queue management system designed for government offices and public service organizations. It eliminates physical waiting lines, improves service efficiency, and provides citizens with real-time updates and ML-driven wait time predictions.
+SamaySetu is an advanced, AI-powered digital queue management system designed for government offices and public service organizations. It eliminates physical waiting lines, improves service efficiency, and provides citizens with real-time updates and ML-driven wait time predictions.
 
 ## 🚀 Features
 

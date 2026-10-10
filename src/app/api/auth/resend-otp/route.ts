@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import { User } from '@/models/User';
 import { sendMail } from '@/lib/mail';
 
-const generateResetOtpTemplate = (otp: string) => `
+const generateOtpTemplate = (otp: string) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -24,14 +24,14 @@ const generateResetOtpTemplate = (otp: string) => `
       <h1>SamaySetu</h1>
     </div>
     <div class="content">
-      <h2 style="margin-top: 0; color: #0f172a;">Password Reset Request</h2>
-      <p style="font-size: 16px; line-height: 1.5;">We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed.</p>
+      <h2 style="margin-top: 0; color: #0f172a;">Verify your email address</h2>
+      <p style="font-size: 16px; line-height: 1.5;">Thank you for registering with SamaySetu. Please use the following One-Time Password (OTP) to complete your registration process.</p>
       
       <div class="otp-box">
         <p class="otp-code">${otp}</p>
       </div>
       
-      <p style="font-size: 14px; color: #64748b;">This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+      <p style="font-size: 14px; color: #64748b;">This code will expire in 10 minutes. If you did not request this code, please ignore this email.</p>
     </div>
     <div class="footer">
       &copy; ${new Date().getFullYear()} SamaySetu. All rights reserved.
@@ -53,7 +53,11 @@ export async function POST(req: NextRequest) {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json({ success: true, message: 'If the email exists, an OTP has been sent.' });
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+    }
+
+    if (user.isVerified) {
+      return NextResponse.json({ success: false, message: 'User is already verified' }, { status: 400 });
     }
 
     // Generate 6-digit OTP
@@ -65,15 +69,15 @@ export async function POST(req: NextRequest) {
     await user.save();
 
     // Send OTP Email
-    await sendMail(email, 'SamaySetu Password Reset', generateResetOtpTemplate(otp));
+    await sendMail(email, 'Your SamaySetu Resend OTP', generateOtpTemplate(otp));
 
     return NextResponse.json({
       success: true,
-      message: 'If the email exists, an OTP has been sent.',
+      message: 'OTP resent successfully.',
     });
 
   } catch (error: any) {
-    console.error('Forgot password error:', error);
+    console.error('Resend OTP error:', error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

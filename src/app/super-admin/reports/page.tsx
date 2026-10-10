@@ -30,7 +30,7 @@ function csvCell(value: unknown) {
 
 function createReportCsv(report: ReportRecord) {
   const rows: unknown[][] = [
-    ['QueueLess System Report'],
+    ['SamaySetu System Report'],
     ['Report Name', report.name],
     ['Report Type', report.reportType || 'CUSTOM'],
     ['Generated At', new Date(report.createdAt).toISOString()],
@@ -61,7 +61,7 @@ function downloadReport(report: ReportRecord) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${report.name.replace(/[^a-z0-9-_]+/gi, '_') || 'queueless_report'}.csv`;
+  link.download = `${report.name.replace(/[^a-z0-9-_]+/gi, '_') || 'samaysetu_report'}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -125,7 +125,7 @@ export default function ReportsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Generated Reports</h2>
-          <p className="text-sm text-slate-500">Reports generated from actual QueueLess token, office, and service records.</p>
+          <p className="text-sm text-slate-500">Reports generated from actual SamaySetu token, office, and service records.</p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700" onClick={generateReport} disabled={generating}>
           {generating ? <Loader2 size={18} className="mr-2 animate-spin" /> : <FileText size={18} className="mr-2" />}

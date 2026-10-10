@@ -352,7 +352,7 @@ export async function getComprehensiveQueueAnalytics(
         level: 'LOW',
         historical_rate: 0.05,
         historical_no_shows_count: 0,
-        safeguard_notice: 'Non-punitive metric. QueueLess never uses no-show risk to reduce priority or deny service.',
+        safeguard_notice: 'Non-punitive metric. SamaySetu never uses no-show risk to reduce priority or deny service.',
         source: 'STATISTICAL_FALLBACK'
       },
       queue_abandonment_risk: {
